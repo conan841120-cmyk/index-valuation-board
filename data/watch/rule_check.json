@@ -1,5 +1,5 @@
 {
- "checked_at": "2026-09-27 21:33:35",
+ "checked_at": "2026-09-27 13:44:02",
  "article": {
   "title": "【2026-09-27】A股+美股+港股 核心指数估值",
   "url": "http://mp.weixin.qq.com/s?__biz=Mzk2NDA3Mzk2NA==&mid=2247513441&idx=1&sn=c2b9ad02d6b5cf5a0a78cfa7b57eb1cf&chksm=c47bf5e2f30c7cf42dfb5aa08e536a4719a672eeb047daabfdd64add68b8313e69f88123e936#rd",
@@ -97,7 +97,7 @@
   {
    "image": "08.png",
    "source": "文章配图 8",
-   "ocr_header": "中证红利 000922.CS! 5469.40 -0.27% 历史PE/PB",
+   "ocr_header": "中证红利 000922.CS1 5469.40 -0.27% 历史PE/PB",
    "index_key": "csi_dividend",
    "index_name": "中证红利",
    "author_metric": "股息率",
@@ -109,7 +109,7 @@
   {
    "image": "09.png",
    "source": "文章配图 9",
-   "ocr_header": "恒生指数 HSI.H| 24761.13 -0.29% 历史PE/PB",
+   "ocr_header": "恒生指数 HSI.H| 24761.13 -0.29% ，历史PE/PB",
    "index_key": null,
    "index_name": null,
    "author_metric": "市盈率TTM",
@@ -121,7 +121,7 @@
   {
    "image": "10.png",
    "source": "文章配图 10",
-   "ocr_header": "恒生科技 HSTECH.HI 4361.13 -0.41% 历史PE/PB",
+   "ocr_header": "恒生科技 HSTECH.HI 4361.13 -0.41% ，历史PE/PB",
    "index_key": null,
    "index_name": null,
    "author_metric": "市销率TTM",
@@ -133,7 +133,7 @@
   {
    "image": "11.png",
    "source": "文章配图 11",
-   "ocr_header": "自由现金流 980092.CNI 4974.94 -0.54% 历史PE/PB",
+   "ocr_header": "自由现金流 980092.CNI 4974.94 -0.54% | 历史PE/PB",
    "index_key": null,
    "index_name": null,
    "author_metric": "市盈率TTM",
@@ -205,7 +205,7 @@
   {
    "image": "17.png",
    "source": "文章配图 17",
-   "ocr_header": "沪深300 399300.SZ 4439.14 -1.73% ，历史PE/PB",
+   "ocr_header": "沪深300 399300.SZ 4439.14 -1.73% 历史PE/PB",
    "index_key": null,
    "index_name": null,
    "author_metric": "市盈率TTM",
@@ -217,7 +217,7 @@
   {
    "image": "18.png",
    "source": "文章配图 18",
-   "ocr_header": "红利质量 931468.CS| 32175.64 -1.80% ，历史PE/PB",
+   "ocr_header": "红利质量 931468.CSI 32175.64 -1.80% ，历史PE/PB",
    "index_key": null,
    "index_name": null,
    "author_metric": "市盈率TTM",
