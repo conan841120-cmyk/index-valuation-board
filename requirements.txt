@@ -1,0 +1,6 @@
+requests>=2.31
+pandas>=2.0
+numpy>=1.24
+xlrd>=2.0
+openpyxl>=3.1
+Pillow>=10.0

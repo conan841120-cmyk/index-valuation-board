@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>今天贵不贵 · 五个指数的估值位置</title>
+<!--
+  方向 C · 数据人本主义（最佳设计师：Giorgia Lupi / Pentagram — Data Humanism）
+  做法：不用工具栏、不用图例，把判断写成句子，把「历史分布」画成看得见的密度；
+  每个指数一段：一句结论 + 一把估值尺（历史分布柱 + 三条判据刻度 + 当前游标）+ 一条价格上下文线。
+  色彩论证：暖米纸底；判据用赤陶红（贵）／橄榄绿（便宜）／灰棕（中位）三色，取自旧账簿与植物标本的色记忆，
+  全部压到低 chroma；价格线用靛蓝与暖色系拉开色相。分布柱按语义着色（便宜侧绿、贵侧红、区间内灰）。
+-->
+<style>
+  :root{
+    --paper:#FBF7F0; --ink:#221E1A; --dim:#6E6455; --faint:#BFB4A3;
+    --hot:#B4553F; --cold:#6B7F52; --mid:#9A9184; --price:#4A6B8A; --rule:#E4DACA; --band:#F1EDE3;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"PingFang SC","Hiragino Sans GB",system-ui,sans-serif;font-size:14.5px;line-height:1.7}
+  .mono{font-family:Menlo,ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  .sheet{max-width:1180px;margin:0 auto;padding:34px 40px 40px}
+
+  header.head{padding-bottom:22px;border-bottom:1px solid var(--rule)}
+  .kicker{font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+  h1{font-family:"Songti SC","STSong",Georgia,serif;font-size:40px;line-height:1.24;margin:14px 0 10px;font-weight:400;max-width:21em}
+  h1 b{font-weight:400;color:var(--hot)}
+  .head .sub{color:var(--dim);font-size:13.5px;max-width:46em}
+  .switch{display:flex;gap:18px;margin-top:18px;font-size:12px;letter-spacing:.1em;color:var(--dim)}
+  .switch button{all:unset;cursor:pointer;padding-bottom:2px;border-bottom:1px solid transparent}
+  .switch button[aria-current="true"]{color:var(--ink);border-color:var(--ink)}
+
+  .entry{display:grid;grid-template-columns:330px 1fr;gap:46px;padding:36px 0 32px;border-bottom:1px solid var(--rule)}
+  .entry:last-of-type{border-bottom:0}
+  .who h2{font-family:"Songti SC","STSong",serif;font-size:25px;margin:0 0 3px;font-weight:700}
+  .who .code{font-size:11.5px;color:var(--faint);letter-spacing:.08em}
+  .say{margin:14px 0 16px;font-size:15.5px;line-height:1.72}
+  .say .hot{color:var(--hot)} .say .cold{color:var(--cold)}
+  .keys{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:13px;border-top:1px solid var(--rule);padding-top:10px}
+  .keys dt{color:var(--dim)} .keys dd{margin:0;text-align:right}
+  .keys .approx{font-size:11px;color:var(--hot);letter-spacing:.03em}
+  .note{margin-top:12px;font-size:11.5px;color:var(--dim);line-height:1.72}
+
+  figure{margin:0}
+  .fig-cap{margin-top:9px;font-size:11.5px;color:var(--dim);display:flex;justify-content:space-between;gap:16px}
+  .spark-cap{font-size:11px;color:var(--faint);letter-spacing:.06em;margin-top:6px}
+  svg{display:block;width:100%;height:auto;overflow:visible}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <header class="head">
+    <div class="kicker mono">估值位置 · 每周一次</div>
+    <h1 id="headline"></h1>
+    <div class="sub" id="headSub"></div>
+    <div class="switch mono" id="switch"></div>
+  </header>
+  <main id="entries"></main>
+  <footer class="note" id="foot" style="margin-top:26px;border-top:1px solid var(--rule);padding-top:14px"></footer>
+</div>
+
+<script><!--DATA--></script>
+<script>
+(function(){
+  var D = window.DASHBOARD;
+  var st = {win: D.default_window};
+  var C = {hot:'#B4553F', cold:'#6B7F52', mid:'#9A9184', price:'#4A6B8A',
+           faint:'#BFB4A3', dim:'#6E6455', rule:'#E4DACA', band:'#F1EDE3'};
+  function fmt(v,d){ return v===null||v===undefined?'—':Number(v).toFixed(d===undefined?2:d); }
+  function grp(v){ return Number(v).toLocaleString('en-US',{maximumFractionDigits:0}); }
+  function slice(i,win){ var v=i.views[win]||{start:0}; return i.series.slice(v.start); }
+
+  /* 历史分布：把「历史上多半待在哪个价位」画成可读的密度 */
+  function histogram(values, bins, lo, hi){
+    var h = new Array(bins).fill(0), span=(hi-lo)||1;
+    values.forEach(function(v){
+      h[Math.min(bins-1, Math.max(0, Math.floor((v-lo)/span*bins)))]++;
+    });
+    var max = Math.max.apply(null, h) || 1;
+    return h.map(function(c){ return c/max; });
+  }
+  function scale(v, lo, hi, x0, x1){ return x0 + (v-lo)/((hi-lo)||1)*(x1-x0); }
+
+  /* ---------------- 估值尺 ---------------- */
+  function ruler(i, s, pts, w){
+    var inv = i.direction === 'inverse';
+    var vals = pts.map(function(p){return p.value;});
+    var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+    var padL = 8, padR = 8, x0 = padL, x1 = w - padR;
+    var base = 124, barMax = 58, bins = 46, H = 196;
+    var hist = histogram(vals, bins, lo, hi), barW = (x1-x0)/bins;
+
+    var xOpp = scale(s.opportunity, lo, hi, x0, x1), xDan = scale(s.danger, lo, hi, x0, x1);
+    var lo1 = Math.min(xOpp, xDan), hi1 = Math.max(xOpp, xDan);
+
+    /* 合理区间底带 */
+    var band = '<rect x="'+lo1.toFixed(1)+'" y="'+(base-barMax-12)+'" width="'+Math.max(1,(hi1-lo1)).toFixed(1)+
+      '" height="'+(barMax+18)+'" fill="'+C.band+'"/>';
+
+    /* 分布柱：便宜侧橄榄、贵侧赤陶、区间内灰 —— 颜色本身就是判断 */
+    var bars = hist.map(function(f,k){
+      var x = x0 + k*barW, cx = x + barW/2, h = Math.max(1.8, f*barMax);
+      var col = (cx >= lo1 && cx <= hi1) ? C.faint : ((inv ? cx > hi1 : cx < lo1) ? C.cold : C.hot);
+      return '<rect x="'+(x+0.4).toFixed(2)+'" y="'+(base-h).toFixed(2)+'" width="'+Math.max(1,barW-0.8).toFixed(2)+
+        '" height="'+h.toFixed(2)+'" fill="'+col+'" opacity="'+(0.28+0.55*f).toFixed(2)+'"/>';
+    }).join('');
+
+    function tick(value, label, color, row){
+      var x = scale(value, lo, hi, x0, x1), y = base + 20 + row*17;
+      return '<line x1="'+x.toFixed(1)+'" y1="'+(base-4)+'" x2="'+x.toFixed(1)+'" y2="'+(base+13)+
+        '" stroke="'+color+'" stroke-width="1"/>'+
+        '<text x="'+x.toFixed(1)+'" y="'+y+'" fill="'+color+'" font-size="11" font-family="Menlo, monospace" '+
+        'text-anchor="middle">'+label+' '+fmt(value,i.digits)+'</text>';
+    }
+
+    var cx = scale(s.current, lo, hi, x0, x1);
+    var current =
+      '<line x1="'+cx.toFixed(1)+'" y1="'+(base-barMax-30)+'" x2="'+cx.toFixed(1)+'" y2="'+(base+9)+
+        '" stroke="'+C.price+'" stroke-width="1.2" stroke-dasharray="3 3"/>'+
+      '<circle cx="'+cx.toFixed(1)+'" cy="'+base+'" r="9" fill="none" stroke="'+C.price+'" stroke-width="1" opacity="0.3"/>'+
+      '<circle cx="'+cx.toFixed(1)+'" cy="'+base+'" r="4.8" fill="'+C.price+'"/>'+
+      '<text x="'+cx.toFixed(1)+'" y="'+(base-barMax-38)+'" fill="'+C.price+'" font-size="14" font-weight="600" '+
+        'font-family="Menlo, monospace" text-anchor="middle">'+fmt(s.current,i.digits)+
+        '<tspan font-size="10.5" fill="'+C.dim+'"> 当前</tspan></text>';
+
+    var axis =
+      '<line x1="'+x0+'" y1="'+base+'" x2="'+x1+'" y2="'+base+'" stroke="'+C.rule+'" stroke-width="1"/>'+
+      '<text x="'+x0+'" y="'+(H-6)+'" fill="'+C.faint+'" font-size="10.5" font-family="Menlo, monospace">最低 '+fmt(lo,i.digits)+'</text>'+
+      '<text x="'+x1+'" y="'+(H-6)+'" fill="'+C.faint+'" font-size="10.5" font-family="Menlo, monospace" text-anchor="end">最高 '+fmt(hi,i.digits)+'</text>';
+
+    return '<svg viewBox="0 0 '+w+' '+H+'" role="img" aria-label="'+i.name+' 十年估值分布与判据线">'+
+      band + bars + axis + tick(s.opportunity,'机会值',C.cold,0) +
+      tick(s.median,'中位数',C.mid,1) + tick(s.danger,'危险值',C.hot,0) + current + '</svg>';
+  }
+
+  /* ---------------- 价格上下文线 ---------------- */
+  function spark(pts, w, h){
+    var levels = pts.map(function(p){return p.level;}).filter(function(v){return v!==null;});
+    if(levels.length < 2){ return ''; }
+    var lo=Math.min.apply(null,levels), hi=Math.max.apply(null,levels);
+    var step=(w-64)/(levels.length-1);
+    var d = levels.map(function(v,k){
+      return (k?'L':'M')+(1+k*step).toFixed(1)+' '+((h-10)-((v-lo)/((hi-lo)||1))*(h-24)).toFixed(1);
+    }).join(' ');
+    return '<svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="指数点位">'+
+      '<line x1="0" y1="'+(h-6)+'" x2="'+(w-56)+'" y2="'+(h-6)+'" stroke="'+C.rule+'" stroke-width="1"/>'+
+      '<path d="'+d+'" fill="none" stroke="'+C.price+'" stroke-width="1"/>'+
+      '<text x="'+(w-50)+'" y="13" fill="'+C.dim+'" font-size="10.5" font-family="Menlo, monospace">'+grp(hi)+'</text>'+
+      '<text x="'+(w-50)+'" y="'+(h-8)+'" fill="'+C.dim+'" font-size="10.5" font-family="Menlo, monospace">'+grp(lo)+'</text></svg>';
+  }
+
+  function stance(i,s){
+    var inv = i.direction==='inverse';
+    var nearDanger = inv ? (s.current-s.danger) : (s.danger-s.current);
+    var toChance  = inv ? (s.opportunity-s.current) : (s.current-s.opportunity);
+    var cls = s.zone==='低估'?'cold':(s.zone==='高估'?'hot':'');
+    var line = i.metric_label+' 的十年分位点是 <b>'+fmt(s.percentile)+'%</b>，落在「<span class="'+cls+'">'+s.zone+'</span>」区间。';
+    line += toChance>=0 ? ' 离机会值还差 '+fmt(Math.abs(toChance),i.digits)+'。'
+                        : ' 已经越过机会值 '+fmt(Math.abs(toChance),i.digits)+'。';
+    if(nearDanger<=0){ line += ' 同时已越过危险值 '+fmt(Math.abs(nearDanger),i.digits)+'。'; }
+    return line;
+  }
+
+  function renderAll(){
+    var ranked = D.indices.map(function(i){ return {i:i, s:i.stats[st.win]||i.stats[D.default_window]}; })
+      .sort(function(a,b){ return b.s.percentile - a.s.percentile; });
+    var nearest = D.indices.map(function(i){
+        var s=i.stats[st.win]||i.stats[D.default_window];
+        var d = i.direction==='inverse' ? (s.current-s.danger) : (s.danger-s.current);
+        return {i:i, s:s, d:d};
+      }).sort(function(a,b){ return a.d-b.d; })[0];
+    document.getElementById('headline').innerHTML =
+      '五个指数里，<b>'+ranked[0].i.name+'</b> 的位置最高（分位点 '+fmt(ranked[0].s.percentile)+'%）；' +
+      '最该留意的是 <b>'+nearest.i.name+'</b>，它距危险值只剩 '+fmt(Math.abs(nearest.d),nearest.i.digits)+'。';
+    document.getElementById('headSub').innerHTML =
+      '数据截止 '+D.indices[0].data_date+'（周频）。每个指数下面那条横轴是它的十年估值分布：柱子越高，说明历史上待在这个价位的周数越多；' +
+      '灰底带是判据之间的「合理区间」，蓝点是当前值。价格线只作上下文，不作判断。';
+
+    var sw = document.getElementById('switch'); sw.innerHTML='';
+    D.windows.forEach(function(w){
+      var b=document.createElement('button'); b.textContent = w==='ALL'?'上市以来':w;
+      b.setAttribute('aria-current', w===st.win?'true':'false');
+      b.onclick=function(){ st.win=w; renderAll(); }; sw.appendChild(b);
+    });
+
+    var box = document.getElementById('entries'); box.innerHTML='';
+    D.indices.forEach(function(i){
+      var win = i.stats[st.win] ? st.win : (i.recommended_window||D.default_window);
+      var s = i.stats[win], pts = slice(i,win);
+      var sec = document.createElement('section');
+      sec.className='entry';
+      var unit = (i.metric==='pe'||i.metric==='pb')?' ×':' %';
+      var approx = i.flag==='derived' ? ' <span class="approx mono">≈推导</span>' : '';
+      var note;
+      if(i.flag==='derived'){
+        note = '<span class="approx mono">≈</span> 股息率历史为推导序列，当前值 '+fmt(s.current,i.digits)+
+          '% 与官方一致；阈值偏差 ≤5%、分位点约 ±6pp；官方真实值自 '+(i.value_meta.real_window_start||'—')+' 起累积。';
+      } else if(i.flag==='partial'){
+        note = '<span class="approx mono">!</span> 真实市盈率仅自 '+(i.value_meta.daily_first_date||'')+
+          ' 起（指数 '+(i.value_meta.index_launch_date||'')+' 发布，估值指标不回溯）；更早不做推算，分位点只反映真实区间内的相对位置。';
+      } else {
+        note = '估值序列为第三方真实周频数据，口径与理杏仁「历史PE/PB」页一致。';
+      }
+      sec.innerHTML =
+        '<div class="who">'+
+          '<h2>'+i.name+'</h2><div class="code mono">'+i.code+'　·　'+i.metric_label+
+            (i.direction==='inverse'?'（越高越便宜）':'（越高越贵）')+'</div>'+
+          '<div class="say">'+stance(i,s)+'</div>'+
+          '<dl class="keys">'+
+            '<dt>当前值</dt><dd class="mono">'+fmt(s.current,i.digits)+unit+'</dd>'+
+            '<dt>分位点'+approx+'</dt><dd class="mono">'+fmt(s.percentile)+' %</dd>'+
+            '<dt>危险值'+approx+'</dt><dd class="mono">'+fmt(s.danger,i.digits)+'</dd>'+
+            '<dt>中位数</dt><dd class="mono">'+fmt(s.median,i.digits)+'</dd>'+
+            '<dt>机会值'+approx+'</dt><dd class="mono">'+fmt(s.opportunity,i.digits)+'</dd>'+
+            '<dt>指数点位</dt><dd class="mono">'+fmt(s.level,2)+'　('+(i.change_pct>0?'+':'')+fmt(i.change_pct)+'%)</dd>'+
+          '</dl>'+
+          '<div class="note">'+note+'</div>'+
+        '</div>'+
+        '<figure>'+
+          '<div id="ruler-'+i.key+'"></div>'+
+          '<div class="fig-cap"><span>十年估值分布（'+s.n+' 个周频点，'+(win==='ALL'?'上市以来':win)+
+            '）　柱子颜色＝该价位属于便宜／合理／贵哪一段</span><span class="mono">'+s.start+' → '+s.end+'</span></div>'+
+          '<div class="spark-cap mono">指数点位（同窗口，仅作上下文）</div>'+
+          '<div id="spark-'+i.key+'"></div>'+
+        '</figure>';
+      box.appendChild(sec);
+      document.getElementById('ruler-'+i.key).innerHTML = ruler(i, s, pts, 720);
+      document.getElementById('spark-'+i.key).innerHTML = spark(pts, 720, 84);
+    });
+
+    document.getElementById('foot').innerHTML =
+      '数据来源：蛋卷（雪球系）· 中证指数官方 · 腾讯行情　｜　统计口径：中位数 ⌊0.50n⌋、危险值 ⌊0.80n⌋、机会值 ⌊0.20n⌋' +
+      '（股息率为反向指标，方向对调）；分位点＝小于当前值的样本占比。<br>本页为个人研究用途，不含任何商标或水印，不构成投资建议。';
+  }
+  renderAll();
+})();
+</script>
+</body>
+</html>

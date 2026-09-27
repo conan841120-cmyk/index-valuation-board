@@ -1,0 +1,21 @@
+__pycache__/
+*.pyc
+.DS_Store
+
+# 抓取过程的原始响应（体积大，可由 raw_inputs.json 重放，不入库）
+data/raw/
+
+# 构建产物（每次运行都会重新生成；Pages 由 CI 产物直接部署）
+data/dashboard.json
+data/series/*.json
+!data/series/raw_inputs.json
+docs/
+
+# outputs 只保留口径报告：单文件页面体积大、对照图含第三方截图，均留在本地
+outputs/*
+!outputs/口径与误差报告.md
+
+# 第三方版权内容：作者文章配图、v1 渲染图、当日配图
+data/reference/article_images/
+data/reference/v1_screenshots/
+data/watch/images/

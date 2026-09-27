@@ -1,0 +1,78 @@
+name: daily-valuation
+
+# 北京时间每天 08:30（UTC 00:30）跑一次：抓数据 → 重算 → 口径核对 → 生成页面 → 发布 GitHub Pages
+on:
+  schedule:
+    - cron: '30 0 * * *'
+  workflow_dispatch:        # 也可在 Actions 页面手动触发
+
+permissions:
+  contents: write           # 回写快照（官方估值窗口累积、口径核对结论）
+  pages: write              # 发布 Pages
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: 安装 Python 依赖
+        run: pip install -r requirements.txt
+
+      - name: 安装 OCR（口径监控用）
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq tesseract-ocr tesseract-ocr-chi-sim
+
+      - name: 抓取数据 + 重算（单源失败自动沿用上次快照）
+        run: python compute/run_all.py
+
+      - name: 口径变化监控（失败不影响主流程）
+        continue-on-error: true
+        run: python tools/watch_rule.py
+
+      - name: 生成口径报告
+        run: python compute/report.py
+
+      - name: 渲染单文件看板 → docs/index.html
+        run: python web/render.py --out docs/index.html
+
+      - name: 回归测试（不通过则中止，避免发布错数据）
+        run: python -m unittest discover -s tests -v
+
+      - name: 回写快照
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "无快照变化"
+          else
+            git commit -m "chore(snapshot): $(date -u +%F) 数据快照与口径核对"
+            git push
+          fi
+
+      - name: 上传 Pages 产物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

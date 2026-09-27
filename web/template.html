@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>指数估值日报</title>
+<!--
+  视觉方向：B · 财经数据新闻版面（现实参照：FT / Reuters 数据新闻）
+  色彩论证：底色取自财经报纸纸张的暖奶油；强调色用低饱和油墨红（头版传统色）+ 靛蓝（点位线）+ 橄榄（便宜侧），
+  全部压低 chroma 模拟凸版印刷；中性色写成明度序列（墨黑 / 灰棕 / 浅砂 / 纸白）。
+  字体：刊头与指数名用宋体（Songti SC）压场，正文黑体，数字与标签用等宽 Menlo。
+-->
+<style>
+  :root{
+    --paper:#F7F3EC; --ink:#14100C; --dim:#6A6156; --faint:#C9BFB0;
+    --red:#8A1F12; --indigo:#2E4A6B; --olive:#5C6B45;
+    --rule:#DED6C8; --rule2:#14100C; --grid:#EAE3D6;
+    --area:rgba(46,74,107,0.15); --areaEdge:#8FA6BB;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"PingFang SC","Hiragino Sans GB",system-ui,sans-serif;font-size:14px;line-height:1.62}
+  .mono{font-family:Menlo,ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  .wrap{max-width:1440px;margin:0 auto;padding:20px 32px 26px}
+
+  /* ---------- 口径报警 ---------- */
+  #alert:empty{display:none}
+  #alert .alarm{border:2px solid var(--red);background:#FBF1EE;color:var(--red);font-size:13px;
+    padding:9px 12px;margin-bottom:14px;line-height:1.7}
+
+  /* ---------- 刊头 ---------- */
+  .masthead{border-top:3px solid var(--rule2);border-bottom:1px solid var(--rule2);padding:12px 0 10px;
+    display:flex;justify-content:space-between;align-items:flex-end;gap:24px}
+  .masthead h1{font-family:"Songti SC","STSong",Georgia,serif;font-size:37px;line-height:1;margin:0}
+  .masthead .deck{font-size:12.5px;color:var(--dim);margin-top:7px}
+  .masthead .meta{text-align:right;font-size:11.5px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;line-height:1.7}
+  .masthead .meta b{color:var(--ink);font-weight:400}
+
+  /* ---------- 指数索引 ---------- */
+  .rail{display:flex;gap:26px;border-bottom:1px solid var(--rule2);padding:9px 0 0}
+  .rail button{all:unset;cursor:pointer;padding-bottom:8px;border-bottom:3px solid transparent;font-size:14px;color:var(--dim)}
+  .rail button[aria-current="true"]{color:var(--ink);font-weight:700;border-color:var(--red)}
+  .rail button:hover{color:var(--ink)}
+  .rail .code{font-size:11px;color:var(--faint);margin-left:6px;letter-spacing:.04em}
+
+  /* ---------- 控件条（编辑式：细线 + 小型大写） ---------- */
+  .controls{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 26px;padding:10px 0;border-bottom:1px solid var(--rule)}
+  .ctl-group{display:flex;align-items:baseline;gap:10px}
+  .ctl-label{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--faint)}
+  .chips{display:inline-flex;align-items:baseline;gap:14px}
+  .chip{cursor:pointer;font-size:12px;color:var(--dim);border-bottom:1px solid transparent;padding-bottom:1px}
+  .chip[aria-current="true"]{color:var(--ink);border-color:var(--ink)}
+  .chip:hover{color:var(--ink)}
+  .chip:disabled{color:var(--faint);cursor:not-allowed}
+  .ctl-right{margin-left:auto;display:flex;gap:8px}
+  .btn{border:1px solid var(--rule);background:transparent;color:var(--dim);font-size:11.5px;
+    padding:3px 10px;cursor:pointer;font-family:inherit}
+  .btn.on,.btn:hover{border-color:var(--ink);color:var(--ink)}
+  select.plain{border:0;background:transparent;font-family:inherit;font-size:12px;color:var(--ink);cursor:pointer;outline:none}
+
+  /* ---------- 主图区 ---------- */
+  .lead{display:grid;grid-template-columns:1fr 320px;gap:30px;padding:18px 0 8px;border-bottom:1px solid var(--rule)}
+  .lead-main{min-width:0}
+  .lead-head{display:flex;align-items:baseline;gap:12px}
+  .lead-head h2{font-family:"Songti SC","STSong",serif;font-size:27px;margin:0;font-weight:700}
+  .lead-head .code{font-size:12px;color:var(--dim);letter-spacing:.06em}
+  .lead-head .price{margin-left:auto;font-size:13px;color:var(--dim);letter-spacing:.02em}
+  .stance{font-size:14.5px;margin:7px 0 2px}
+  .stance .hot{color:var(--red)} .stance .cold{color:var(--olive)}
+  #chart{height:330px;margin-top:4px}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:11.5px;color:var(--dim);
+    border-top:1px solid var(--rule);padding-top:8px;margin-top:6px}
+  .legend span{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+  .legend span.off{color:var(--faint)}
+  .legend .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+  .legend .bar{width:14px;height:0;border-top:2px solid;display:inline-block}
+  .legend .dash{width:14px;height:0;border-top:1px dashed;display:inline-block}
+  .legend .tri{width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-bottom:8px solid #8A1F12;display:inline-block}
+
+  /* ---------- 读数表 ---------- */
+  table.read{width:100%;border-collapse:collapse;font-size:13px}
+  table.read caption{text-align:left;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);
+    padding-bottom:7px;border-bottom:1px solid var(--rule2)}
+  table.read tr{border-bottom:1px solid var(--rule)}
+  table.read td{padding:6px 0}
+  table.read td:last-child{text-align:right}
+  table.read tr:last-child{border-bottom:0}
+  .flag{font-size:11px;color:var(--red);letter-spacing:.04em}
+  .gear{color:var(--faint);cursor:pointer;font-size:10.5px;margin-left:4px}
+  .gear:hover{color:var(--red)}
+  .notes{margin-top:14px;border-top:1px solid var(--rule);padding-top:10px;font-size:11.5px;color:var(--dim);line-height:1.78}
+  .notes b{font-weight:400;color:var(--ink)}
+
+  /* ---------- 明细表 ---------- */
+  .detail{display:none;max-height:352px;overflow:auto;margin-top:6px}
+  table.dt{width:100%;border-collapse:collapse;font-size:12.5px}
+  table.dt th,table.dt td{border-bottom:1px solid var(--rule);padding:5px 8px;text-align:right}
+  table.dt th{position:sticky;top:0;background:var(--paper);color:var(--dim);font-weight:400;
+    font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+  table.dt td:first-child,table.dt th:first-child{text-align:left}
+
+  /* ---------- 小倍数 ---------- */
+  .grid-head{display:flex;justify-content:space-between;align-items:baseline;padding:16px 0 8px}
+  .grid-head h3{font-family:"Songti SC","STSong",serif;font-size:16px;margin:0;font-weight:700}
+  .grid-head span{font-size:11.5px;color:var(--dim)}
+  .multiples{display:grid;grid-template-columns:repeat(5,1fr);gap:18px}
+  .card{border-top:2px solid var(--rule2);padding-top:8px;cursor:pointer}
+  .card[aria-current="true"]{border-color:var(--red)}
+  .card .n{font-size:13.5px;font-weight:700}
+  .card .c{font-size:10.5px;color:var(--faint);letter-spacing:.06em}
+  .card .mini{height:104px;margin-top:4px}
+  .card .r{display:flex;justify-content:space-between;font-size:11.5px;color:var(--dim);margin-top:2px}
+  .card .r b{color:var(--ink);font-weight:400}
+
+  /* ---------- 页脚 ---------- */
+  .colophon{margin-top:22px;border-top:1px solid var(--rule2);padding-top:10px;font-size:11.5px;color:var(--dim);
+    display:flex;justify-content:space-between;gap:24px;line-height:1.8}
+  .colophon em{font-style:normal;color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="alert"></div>
+  <header class="masthead">
+    <div>
+      <h1>指数估值日报</h1>
+      <div class="deck">五个重点指数的估值位置、判据线与可信度　·　周频　·　单文件离线版</div>
+    </div>
+    <div class="meta mono" id="mastMeta"></div>
+  </header>
+
+  <nav class="rail" id="rail"></nav>
+
+  <div class="controls">
+    <span class="ctl-group"><span class="ctl-label mono">时间范围</span><span class="chips mono" id="ranges"></span></span>
+    <span class="ctl-group"><span class="ctl-label mono">指标</span><span class="chips mono" id="metrics"></span></span>
+    <span class="ctl-group"><span class="ctl-label mono">视图</span><span class="chips mono" id="views"></span></span>
+    <span class="ctl-group"><span class="ctl-label mono">均线</span>
+      <select class="plain mono" id="ma"><option value="0">无</option><option value="20">20 周</option><option value="60">60 周</option></select>
+    </span>
+    <span class="ctl-right">
+      <button class="btn mono" id="btnStats">统计</button>
+      <button class="btn mono" id="btnDetail">明细数据</button>
+      <button class="btn mono" id="btnExport">导出 CSV</button>
+    </span>
+  </div>
+
+  <section class="lead">
+    <div class="lead-main">
+      <div class="lead-head">
+        <h2 id="leadName"></h2>
+        <div class="code mono" id="leadCode"></div>
+        <div class="price mono" id="leadPrice"></div>
+      </div>
+      <div class="stance" id="stance"></div>
+      <div id="chart"></div>
+      <div class="detail" id="detail"></div>
+      <div class="legend mono" id="legend"></div>
+    </div>
+    <aside>
+      <table class="read" id="readTable"></table>
+      <div class="notes" id="notes"></div>
+    </aside>
+  </section>
+
+  <div class="grid-head">
+    <h3>五个指数并置</h3>
+    <span class="mono">点击任一栏切换上方主图　·　面积＝估值指标，折线＝指数点位</span>
+  </div>
+  <div class="multiples" id="multiples"></div>
+
+  <footer class="colophon">
+    <div id="colophonLeft"></div>
+    <div id="colophonRight" class="mono" style="text-align:right"></div>
+  </footer>
+</div>
+
+<script><!--ECHARTS--></script>
+<script><!--DATA--></script>
+<script><!--APPJS--></script>
+</body>
+</html>

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>指数估值日报</title>
+<!--
+  方向 B · 财经数据新闻（现实参照：FT / Reuters 数据新闻版面）
+  色彩论证：底色取自财经报纸纸张的暖奶油（oklch 0.96 / 0.012 / 85），
+  强调色用低饱和油墨红（报纸头版传统色）+ 靛蓝（点位线），全部压低 chroma 模拟凸版印刷；
+  中性色写成明度序列：墨黑 / 灰棕 / 浅砂 / 纸白。
+  字体：刊头与指数名用宋体（Songti SC）压场，正文黑体，数字与标签用等宽。
+-->
+<style>
+  :root{
+    --paper:#F7F3EC; --ink:#14100C; --dim:#6A6156; --faint:#C9BFB0;
+    --red:#8A1F12; --indigo:#2E4A6B; --olive:#5C6B45;
+    --rule:#DED6C8; --rule2:#14100C;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"PingFang SC","Hiragino Sans GB",system-ui,sans-serif;font-size:14px;line-height:1.62}
+  .mono{font-family:Menlo,ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  .serif{font-family:"Songti SC","STSong",Georgia,serif}
+  .wrap{max-width:1440px;margin:0 auto;padding:20px 32px 26px}
+
+  /* 刊头 */
+  .masthead{border-top:3px solid var(--rule2);border-bottom:1px solid var(--rule2);padding:12px 0 10px;
+    display:flex;justify-content:space-between;align-items:flex-end;gap:24px}
+  .masthead h1{font-family:"Songti SC","STSong",serif;font-size:37px;line-height:1;margin:0;letter-spacing:0}
+  .masthead .deck{font-size:12.5px;color:var(--dim);margin-top:7px;letter-spacing:.02em}
+  .masthead .meta{text-align:right;font-size:11.5px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase}
+  .masthead .meta b{color:var(--ink);font-weight:400}
+
+  /* 指数索引 */
+  .rail{display:flex;gap:26px;border-bottom:1px solid var(--rule2);padding:9px 0 0}
+  .rail button{all:unset;cursor:pointer;padding-bottom:8px;border-bottom:3px solid transparent;
+    font-size:14px;color:var(--dim)}
+  .rail button[aria-current="true"]{color:var(--ink);font-weight:700;border-color:var(--red)}
+  .rail button:hover{color:var(--ink)}
+  .rail .code{font-size:11px;color:var(--faint);margin-left:6px;letter-spacing:.04em}
+
+  /* 主体：展开主图 + 读数栏 */
+  .lead{display:grid;grid-template-columns:1fr 306px;gap:30px;padding:20px 0 6px;border-bottom:1px solid var(--rule)}
+  .lead-head{display:flex;justify-content:space-between;align-items:baseline;gap:16px}
+  .lead-head h2{font-family:"Songti SC","STSong",serif;font-size:27px;margin:0;font-weight:700}
+  .lead-head .code{font-size:12px;color:var(--dim);letter-spacing:.08em}
+  .stance{font-size:14.5px;color:var(--ink);margin:8px 0 2px}
+  .stance b{color:var(--red)}
+  .stance.inv b{color:var(--olive)}
+  .ranges{display:flex;gap:14px;font-size:11.5px;color:var(--dim);letter-spacing:.08em}
+  .ranges button{all:unset;cursor:pointer;border-bottom:1px solid transparent;padding-bottom:2px}
+  .ranges button[aria-current="true"]{color:var(--ink);border-color:var(--ink)}
+  #main{height:322px;margin-top:6px}
+
+  table.read{width:100%;border-collapse:collapse;font-size:13px}
+  table.read caption{text-align:left;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--dim);padding-bottom:7px;border-bottom:1px solid var(--rule2)}
+  table.read tr{border-bottom:1px solid var(--rule)}
+  table.read td{padding:6px 0}
+  table.read td:last-child{text-align:right;font-weight:400}
+  table.read tr:last-child{border-bottom:0}
+  table.read .flag{font-size:11px;color:var(--red);letter-spacing:.04em}
+  .readfoot{font-size:11.5px;color:var(--dim);margin-top:10px;line-height:1.7}
+
+  /* 小倍数 */
+  .grid-head{display:flex;justify-content:space-between;align-items:baseline;padding:16px 0 8px}
+  .grid-head h3{font-family:"Songti SC","STSong",serif;font-size:16px;margin:0;font-weight:700}
+  .grid-head span{font-size:11.5px;color:var(--dim)}
+  .multiples{display:grid;grid-template-columns:repeat(5,1fr);gap:18px}
+  .card{border-top:2px solid var(--rule2);padding-top:8px;cursor:pointer}
+  .card[aria-current="true"]{border-color:var(--red)}
+  .card .n{font-size:13.5px;font-weight:700}
+  .card .c{font-size:10.5px;color:var(--faint);letter-spacing:.06em}
+  .card .mini{height:104px;margin-top:4px}
+  .card .r{display:flex;justify-content:space-between;font-size:11.5px;color:var(--dim);margin-top:2px}
+  .card .r b{color:var(--ink);font-weight:400}
+
+  /* 页脚 */
+  .colophon{margin-top:22px;border-top:1px solid var(--rule2);padding-top:10px;
+    font-size:11.5px;color:var(--dim);display:flex;justify-content:space-between;gap:24px;line-height:1.8}
+  .colophon em{font-style:normal;color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <div>
+      <h1>指数估值日报</h1>
+      <div class="deck">五个重点指数的估值位置、判据线与可信度　·　周频　·　单文件离线版</div>
+    </div>
+    <div class="meta mono" id="mastMeta"></div>
+  </header>
+
+  <nav class="rail" id="rail"></nav>
+
+  <section class="lead">
+    <div>
+      <div class="lead-head">
+        <div>
+          <h2 id="leadName"></h2>
+          <div class="code mono" id="leadCode"></div>
+        </div>
+        <div class="ranges mono" id="ranges"></div>
+      </div>
+      <div class="stance" id="stance"></div>
+      <div id="main"></div>
+    </div>
+    <aside>
+      <table class="read" id="readTable"></table>
+      <div class="readfoot" id="readFoot"></div>
+    </aside>
+  </section>
+
+  <div class="grid-head">
+    <h3>五个指数并置</h3>
+    <span class="mono">点击任一栏切换上方主图　·　面积＝估值指标，线＝指数点位</span>
+  </div>
+  <div class="multiples" id="multiples"></div>
+
+  <footer class="colophon">
+    <div id="colophonLeft"></div>
+    <div id="colophonRight" class="mono" style="text-align:right"></div>
+  </footer>
+</div>
+
+<script><!--ECHARTS--></script>
+<script><!--DATA--></script>
+<script>
+(function(){
+  var D = window.DASHBOARD;
+  var C = {ink:'#14100C', dim:'#6A6156', faint:'#C9BFB0', red:'#8A1F12', indigo:'#2E4A6B',
+           olive:'#5C6B45', rule:'#DED6C8', area:'rgba(46,74,107,0.16)', grid:'#EAE3D6'};
+  var st = {key:D.indices[0].key, win:D.indices[0].recommended_window||D.default_window};
+  var mainChart = echarts.init(document.getElementById('main'));
+  var minis = {};
+  function cur(){ return D.indices.filter(function(i){return i.key===st.key;})[0]; }
+  function fmt(v,d){ return v===null||v===undefined?'—':Number(v).toFixed(d===undefined?2:d); }
+  function grp(v){ return Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function slice(i){ var v=i.views[st.win]||{start:0}; return {pts:i.series.slice(v.start), views:v}; }
+
+  function renderRail(){
+    var el=document.getElementById('rail'); el.innerHTML='';
+    D.indices.forEach(function(i){
+      var b=document.createElement('button');
+      b.setAttribute('aria-current', i.key===st.key?'true':'false');
+      b.innerHTML=i.name+'<span class="code mono">'+i.code+'</span>';
+      b.onclick=function(){ st.key=i.key; st.win=i.recommended_window||D.default_window; renderAll(); };
+      el.appendChild(b);
+    });
+  }
+  function renderRanges(){
+    var el=document.getElementById('ranges'); el.innerHTML=''; var i=cur();
+    D.windows.forEach(function(w){
+      if(!i.stats[w]) return;
+      var b=document.createElement('button'); b.textContent=w==='ALL'?'上市以来':w;
+      b.setAttribute('aria-current', w===st.win?'true':'false');
+      b.onclick=function(){ st.win=w; renderAll(); }; el.appendChild(b);
+    });
+  }
+  function stanceText(i,s){
+    var inv=i.direction==='inverse';
+    var cls='stance'+(inv?' inv':'');
+    var far = inv ? (s.opportunity-s.current) : (s.current-s.opportunity);
+    var near = inv ? (s.current-s.danger) : (s.danger-s.current);
+    var word = inv ? '股息率' : i.metric_label;
+    return '<div class="'+cls+'">'+word+' 处在 <b>'+s.zone+'</b> 区间：当前分位点 '+fmt(s.percentile)+
+      '%，距机会值 '+(far>=0?'仍差 '+fmt(Math.abs(far),i.digits):'已越过 '+fmt(Math.abs(far),i.digits))+
+      '，距危险值 '+(near>=0?'还有 '+fmt(Math.abs(near),i.digits):'已越过 '+fmt(Math.abs(near),i.digits))+'。</div>';
+  }
+  function renderReadTable(){
+    var i=cur(), s=i.stats[st.win]; var el=document.getElementById('readTable');
+    var unit = (i.metric==='pe'||i.metric==='pb')?' ×':' %';
+    var approx = i.flag==='derived'?' <span class="flag" title="推导值：实测阈值偏差≤5%">≈</span>':'';
+    var rows=[
+      ['当前值', fmt(s.current,i.digits)+unit, false],
+      ['分位点'+approx, fmt(s.percentile)+' %', true],
+      ['危险值'+approx, fmt(s.danger,i.digits), false],
+      ['中位数', fmt(s.median,i.digits), false],
+      ['机会值'+approx, fmt(s.opportunity,i.digits), false],
+      ['指数点位', grp(s.level), false],
+      ['最大值 / 最小值', fmt(s.max,i.digits)+' / '+fmt(s.min,i.digits), false],
+      ['平均值 · σ', fmt(s.mean,i.digits)+' · '+fmt(s.std,i.digits), false],
+      ['z 分数', fmt(s.zscore), false]
+    ];
+    el.innerHTML='<caption>读数　'+i.metric_label+'　·　'+(st.win==='ALL'?'上市以来':st.win)+'　·　n='+s.n+'</caption>'+
+      rows.map(function(r){return '<tr><td>'+r[0]+'</td><td class="mono">'+r[1]+'</td></tr>';}).join('');
+    var foot=[];
+    if(i.flag==='derived'){ foot.push('<span class="flag">≈</span> 股息率历史为推导序列，当前值 '+fmt(s.current,i.digits)+'% 为官方真实值；实测阈值偏差 ≤5%、分位点 ≈ ±6pp。'); }
+    if(i.flag==='partial'){ foot.push('<span class="flag">!</span> 真实市盈率仅自 '+(i.value_meta.daily_first_date||'')+' 起，更早不做推算；周频首点 '+(i.value_meta.weekly_first_date||'')+'。'); }
+    foot.push('统计口径：中位数 ⌊0.50n⌋、危险值 ⌊0.80n⌋、机会值 ⌊0.20n⌋（股息率为反向指标，方向对调）；分位点＝小于当前值的样本占比。');
+    document.getElementById('readFoot').innerHTML=foot.join('<br>');
+  }
+  function baseOption(points, s, opts){
+    var dates=points.map(function(p){return p.date;}), vals=points.map(function(p){return p.value;}),
+        levels=points.map(function(p){return p.level;});
+    var small = opts && opts.small;
+    var mark={silent:true,symbol:'none',label:{show:false},data:[
+      {yAxis:s.danger, lineStyle:{color:C.red,type:'dashed',width:1}},
+      {yAxis:s.median, lineStyle:{color:C.dim,type:'dashed',width:1},label:{show:false}},
+      {yAxis:s.opportunity, lineStyle:{color:C.olive,type:'dashed',width:1},label:{show:false}}
+    ]};
+    return {
+      animation:false,
+      grid: small?{left:2,right:2,top:4,bottom:4}:{left:48,right:52,top:10,bottom:26},
+      tooltip: small?{show:false}:{trigger:'axis',backgroundColor:'rgba(247,243,236,0.97)',
+        borderColor:C.rule, textStyle:{color:C.ink,fontSize:12,fontFamily:'Menlo, monospace'},
+        formatter:function(ps){ if(!ps.length)return ''; var k=ps[0].dataIndex,p=points[k];
+          var v=(opts&&opts.views&&opts.views.pct)?opts.views.pct[k]:null;
+          return p.date+'<br>'+fmt(p.value,2)+(v!==null&&v!==undefined?'<br>分位点 '+fmt(v)+'%':'')+
+            (p.level?'<br>点位 '+grp(p.level):''); }},
+      xAxis:{type:'category',data:dates,boundaryGap:false,axisLine:{lineStyle:{color:small?C.rule:C.dim}},
+        axisTick:{show:false},
+        axisLabel: small?{show:false}:{color:C.dim,fontSize:10.5,fontFamily:'Menlo, monospace',
+          interval:function(idx,v){return v.slice(5,7)==='01'&&idx>0&&idx<dates.length-2;},
+          formatter:function(v){return v.slice(2,4);}}},
+      yAxis:[
+        {type:'value',scale:true,splitNumber: small?2:4,axisLine:{show:false},axisTick:{show:false},
+          axisLabel: small?{show:false}:{color:C.dim,fontSize:10.5,fontFamily:'Menlo, monospace',formatter:function(v){return Number(v.toFixed(2));}},
+          splitLine:{show:!small,lineStyle:{color:C.grid}}},
+        {type:'value',scale:true,position:'right',axisLine:{show:false},axisTick:{show:false},
+          axisLabel: small?{show:false}:{color:C.dim,fontSize:10.5,fontFamily:'Menlo, monospace',
+            formatter:function(v){return Number(Math.round(v)).toLocaleString('en-US');}},
+          splitLine:{show:false}}
+      ],
+      series:[
+        {type:'line',data:vals,symbol:'none',z:2,lineStyle:{color:'#8FA6BB',width:1},
+         areaStyle:{color:C.area,origin:'start'},markLine:mark},
+        {type:'line',data:levels,symbol:'none',yAxisIndex:1,z:3,lineStyle:{color:C.indigo,width:1}}
+      ]
+    };
+  }
+  function renderMain(){
+    var i=cur(), s=i.stats[st.win], sl=slice(i);
+    mainChart.setOption(baseOption(sl.pts, s, {views:sl.views}), true);
+    mainChart.resize();
+  }
+  function renderMultiples(){
+    var el=document.getElementById('multiples'); el.innerHTML='';
+    D.indices.forEach(function(i){
+      var card=document.createElement('div');
+      card.className='card'; card.setAttribute('aria-current', i.key===st.key?'true':'false');
+      var s=i.stats[st.win]||i.stats[i.recommended_window||D.default_window];
+      var win = i.stats[st.win]? st.win : (i.recommended_window||D.default_window);
+      var v=i.views[win]||{start:0};
+      card.innerHTML='<div class="n">'+i.name+'</div><div class="c mono">'+i.code+'　'+i.metric_label+'</div>'+
+        '<div class="mini" id="mini-'+i.key+'"></div>'+
+        '<div class="r"><span>分位点 <b>'+fmt(s.percentile)+'%</b></span><span><b>'+fmt(s.current,i.digits)+'</b></span></div>';
+      card.onclick=function(){ st.key=i.key; renderAll(); };
+      el.appendChild(card);
+      var c=echarts.init(document.getElementById('mini-'+i.key));
+      c.setOption(baseOption(i.series.slice(v.start), s, {small:true}), true);
+      minis[i.key]=c;
+    });
+  }
+  function renderAll(){
+    var i=cur();
+    document.getElementById('leadName').textContent=i.name;
+    document.getElementById('leadCode').textContent=i.code+'　·　'+i.metric_label+(i.direction==='inverse'?'　（越高越便宜）':'　（越高越贵）');
+    document.getElementById('mastMeta').innerHTML='数据截止 <b>'+i.data_date+'</b><br>周频 · 5 个指数 · 生成 <b>'+D.generated_at+'</b>';
+    document.getElementById('stance').innerHTML=stanceText(i,i.stats[st.win]);
+    renderRail(); renderRanges(); renderReadTable(); renderMain(); renderMultiples();
+    document.getElementById('colophonLeft').innerHTML=
+      '数据来源：蛋卷（雪球系）· 中证指数官方 · 腾讯行情　｜　窗口：'+(st.win==='ALL'?'上市以来':st.win)+
+      '（周频）　｜　口径与理杏仁「历史PE/PB」页一致。<br>本页为个人研究复刻，不含任何商标或水印，<em>不构成投资建议</em>。';
+    document.getElementById('colophonRight').innerHTML='窗口点数 '+i.stats[st.win].n+'　·　区间 '+i.stats[st.win].start+' → '+i.stats[st.win].end;
+  }
+  window.addEventListener('resize', function(){ mainChart.resize();
+    Object.keys(minis).forEach(function(k){ minis[k].resize(); }); });
+  renderAll();
+})();
+</script>
+</body>
+</html>

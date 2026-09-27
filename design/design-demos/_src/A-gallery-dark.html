@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>指数估值看板 · 暗房</title>
+<!--
+  方向 A · 深色画廊裱框 Gallery Dark（轮盘 #18）
+  色彩论证：主色取自「指数点位线」在暗房中的冷灰蓝（低饱和，模拟油墨）；
+  两端判断信号用赤陶红（暗房安全灯）与苔绿（植物标本），全页仅 2 个有彩色 + 一组中性明度序列。
+  字体：display 用宋体（Songti SC）承担中文骨架，数据与元数据用等宽（Menlo）承担 EXIF 质感。
+-->
+<style>
+  :root{
+    --ink:#0A0A0B;          /* 暗房黑底 */
+    --paper:#E8E6E1;        /* 暖白正文 */
+    --dim:#8A8783;          /* 次级 */
+    --exif:#6A6763;         /* EXIF 小字 */
+    --rule:#1C1D1F;         /* 极淡分隔线 */
+    --grid:#17181A;
+    --area:#1E2A31;         /* 面积：冷灰蓝压暗 */
+    --areaEdge:#3C5A6B;
+    --line:#7E93A3;         /* 点位线：暗房冷灰蓝 */
+    --danger:#B4553F;       /* 赤陶红 */
+    --median:#8A8783;
+    --chance:#6F8F63;       /* 苔绿 */
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--ink);color:var(--paper);
+    font-family:"Songti SC","STSong",Georgia,serif;-webkit-font-smoothing:antialiased}
+  .mono{font-family:Menlo,ui-monospace,SFMono-Regular,monospace;font-variant-numeric:tabular-nums}
+  .frame{display:flex;flex-direction:column;min-height:100vh;padding:22px 40px 18px}
+
+  /* 顶部 EXIF 元数据带 */
+  .topbar{display:flex;justify-content:space-between;align-items:baseline;
+    font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--exif);
+    padding-bottom:14px;border-bottom:1px solid var(--rule)}
+  .topbar b{font-weight:400;color:var(--dim)}
+
+  .body{display:grid;grid-template-columns:186px 1fr 188px;gap:34px;flex:1;padding-top:26px}
+
+  /* 左：指数索引（画廊目录） */
+  .index-list{display:flex;flex-direction:column;gap:20px;padding-top:6px}
+  .index-list button{all:unset;cursor:pointer;display:block}
+  .idx-name{font-size:19px;color:#4A4845;transition:color .18s}
+  .idx-code{font-size:11px;letter-spacing:.1em;color:#3A3937;margin-top:3px}
+  .index-list button[aria-current="true"] .idx-name{color:var(--paper)}
+  .index-list button[aria-current="true"] .idx-code{color:var(--exif)}
+  .index-list button:hover .idx-name{color:#B9B5AE}
+
+  /* 中：巨幅图 + 注脚 */
+  .stage{display:flex;flex-direction:column;min-width:0}
+  .stage-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px}
+  .hero-name{font-size:46px;line-height:1;font-weight:400;letter-spacing:0}
+  .hero-sub{font-size:12px;letter-spacing:.1em;color:var(--exif);margin-top:9px;text-transform:uppercase}
+  .ranges{display:flex;gap:16px;font-size:12px;letter-spacing:.1em;color:var(--exif)}
+  .ranges button{all:unset;cursor:pointer;padding-bottom:3px;border-bottom:1px solid transparent}
+  .ranges button[aria-current="true"]{color:var(--paper);border-color:var(--paper)}
+  .ranges button:hover{color:var(--dim)}
+  #chart{flex:1;min-height:430px;margin-top:8px}
+  .credits{font-size:11.5px;line-height:1.85;color:var(--exif);border-top:1px solid var(--rule);padding-top:12px}
+  .credits em{font-style:normal;color:var(--dim)}
+  .flag{color:#C08A5E}
+
+  /* 右：三个关键数字（EXIF 式读数） */
+  .readout{display:flex;flex-direction:column;gap:26px;padding-top:6px;text-align:right}
+  .readout .lab{font-size:11px;letter-spacing:.12em;color:var(--exif);text-transform:uppercase}
+  .readout .val{font-size:27px;letter-spacing:.01em;margin-top:5px}
+  .readout .val.sm{font-size:19px;color:var(--dim)}
+  .readout .unit{font-size:12px;color:var(--exif);margin-left:3px}
+  .readout hr{border:0;border-top:1px solid var(--rule);margin:2px 0}
+  .zone{font-size:12.5px;color:var(--dim);letter-spacing:.04em}
+  .zone b{font-weight:400;color:var(--paper)}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="topbar mono">
+    <span>指数估值看板 · <b>DAILY VALUATION</b></span>
+    <span id="topMeta"></span>
+  </div>
+
+  <div class="body">
+    <nav class="index-list" id="indexList"></nav>
+
+    <section class="stage">
+      <div class="stage-head">
+        <div>
+          <div class="hero-name" id="heroName"></div>
+          <div class="hero-sub mono" id="heroSub"></div>
+        </div>
+        <div class="ranges mono" id="ranges"></div>
+      </div>
+      <div id="chart"></div>
+      <div class="credits" id="credits"></div>
+    </section>
+
+    <aside class="readout" id="readout"></aside>
+  </div>
+</div>
+
+<script><!--ECHARTS--></script>
+<script><!--DATA--></script>
+<script>
+(function(){
+  var D = window.DASHBOARD;
+  var C = {area:'#1E2A31', areaEdge:'#3C5A6B', line:'#7E93A3', danger:'#B4553F', median:'#8A8783',
+           chance:'#6F8F63', grid:'#17181A', exif:'#6A6763', bandD:'rgba(180,85,63,0.10)', bandC:'rgba(111,143,99,0.10)'};
+  var st = {key:D.indices[0].key, win:D.indices[0].recommended_window || D.default_window};
+  var chart = echarts.init(document.getElementById('chart'), null, {renderer:'canvas'});
+  function cur(){ return D.indices.filter(function(i){return i.key===st.key;})[0]; }
+  function fmt(v,d){ return v===null||v===undefined ? '—' : Number(v).toFixed(d===undefined?2:d); }
+  function grp(v){ return Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+  function renderIndexList(){
+    var el = document.getElementById('indexList'); el.innerHTML='';
+    D.indices.forEach(function(i){
+      var b = document.createElement('button');
+      b.setAttribute('aria-current', i.key===st.key ? 'true':'false');
+      b.innerHTML = '<div class="idx-name">'+i.name+'</div><div class="idx-code mono">'+i.code+'</div>';
+      b.onclick = function(){ st.key=i.key; st.win=i.recommended_window||D.default_window; renderAll(); };
+      el.appendChild(b);
+    });
+  }
+  function renderRanges(){
+    var el = document.getElementById('ranges'); el.innerHTML='';
+    var i = cur();
+    D.windows.forEach(function(w){
+      if(!i.stats[w]) return;
+      var b = document.createElement('button');
+      b.textContent = w==='ALL' ? 'ALL' : w;
+      b.setAttribute('aria-current', w===st.win?'true':'false');
+      b.onclick = function(){ st.win=w; renderAll(); };
+      el.appendChild(b);
+    });
+  }
+  function renderReadout(){
+    var i = cur(), s = i.stats[st.win], el = document.getElementById('readout');
+    var unit = i.metric==='pe'||i.metric==='pb' ? '×' : '%';
+    var approx = i.flag==='derived' ? ' <span class="flag" title="推导值">≈</span>' : '';
+    el.innerHTML =
+      '<div><div class="lab mono">当前值</div><div class="val mono">'+fmt(s.current,i.digits)+'<span class="unit">'+unit+'</span></div></div>'+
+      '<div><div class="lab mono">分位点'+approx+'</div><div class="val mono">'+fmt(s.percentile)+'<span class="unit">%</span></div>'+
+        '<div class="zone" style="margin-top:6px">区间 <b>'+s.zone+'</b></div></div>'+
+      '<hr>'+
+      '<div><div class="lab mono">危险值'+approx+'</div><div class="val sm mono">'+fmt(s.danger,i.digits)+'</div></div>'+
+      '<div><div class="lab mono">中位数</div><div class="val sm mono">'+fmt(s.median,i.digits)+'</div></div>'+
+      '<div><div class="lab mono">机会值'+approx+'</div><div class="val sm mono">'+fmt(s.opportunity,i.digits)+'</div></div>'+
+      '<hr>'+
+      '<div><div class="lab mono">指数点位 · 涨跌</div><div class="val sm mono">'+grp(s.level)+'</div>'+
+        '<div class="zone mono">'+(i.change_pct>0?'+':'')+fmt(i.change_pct)+'% · '+i.data_date+'</div></div>';
+  }
+  function renderCredits(){
+    var i = cur(), s = i.stats[st.win], el = document.getElementById('credits');
+    var src = Object.keys(i.sources).filter(function(k){return i.sources[k];})
+      .map(function(k){return ({danjuan:'蛋卷（雪球系）',csindex:'中证指数官方',csindex_tr:'中证全收益指数',tencent:'腾讯行情'})[k];}).join(' · ');
+    var lines = [];
+    lines.push('口径 <em>'+i.metric_label+'</em>　｜　窗口 <em>'+(st.win==='ALL'?'上市以来':st.win)+'</em>（周频，'+s.n+' 个点，'+s.start+' 起）　｜　来源 <em>'+src+'</em>　｜　截止 <em>'+i.data_date+'</em>');
+    if(i.flag==='derived'){
+      lines.push('<span class="flag">≈</span> 股息率历史为推导序列（全收益法 + PE锚定法几何平均 + 近端衰减校准）；当前值 '+fmt(s.current,i.digits)+'% 为官方真实值。实测阈值偏差 ≤5%、分位点约 ±6pp，官方真实值自 '+(i.value_meta.real_window_start||'—')+' 起累积。');
+    } else if(i.flag==='partial'){
+      lines.push('<span class="flag">!</span> 真实市盈率仅自 '+(i.value_meta.daily_first_date||'—')+' 起（指数 '+(i.value_meta.index_launch_date||'')+' 发布，估值指标不回溯）；周频首个点为 '+(i.value_meta.weekly_first_date||'')+'。更早区间不做推算，分位点仅反映真实区间内的相对位置。');
+    } else {
+      lines.push('估值序列为第三方真实周频数据；统计口径与理杏仁「历史PE/PB」页一致。');
+    }
+    lines.push('最大值 '+fmt(s.max,i.digits)+'　平均值 '+fmt(s.mean,i.digits)+'　最小值 '+fmt(s.min,i.digits)+'　标准差(+1) '+fmt(s.std_plus,i.digits)+'　标准差(-1) '+fmt(s.std_minus,i.digits)+'　z 分数 '+fmt(s.zscore));
+    lines.push('个人研究用途，不含任何商标或水印，不构成投资建议。');
+    el.innerHTML = lines.join('<br>');
+  }
+  function renderChart(){
+    var i = cur(), s = i.stats[st.win];
+    var views = i.views[st.win] || {start:0};
+    var pts = i.series.slice(views.start);
+    var dates = pts.map(function(p){return p.date;});
+    var vals = pts.map(function(p){return p.value;});
+    var levels = pts.map(function(p){return p.level;});
+    var band = i.threshold_uncertainty;
+    var mark = {silent:true, symbol:'none', label:{show:false}, data:[
+      {yAxis:s.danger, lineStyle:{color:C.danger,type:'dashed',width:1},label:{show:false}},
+      {yAxis:s.median, lineStyle:{color:C.median,type:'dashed',width:1},label:{show:false}},
+      {yAxis:s.opportunity, lineStyle:{color:C.chance,type:'dashed',width:1},label:{show:false}}
+    ]};
+    var area = {silent:true, data:[]};
+    if(band){
+      area.data.push([{yAxis:s.danger*(1-band), itemStyle:{color:C.bandD}},{yAxis:s.danger*(1+band)}]);
+      area.data.push([{yAxis:s.opportunity*(1-band), itemStyle:{color:C.bandC}},{yAxis:s.opportunity*(1+band)}]);
+    }
+    var floor = Math.min.apply(null, levels.filter(function(v){return v!==null;}));
+    var reb = (i.rebalance_dates||[]).filter(function(d){return d>=pts[0].date;}).map(function(d){return [d,floor];});
+    chart.setOption({
+      animation:false,
+      grid:{left:54,right:56,top:16,bottom:34},
+      tooltip:{trigger:'axis', backgroundColor:'rgba(10,10,11,0.94)', borderColor:'#2A2B2E',
+        textStyle:{color:'#E8E6E1',fontSize:12,fontFamily:'Menlo, monospace'},
+        formatter:function(ps){ if(!ps.length) return ''; var k=ps[0].dataIndex, p=pts[k];
+          var v=views.pct?views.pct[k]:null;
+          return p.date+'<br>'+i.metric_label+' '+fmt(p.value,i.digits)+
+            (v!==null&&v!==undefined?'<br>分位点 '+fmt(v)+'%':'')+
+            (p.level?'<br>点位 '+grp(p.level):''); }},
+      xAxis:{type:'category',data:dates,boundaryGap:false,
+        axisLine:{lineStyle:{color:'#26282B'}},axisTick:{show:false},
+        axisLabel:{color:C.exif,fontSize:10,fontFamily:'Menlo, monospace',hideOverlap:true,
+          interval:function(idx,v){return v.slice(5,7)==='01'&&idx>0&&idx<dates.length-2;},
+          formatter:function(v){return v.slice(2,4);}}},
+      yAxis:[
+        {type:'value',scale:true,splitNumber:4,axisLine:{show:false},axisTick:{show:false},
+         axisLabel:{color:C.exif,fontSize:10,fontFamily:'Menlo, monospace',formatter:function(v){return Number(v.toFixed(i.digits===2?2:1));}},
+         splitLine:{lineStyle:{color:C.grid}}},
+        {type:'value',scale:true,position:'right',axisLine:{show:false},axisTick:{show:false},
+         axisLabel:{color:C.exif,fontSize:10,fontFamily:'Menlo, monospace',
+           formatter:function(v){return Number(Math.round(v)).toLocaleString('en-US');}},
+         splitLine:{show:false}}
+      ],
+      series:[
+        {type:'line',data:vals,symbol:'none',z:2,lineStyle:{color:C.areaEdge,width:1},
+         areaStyle:{color:C.area,origin:'start'},markLine:mark,markArea:area},
+        {type:'line',data:levels,symbol:'none',yAxisIndex:1,z:3,lineStyle:{color:C.line,width:1}},
+        {type:'scatter',data:reb,symbol:'triangle',symbolSize:7,itemStyle:{color:C.danger},silent:true,z:4}
+      ]
+    }, true);
+    chart.resize();
+  }
+  function renderAll(){
+    var i = cur();
+    document.getElementById('heroName').textContent = i.name;
+    document.getElementById('heroSub').textContent = i.code+' · '+i.metric_label+(i.direction==='inverse'?'（越高越便宜）':'（越高越贵）');
+    document.getElementById('topMeta').innerHTML = '数据截止 <b>'+i.data_date+'</b> · 周频 · 共 '+D.indices.length+' 个指数 · 生成 <b>'+D.generated_at+'</b>';
+    renderIndexList(); renderRanges(); renderReadout(); renderCredits(); renderChart();
+  }
+  window.addEventListener('resize', function(){ chart.resize(); });
+  renderAll();
+})();
+</script>
+</body>
+</html>
