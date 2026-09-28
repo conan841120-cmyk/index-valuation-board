@@ -27,7 +27,7 @@
 | Python | 系统 `python3`（3.9.x）+ `requests / pandas / numpy / xlrd / openpyxl / Pillow`（见 `requirements.txt`） |
 | OCR | `tesseract`（macOS `/opt/homebrew/bin/tesseract`，需 `chi_sim`；Actions 用 apt 安装） |
 | 图表库 | `web/vendor/echarts.min.js`（已内置，页面离线可用） |
-| 回归测试 | `python3 -m unittest discover -s tests -v`（20 项） |
+| 回归测试 | `python3 -m unittest discover -s tests -v`（23 项） |
 
 ## 4. 系统运行机制（现状）
 
@@ -51,6 +51,12 @@ tools/   watch_rule.py     → 口径变化监控（见 §4.2）
 `daily.yml`：抓数据 → 重算 → 口径核对 → 生成报告 → 渲染 `docs/index.html` → 回归测试 → 回写快照 → 发布 Pages。
 - 任一路数据源失败：**沿用上次成功快照**并在日志告警，页面不会缺数据。
 - 回归测试不通过：**中止发布**，避免把错数据推上线。
+- **发布闸门（23 项回归测试）的构成**——只有与时间无关的判定才拦发布：
+  1. **结构/口径**：5 个指数齐、口径正确（含"红利低波=股息率"护栏）、方向、12 项统计量齐、A500 真实区间声明；
+  2. **公式单元测试**（`tests/test_stats.py`）：固定输入 → 固定输出（分位取值/分位点/z/方向）；
+  3. **自洽性检查**（`tests/test_replication.py::TestInternalConsistency`）：危险≥中位≥机会（反向对调）、分位点 0~100、
+     z 合理、末点=数据日、各窗口点数单调、10Y≈500 点——公式或装配被改坏会立刻红，且永不因行情漂移误报；
+  4. **同期截图比对**：仅当基准 `data_date` == 本期 `data_date` 时才判定；过期基准跳过（偏差写进报告）。
 - 手动触发：`gh workflow run daily.yml`；查运行：`gh run list --limit 3`。
 
 ### 4.2 口径变化监控（tools/watch_rule.py）
@@ -67,7 +73,7 @@ tools/   watch_rule.py     → 口径变化监控（见 §4.2）
 
 ## 5. 已完成（DONE）
 
-- 统计口径反推并用两份独立数据验证（见 §8 公式）；20 项回归测试守住口径与截图对齐。
+- 统计口径反推并用两份独立数据验证（见 §8 公式）；23 项回归测试守住口径与截图对齐。
 - 5 个指数：纳斯达克100（PE）· 标普500（PE）· 中证A500（PE）· 红利低波（**股息率，反向**）· 中证红利（股息率，反向）。
 - 页面（视觉方向 B · 财经数据新闻版面，用户 2026-09-27 验收定稿）：指数切换、3Y/5Y/10Y/上市以来、
   指标切换（含并排真实 PE/PB 序列）、视图切换（指标/分位点/标准差）、读数表、明细数据、移动平均、
@@ -94,6 +100,9 @@ tools/   watch_rule.py     → 口径变化监控（见 §4.2）
 3. 自定义时间区间（拖选起止日期，替代固定 3Y/5Y/10Y）。
 4. 关键结论微信推送（可复用用户 us-trader-daily 的 PushPlus 通道；token 由用户自填 Secrets）。
 5. 理杏仁开放平台适配器开关（付费源，口径 100% 对齐；配置项已预留）。
+6. **把「数值级」校验也长期自动化**：`tools/watch_rule.py` 每天已经拿到作者当天的图，可进一步 OCR 出图上的数字
+   （当前值/分位点/危险值/中位数/机会值）做**同期**比对——这才是唯一严谨的比对方式（见 §8 坑 19）。
+   过渡办法：把作者新图的数值录入 `data/reference/screenshots.json` 并写上 `data_date`，同期校验即自动恢复。
 
 ## 8. 踩坑记录（坑 → 解法 → 防复发）
 
@@ -139,6 +148,12 @@ tools/   watch_rule.py     → 口径变化监控（见 §4.2）
     `dashboard.json` → 作者当天改口径，页面红条要晚一天才出现。
     → 解法：渲染时用 `rule_watch_payload()` 重读 `data/watch/rule_check.json` 覆盖旧副本
     （`web/render.py::with_fresh_rule_watch`），与步骤顺序解耦；`tests/test_rule_watch.py` 加回归护栏。
+19. 发布闸门曾**拿过期快照判数字**（2026-09-28 修复）：作者的数字每天也在重算，而 `data/reference/screenshots.json`
+    里的基准是**冻结**的 → 行情一动（中证A500 五天差 4.43%）或当前值一漂移（股息率差 `0.030000000000000025 > 0.03`）
+    就把 CI 判红，而 `daily.yml` 是「测试不过就不发布」→ **看板停止更新**（它拦住的不是错误，只是时间差）。
+    → 解法：闸门只保留与时间无关的判定（结构/口径、`test_stats` 公式单元测试、`TestInternalConsistency` 自洽性）；
+    截图数值比对仅在「基准 `data_date` == 本期 `data_date`」时判定，过期基准只写进 `outputs/口径与误差报告.md`；
+    浮点边界一律加 `EPS=1e-9`。想让「同期校验」重新生效：录入作者新图数值时带上 `data_date`（该图对应的数据日）。
 
 ## 9. 运维速查
 
@@ -150,7 +165,7 @@ python3 compute/run_all.py                 # 抓取 + 重算（单源失败自�
 python3 compute/run_all.py --rebuild       # 跳过抓取，用现有 raw_inputs.json 重算
 python3 compute/report.py                  # → outputs/口径与误差报告.md
 python3 web/render.py                      # → outputs/估值看板.html（双击可看）
-python3 -m unittest discover -s tests -v    # 20 项回归测试
+python3 -m unittest discover -s tests -v    # 23 项回归测试
 
 # 口径监控
 python3 tools/watch_rule.py                # 自动找最新日更文章并核对口径
@@ -172,7 +187,7 @@ vim compute/config.py     # 指数表：metric（pe/pb/dy/rp）、direction、so
 
 ## 10. 交接清单（本文件被读取后的动作）
 
-1. 跑一次 `python3 -m unittest discover -s tests -v`，确认 20 项全绿再动代码。
+1. 跑一次 `python3 -m unittest discover -s tests -v`，确认 23 项全绿再动代码。
 2. 打开云端网址与 `outputs/估值看板.html`，确认与文档描述一致。
 3. 想看"数据可信度"，读 `outputs/口径与误差报告.md`（含与作者截图的逐项误差）。
 4. 想改口径/换指数：**只改 `compute/config.py`**，然后 `run_all.py → report.py → render.py → 测试`。

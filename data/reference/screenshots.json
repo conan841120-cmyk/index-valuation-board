@@ -1,13 +1,15 @@
 {
- "note": "作者文章截图的基准数值（人工逐张读图录入）。用于回归验收：复算值 vs 截图值。窗口均为 10Y、周期为周。",
+ "note": "作者文章截图的基准数值（人工逐张读图录入）。用于回归验收：复算值 vs 截图值。窗口均为 10Y、周期为周。data_date = 该图对应的数据日（发布日或之前最近的交易日）；只有与本期数据日相同的基准才参与判定——作者的数字每天也在重算，拿过期基准比数字就是刻舟求剑，过期基准只写进 outputs/口径与误差报告.md。",
  "articles": {
   "2026-09-23": {
    "title": "一年创22次历史新高！",
-   "url": "https://mp.weixin.qq.com/s/vIhsGyOLI6nl-4g9HqtC0Q"
+   "url": "https://mp.weixin.qq.com/s/vIhsGyOLI6nl-4g9HqtC0Q",
+   "data_date": "2026-09-23"
   },
   "2026-09-27": {
    "title": "【2026-09-27】A股+美股+港股 核心指数估值（日更）",
-   "url": "https://mp.weixin.qq.com/s/7i60x5qguSeXMuhVO9aw-w"
+   "url": "https://mp.weixin.qq.com/s/7i60x5qguSeXMuhVO9aw-w",
+   "data_date": "2026-09-24"
   }
  },
  "observations": [
@@ -15,6 +17,7 @@
    "index_key": "nasdaq100",
    "metric": "pe",
    "article": "2026-09-23",
+   "data_date": "2026-09-23",
    "level": 30732.40,
    "change_pct": 0.82,
    "stats": {"current": 31.36, "percentile": 51.34, "danger": 35.83, "median": 30.95, "opportunity": 26.26, "max": 42.94, "mean": 31.07, "min": 20.10, "std_plus": 35.84, "std_minus": 26.31, "zscore": 0.06}
@@ -23,6 +26,7 @@
    "index_key": "nasdaq100",
    "metric": "pe",
    "article": "2026-09-27",
+   "data_date": "2026-09-24",
    "level": 30470.29,
    "change_pct": -0.85,
    "stats": null,
@@ -32,6 +36,7 @@
    "index_key": "sp500",
    "metric": "pe",
    "article": "2026-09-23",
+   "data_date": "2026-09-23",
    "level": 7764.64,
    "change_pct": 0.00,
    "stats": {"current": 25.56, "percentile": 60.15, "danger": 28.49, "median": 24.39, "opportunity": 21.95, "max": 41.99, "mean": 25.40, "min": 16.15, "std_plus": 29.82, "std_minus": 20.98, "zscore": 0.04}
@@ -40,6 +45,7 @@
    "index_key": "dividend_low_vol",
    "metric": "pb",
    "article": "2026-09-23",
+   "data_date": "2026-09-23",
    "level": 10847.74,
    "change_pct": -0.46,
    "stats": {"current": 0.86, "percentile": 62.43, "danger": 1.37, "median": 0.79, "opportunity": 0.66, "max": 1.92, "mean": 0.92, "min": 0.55, "std_plus": 1.27, "std_minus": 0.58, "zscore": -0.18},
@@ -50,6 +56,7 @@
    "index_key": "dividend_low_vol",
    "metric": "dy",
    "article": "2026-09-27",
+   "data_date": "2026-09-24",
    "level": 10848.95,
    "change_pct": 0.01,
    "stats": {"current": 4.45, "percentile": 37.35, "danger": 3.95, "median": 5.00, "opportunity": 5.93, "max": 7.07, "mean": 4.84, "min": 2.46, "std_plus": 5.98, "std_minus": 3.70, "zscore": -0.34},
@@ -59,6 +66,7 @@
    "index_key": "csi_a500",
    "metric": "pe",
    "article": "2026-09-23",
+   "data_date": "2026-09-23",
    "level": 5596.18,
    "change_pct": -0.61,
    "stats": {"current": 15.89, "percentile": 67.32, "danger": 16.85, "median": 14.67, "opportunity": 13.31, "max": 22.52, "mean": 15.08, "min": 11.48, "std_plus": 17.14, "std_minus": 13.02, "zscore": 0.40}
@@ -67,6 +75,7 @@
    "index_key": "csi_a500",
    "metric": "pe",
    "article": "2026-09-27",
+   "data_date": "2026-09-24",
    "level": 5486.01,
    "change_pct": -1.97,
    "stats": {"current": 15.70, "percentile": 65.29, "danger": 16.85, "median": 14.67, "opportunity": 13.31, "max": 22.52, "mean": 15.08, "min": 11.48, "std_plus": 17.14, "std_minus": 13.02, "zscore": 0.30}
@@ -75,6 +84,7 @@
    "index_key": "csi_dividend",
    "metric": "dy",
    "article": "2026-09-23",
+   "data_date": "2026-09-23",
    "level": 5484.03,
    "change_pct": -0.79,
    "stats": {"current": 4.29, "percentile": 31.31, "danger": 4.03, "median": 4.66, "opportunity": 5.69, "max": 6.99, "mean": 4.78, "min": 2.99, "std_plus": 5.73, "std_minus": 3.83, "zscore": -0.51}
@@ -83,6 +93,7 @@
    "index_key": "csi_dividend",
    "metric": "dy",
    "article": "2026-09-27",
+   "data_date": "2026-09-24",
    "level": 5469.40,
    "change_pct": -0.27,
    "stats": {"current": 4.28, "percentile": 31.18, "danger": 4.04, "median": 4.66, "opportunity": 5.69, "max": 6.99, "mean": 4.78, "min": 2.99, "std_plus": 5.73, "std_minus": 3.83, "zscore": -0.52}

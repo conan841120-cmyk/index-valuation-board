@@ -1,5 +1,13 @@
 # -*- coding: utf-8 -*-
-"""回归验收：把 dashboard.json 的复算结果与作者截图逐项对照，按可信等级套用容差。
+"""回归验收：结构 / 口径 / 自洽性（与时间无关）+ 同期截图比对（仅同期生效）。
+
+为什么这样分层（2026-09-28 修订）：
+  作者的数字**每天也在重算**（自己的窗口在滚动、当天数据也不同），所以「拿今天的复算值
+  去比几天前的截图」是刻舟求剑——只有**同一数据日**的基准才有资格判定。因此分三类：
+    A. 结构 / 口径 / 自洽性：与时间无关，永远判定（发布闸门主体）；
+    B. 同期截图比对：仅当基准 data_date == 本期 data_date 时判定；
+       过期基准跳过（偏差仍由 compute/report.py 写进 outputs/口径与误差报告.md，供人查看）；
+    C. 浮点边界用 EPS 兜底（0.03 <= 0.03 不该因二进制尾数失败）。
 
 运行：cd index-valuation-board && python3 -m unittest discover -s tests -v
 前提：已执行 python3 compute/run_all.py
@@ -17,6 +25,11 @@ from compute.config import DASHBOARD_JSON, QUALITY, TOLERANCES  # noqa: E402
 
 REFERENCE = os.path.join(ROOT, "data", "reference", "screenshots.json")
 THRESHOLD_FIELDS = ("danger", "median", "opportunity")
+EPS = 1e-9
+LEVEL_TOL_PCT = 3.0        # 同期点位比对容差（%）
+MIN_10Y_POINTS = 470       # 10 年周频 ≈ 500~520 个点；低于此说明序列被截断
+MAX_10Y_POINTS = 560
+FIRST_DATE = "2016-01-01"  # 蛋卷长历史起点为 2016-09
 
 
 def load():
@@ -56,47 +69,125 @@ class TestDatasetComplete(unittest.TestCase):
                     self.assertIsNotNone(st.get(field), "%s/%s 缺字段 %s" % (key, window, field))
 
 
+class TestInternalConsistency(unittest.TestCase):
+    """与时间无关自洽性检查：替代「拿过期快照比数字」，永不因行情漂移误报。"""
+
+    def setUp(self):
+        self.by_key, self.dashboard, _ = load()
+
+    def test_thresholds_ordered_by_direction(self):
+        for key, idx in self.by_key.items():
+            for window in self.dashboard["windows"]:
+                st = idx["stats"][window]
+                danger, median, oppo = st["danger"], st["median"], st["opportunity"]
+                if idx["direction"] == "inverse":
+                    self.assertGreaterEqual(oppo + EPS, median, "%s/%s 反向指标应 机会≥中位" % (key, window))
+                    self.assertGreaterEqual(median + EPS, danger, "%s/%s 反向指标应 中位≥危险" % (key, window))
+                else:
+                    self.assertGreaterEqual(danger + EPS, median, "%s/%s 正向指标应 危险≥中位" % (key, window))
+                    self.assertGreaterEqual(median + EPS, oppo, "%s/%s 正向指标应 中位≥机会" % (key, window))
+
+    def test_ranges_and_dispersion(self):
+        for key, idx in self.by_key.items():
+            for window in self.dashboard["windows"]:
+                st = idx["stats"][window]
+                tag = "%s/%s" % (key, window)
+                self.assertGreaterEqual(st["percentile"], 0.0, "%s 分位点 < 0" % tag)
+                self.assertLessEqual(st["percentile"], 100.0, "%s 分位点 > 100" % tag)
+                self.assertLessEqual(abs(st["zscore"]), 8.0, "%s z 分数异常" % tag)
+                self.assertGreater(st["std"], 0.0, "%s 标准差应 > 0" % tag)
+                self.assertGreater(st["n"], 0, "%s 样本数为 0" % tag)
+                self.assertLessEqual(st["min"], st["max"], "%s 最小值 > 最大值" % tag)
+                self.assertIsNotNone(st["current"], "%s 缺当前值" % tag)
+                self.assertIsNotNone(st["level"], "%s 缺点位" % tag)
+
+    def test_windows_end_at_data_date(self):
+        for key, idx in self.by_key.items():
+            for window in self.dashboard["windows"]:
+                st = idx["stats"][window]
+                self.assertEqual(st["end"], idx["data_date"],
+                                 "%s/%s 末点 %s 应等于数据日期 %s" % (key, window, st["end"], idx["data_date"]))
+
+    def test_window_lengths_and_start(self):
+        for key, idx in self.by_key.items():
+            n = {w: idx["stats"][w]["n"] for w in self.dashboard["windows"]}
+            self.assertGreaterEqual(n["ALL"], n["10Y"], "%s 上市以来应不短于 10Y" % key)
+            self.assertGreaterEqual(n["10Y"], n["5Y"], "%s 10Y 应不短于 5Y" % key)
+            self.assertGreaterEqual(n["5Y"], n["3Y"], "%s 5Y 应不短于 3Y" % key)
+            for window in self.dashboard["windows"]:
+                self.assertGreaterEqual(idx["stats"][window]["start"], FIRST_DATE,
+                                        "%s/%s 起点早于数据源覆盖范围" % (key, window))
+            if QUALITY.get(key) != "partial":
+                self.assertGreaterEqual(n["10Y"], MIN_10Y_POINTS, "%s 10Y 周频点数偏少（序列被截断？）" % key)
+                self.assertLessEqual(n["10Y"], MAX_10Y_POINTS, "%s 10Y 周频点数偏多（窗口错？）" % key)
+
+
 class TestReplicationAgainstScreenshots(unittest.TestCase):
+    """与作者截图的数值比对：只有「同一数据日」的基准才判定，过期基准跳过。"""
+
     def setUp(self):
         self.by_key, self.dashboard, self.reference = load()
         self.window = self.dashboard["default_window"]
+        self.same_period, self.expired = [], []
+        for obs in self.reference["observations"]:
+            idx = self.by_key.get(obs["index_key"])
+            if not idx or obs.get("stats") is None or obs.get("obsolete"):
+                continue
+            if obs.get("metric") != idx["metric"]:
+                continue
+            bucket = self.same_period if obs.get("data_date") == idx.get("data_date") else self.expired
+            bucket.append(obs)
+        print("\n[口径比对] 同期基准 %d 条（参与判定）｜ 过期基准 %d 条（只记录，见 outputs/口径与误差报告.md）"
+              % (len(self.same_period), len(self.expired)))
 
-    def _observations(self, key):
-        """取最新一期、且口径与当前配置一致的对照记录。"""
-        idx = self.by_key[key]
-        obs = [o for o in self.reference["observations"]
-               if o["index_key"] == key and o["metric"] == idx["metric"] and o.get("stats")]
-        return sorted(obs, key=lambda o: o["article"])[-1] if obs else None
+    def _same_period(self):
+        if not self.same_period:
+            self.skipTest("无同期基准（本期数据日 %s）：数值比对改由 outputs/口径与误差报告.md 记录"
+                          % self.by_key["sp500"]["data_date"])
 
-    def test_real_indices_within_tolerance(self):
-        for key in ("nasdaq100", "sp500"):
-            obs = self._observations(key)
-            self.assertIsNotNone(obs, "%s 无对照记录" % key)
-            stats = self.by_key[key]["stats"][self.window]
-            tol = TOLERANCES["real"]
+    def test_numeric_match_in_same_period(self):
+        self._same_period()
+        checked = 0
+        for obs in self.same_period:
+            key = obs["index_key"]
+            idx = self.by_key[key]
+            stats = idx["stats"][self.window]
+            tol = TOLERANCES.get(QUALITY.get(key, "real"), {})
             for field in THRESHOLD_FIELDS:
+                limit = tol.get("threshold_pct")
+                if limit is None:
+                    continue
                 rel = abs(stats[field] - obs["stats"][field]) / abs(obs["stats"][field]) * 100
-                self.assertLessEqual(rel, tol["threshold_pct"],
-                                     "%s %s 偏差 %.2f%% 超出" % (key, field, rel))
-            rel_current = abs(stats["current"] - obs["stats"]["current"]) / abs(obs["stats"]["current"]) * 100
-            self.assertLessEqual(rel_current, tol["current_pct"], "%s 当前值偏差 %.2f%%" % (key, rel_current))
-            self.assertLessEqual(abs(stats["zscore"] - obs["stats"]["zscore"]), tol["zscore_abs"])
-            self.assertLessEqual(abs(stats["percentile"] - obs["stats"]["percentile"]),
-                                 tol["percentile_pp"])
+                self.assertLessEqual(rel, limit + EPS, "%s %s 偏差 %.2f%% 超出" % (key, field, rel))
+                checked += 1
+            current_dev = abs(stats["current"] - obs["stats"]["current"])
+            if "current_abs" in tol:
+                self.assertLessEqual(current_dev, tol["current_abs"] + EPS,
+                                     "%s 当前值绝对偏差 %.4f 超出" % (key, current_dev))
+                checked += 1
+            elif tol.get("current_pct") is not None:
+                rel = current_dev / abs(obs["stats"]["current"]) * 100
+                self.assertLessEqual(rel, tol["current_pct"] + EPS, "%s 当前值偏差 %.2f%% 超出" % (key, rel))
+                checked += 1
+            if tol.get("zscore_abs") is not None:
+                self.assertLessEqual(abs(stats["zscore"] - obs["stats"]["zscore"]), tol["zscore_abs"] + EPS,
+                                     "%s z 分数偏差超出" % key)
+                checked += 1
+            if tol.get("percentile_pp") is not None:
+                self.assertLessEqual(abs(stats["percentile"] - obs["stats"]["percentile"]),
+                                     tol["percentile_pp"] + EPS, "%s 分位点偏差超出" % key)
+                checked += 1
+        print("[口径比对] 本次同期判定字段数：%d" % checked)
 
-    def test_derived_yield_current_matches_official(self):
-        """股息率的当前值必须与官方/截图一致（硬约束），历史阈值放宽到 5%。"""
-        tol = TOLERANCES["derived"]
-        for key in ("dividend_low_vol", "csi_dividend"):
-            obs = self._observations(key)
-            self.assertIsNotNone(obs)
-            stats = self.by_key[key]["stats"][self.window]
-            self.assertLessEqual(abs(stats["current"] - obs["stats"]["current"]), tol["current_abs"],
-                                 "%s 当前股息率偏差过大" % key)
-            for field in THRESHOLD_FIELDS:
-                rel = abs(stats[field] - obs["stats"][field]) / abs(obs["stats"][field]) * 100
-                self.assertLessEqual(rel, tol["threshold_pct"],
-                                     "%s %s 偏差 %.2f%% 超出推导容差" % (key, field, rel))
+    def test_levels_in_same_period(self):
+        self._same_period()
+        for obs in self.same_period:
+            idx = self.by_key[obs["index_key"]]
+            if not obs.get("level") or not idx.get("level"):
+                continue
+            rel = abs(idx["level"] - obs["level"]) / obs["level"] * 100
+            self.assertLessEqual(rel, LEVEL_TOL_PCT + EPS,
+                                 "%s 点位偏差 %.2f%% 超出" % (obs["index_key"], rel))
 
     def test_a500_real_range_is_declared(self):
         idx = self.by_key["csi_a500"]
@@ -105,14 +196,6 @@ class TestReplicationAgainstScreenshots(unittest.TestCase):
                         "中证A500 不应出现发布日之前的推算值")
         self.assertTrue(any("2024-09-03" in n or "发布日" in n for n in idx["notes"]),
                         "中证A500 必须显式标注真实区间起点")
-
-    def test_levels_match_screenshots(self):
-        for obs in self.reference["observations"]:
-            idx = self.by_key.get(obs["index_key"])
-            if not idx or not obs.get("level"):
-                continue
-            rel = abs(idx["level"] - obs["level"]) / obs["level"] * 100
-            self.assertLessEqual(rel, 3.0, "%s 点位偏差 %.2f%%" % (obs["index_key"], rel))
 
 
 if __name__ == "__main__":

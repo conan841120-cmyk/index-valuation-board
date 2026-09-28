@@ -192,6 +192,8 @@ def main():
 
     # ---------- 2. 与截图逐项对照
     lines.append("\n## 2. 与作者截图逐项对照（10Y 窗口，复算值 vs 截图值）\n")
+    lines.append("> 作者的数字每天也在重算，所以只有「基准数据日 = 本期数据日」的对照才作判定；"
+                 "过期基准仅记录偏差，不作判定（拿过期快照比数字是刻舟求剑）。\n")
     summary = []
     for obs in reference["observations"]:
         key = obs["index_key"]
@@ -204,8 +206,13 @@ def main():
             continue
         quality = QUALITY.get(key, "real")
         stats = idx["stats"].get(window)
+        # 作者的数字每天也在重算：只有同一数据日的基准才有资格判定，过期基准只记录
+        same_period = obs.get("data_date") == idx.get("data_date")
         lines.append("### %s · %s · %s（截图 %s）\n"
                      % (idx["name"], idx["metric_label"], window, obs["article"]))
+        lines.append("> 基准数据日：%s ｜ 本期数据日：%s ｜ %s\n"
+                     % (obs.get("data_date") or "未标注", idx.get("data_date"),
+                        "**同期，逐项判定**" if same_period else "**过期基准，仅记录不判定**"))
         if stats:
             lines.append("> 有效窗口：%s ~ %s（n=%d 个周频点）\n"
                          % (stats["start"], stats["end"], stats["n"]))
@@ -215,13 +222,16 @@ def main():
             shot = obs["stats"].get(field)
             ours = (stats or {}).get(field)
             dev_text, abs_dev, rel_dev = deviation(shot, ours, field, kind)
+            verdict = judge(quality, field, abs_dev, rel_dev, idx) if same_period else "—（过期基准）"
             lines.append("| %s | %s | %s | %s | %s |" % (
-                label, fmt(shot, kind), fmt(ours, kind), dev_text,
-                judge(quality, field, abs_dev, rel_dev, idx)))
+                label, fmt(shot, kind), fmt(ours, kind), dev_text, verdict))
         shot_level, our_level = obs.get("level"), idx.get("level")
         if shot_level and our_level:
-            lines.append("| 指数点位 | %.2f | %.2f | %+.2f%% | ✅ |"
-                         % (shot_level, our_level, (our_level - shot_level) / shot_level * 100))
+            rel_level = (our_level - shot_level) / shot_level * 100
+            level_verdict = "✅" if (same_period and abs(rel_level) <= 3.0) else (
+                "❌" if same_period else "—（过期基准）")
+            lines.append("| 指数点位 | %.2f | %.2f | %+.2f%% | %s |"
+                         % (shot_level, our_level, rel_level, level_verdict))
         if obs.get("note"):
             lines.append("\n> %s\n" % obs["note"])
         summary.append((idx["name"], obs["article"], quality, stats, obs["stats"]))

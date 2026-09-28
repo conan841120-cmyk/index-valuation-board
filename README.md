@@ -78,7 +78,7 @@ python3 compute/run_all.py --rebuild  # 跳过抓取，用现有快照重算
 python3 compute/report.py             # → outputs/口径与误差报告.md
 python3 web/render.py                 # → outputs/估值看板.html
 python3 web/compare.py                # → outputs/数据核对图（v1复刻版）/*.png
-python3 -m unittest discover -s tests -v   # 20 个回归测试
+python3 -m unittest discover -s tests -v   # 23 个回归测试
 ```
 
 ## 复刻精度（对照作者 2026-09-27 截图）
