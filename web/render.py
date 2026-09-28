@@ -11,9 +11,22 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from compute.build_dataset import rule_watch_payload  # noqa: E402
 from compute.config import DASHBOARD_JSON, OUTPUTS  # noqa: E402
 
 WEB = os.path.dirname(os.path.abspath(__file__))
+
+
+def with_fresh_rule_watch(dashboard, watch_path=None):
+    """渲染前重读一次口径核对结论，覆盖 dashboard.json 里的旧副本。
+
+    工作流里「口径变化监控」跑在「抓取 + 重算」之后，所以装配时读到的结论总是上一次的；
+    页面上的口径核对行必须用最新一次的结论，否则作者改口径时红条会晚一天出现。
+    """
+    fresh = rule_watch_payload(watch_path)
+    if fresh:
+        dashboard["rule_watch"] = fresh
+    return dashboard
 
 
 def slim(dashboard):
@@ -56,7 +69,7 @@ def slim(dashboard):
 
 def build(out_path):
     with open(DASHBOARD_JSON, encoding="utf-8") as fh:
-        dashboard = json.load(fh)
+        dashboard = with_fresh_rule_watch(json.load(fh))
     payload = slim(dashboard)
 
     with open(os.path.join(WEB, "template.html"), encoding="utf-8") as fh:

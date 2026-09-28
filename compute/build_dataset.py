@@ -229,6 +229,36 @@ def build_index(cfg, raw):
     }
 
 
+def rule_watch_payload(path=None):
+    """口径监控（tools/watch_rule.py）结论 → 页面需要的字段；没有就返回 None。
+
+    装配（run_all）与渲染（web/render.py）都走这里：渲染时重读一次，页面显示的才是
+    最新一次的核对结论（工作流里口径监控跑在装配之后，只读 dashboard.json 会落后一次运行）。
+    """
+    path = path or os.path.join(DATA, "watch", "rule_check.json")
+    if not os.path.exists(path):
+        return None
+    try:
+        with open(path, encoding="utf-8") as fh:
+            w = json.load(fh)
+    except Exception as exc:  # noqa: BLE001
+        print("口径监控结果读取失败：%s" % exc)
+        return None
+    return {
+        "checked_at": w.get("checked_at"),
+        "article": (w.get("article") or {}).get("title"),
+        "article_date": (w.get("article") or {}).get("date"),
+        "images": w.get("images"),
+        "matched": w.get("matched"),
+        "mismatched": w.get("mismatched"),
+        "rows": [
+            {"index_name": r.get("index_name"), "author_metric": r.get("author_metric"),
+             "our_metric": r.get("our_metric_label") or r.get("our_metric"), "match": r.get("match")}
+            for r in (w.get("rows") or []) if r.get("index_key")
+        ],
+    }
+
+
 def main():
     os.makedirs(SERIES, exist_ok=True)
     with open(os.path.join(SERIES, "raw_inputs.json"), encoding="utf-8") as fh:
@@ -254,26 +284,9 @@ def main():
         "indices": indices,
     }
     # 口径变化监控结论（tools/watch_rule.py 产出；没有就忽略）
-    watch_path = os.path.join(DATA, "watch", "rule_check.json")
-    if os.path.exists(watch_path):
-        try:
-            with open(watch_path, encoding="utf-8") as fh:
-                w = json.load(fh)
-            dashboard["rule_watch"] = {
-                "checked_at": w.get("checked_at"),
-                "article": (w.get("article") or {}).get("title"),
-                "article_date": (w.get("article") or {}).get("date"),
-                "images": w.get("images"),
-                "matched": w.get("matched"),
-                "mismatched": w.get("mismatched"),
-                "rows": [
-                    {"index_name": r.get("index_name"), "author_metric": r.get("author_metric"),
-                     "our_metric": r.get("our_metric_label") or r.get("our_metric"), "match": r.get("match")}
-                    for r in (w.get("rows") or []) if r.get("index_key")
-                ],
-            }
-        except Exception as exc:  # noqa: BLE001
-            print("口径监控结果读取失败：%s" % exc)
+    watch = rule_watch_payload()
+    if watch:
+        dashboard["rule_watch"] = watch
     with open(DASHBOARD_JSON, "w", encoding="utf-8") as fh:
         json.dump(dashboard, fh, ensure_ascii=False, indent=1)
     print("已生成 %s（%d 个指数）" % (DASHBOARD_JSON, len(indices)))

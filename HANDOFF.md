@@ -27,7 +27,7 @@
 | Python | 系统 `python3`（3.9.x）+ `requests / pandas / numpy / xlrd / openpyxl / Pillow`（见 `requirements.txt`） |
 | OCR | `tesseract`（macOS `/opt/homebrew/bin/tesseract`，需 `chi_sim`；Actions 用 apt 安装） |
 | 图表库 | `web/vendor/echarts.min.js`（已内置，页面离线可用） |
-| 回归测试 | `python3 -m unittest discover -s tests -v`（16 项） |
+| 回归测试 | `python3 -m unittest discover -s tests -v`（20 项） |
 
 ## 4. 系统运行机制（现状）
 
@@ -62,10 +62,12 @@ tools/   watch_rule.py     → 口径变化监控（见 §4.2）
 3. **识别指数**：对图顶部一行（y≈140~230）做 OCR（tesseract chi_sim+eng），优先按指数代码匹配。
 4. **识别口径**：工具栏第一行被选中的指标按钮是**整块填蓝** `#4EABC4`，按蓝色色块中心 x 与标定表 `BUTTONS` 比对。
 5. **比对**：与 `compute/config.py` 的 `metric` 比对；不一致 → 页面顶部红条 + 页脚 ❌ + 退出码 2（不阻塞发布）。
+6. **页面取哪次结论**：渲染前会重读一次 `rule_check.json`（`web/render.py::with_fresh_rule_watch`），
+   页面显示的永远是**最新**一次核对结论，与工作流步骤顺序无关（写进 `dashboard.json` 的只是装配那一刻的快照）。
 
 ## 5. 已完成（DONE）
 
-- 统计口径反推并用两份独立数据验证（见 §8 公式）；16 项回归测试守住口径与截图对齐。
+- 统计口径反推并用两份独立数据验证（见 §8 公式）；20 项回归测试守住口径与截图对齐。
 - 5 个指数：纳斯达克100（PE）· 标普500（PE）· 中证A500（PE）· 红利低波（**股息率，反向**）· 中证红利（股息率，反向）。
 - 页面（视觉方向 B · 财经数据新闻版面，用户 2026-09-27 验收定稿）：指数切换、3Y/5Y/10Y/上市以来、
   指标切换（含并排真实 PE/PB 序列）、视图切换（指标/分位点/标准差）、读数表、明细数据、移动平均、
@@ -132,6 +134,11 @@ tools/   watch_rule.py     → 口径变化监控（见 §4.2）
 15. 沙箱里 Swift Vision OCR 报 unknownError → 用 `tesseract --psm 7 -l chi_sim+eng` 识别图顶部一行足够准。
 16. 长串命令（抓取+OCR+渲染+测试）会超时 → **分步执行**；抓取用 `nohup ... &` + 轮询日志。
 17. 指令链里 `git pull --rebase` 在存在未提交改动时失败 → 先提交/暂存再 rebase。
+18. 页面上的「口径核对」行曾**永远落后一次运行**（2026-09-28 修复）：工作流里「口径变化监控」跑在
+    「抓取 + 重算」之后，而装配（`build_dataset.py`）在那一刻就把结论写进了 `dashboard.json`；渲染只读
+    `dashboard.json` → 作者当天改口径，页面红条要晚一天才出现。
+    → 解法：渲染时用 `rule_watch_payload()` 重读 `data/watch/rule_check.json` 覆盖旧副本
+    （`web/render.py::with_fresh_rule_watch`），与步骤顺序解耦；`tests/test_rule_watch.py` 加回归护栏。
 
 ## 9. 运维速查
 
@@ -143,7 +150,7 @@ python3 compute/run_all.py                 # 抓取 + 重算（单源失败自�
 python3 compute/run_all.py --rebuild       # 跳过抓取，用现有 raw_inputs.json 重算
 python3 compute/report.py                  # → outputs/口径与误差报告.md
 python3 web/render.py                      # → outputs/估值看板.html（双击可看）
-python3 -m unittest discover -s tests -v    # 16 项回归测试
+python3 -m unittest discover -s tests -v    # 20 项回归测试
 
 # 口径监控
 python3 tools/watch_rule.py                # 自动找最新日更文章并核对口径
@@ -165,7 +172,7 @@ vim compute/config.py     # 指数表：metric（pe/pb/dy/rp）、direction、so
 
 ## 10. 交接清单（本文件被读取后的动作）
 
-1. 跑一次 `python3 -m unittest discover -s tests -v`，确认 16 项全绿再动代码。
+1. 跑一次 `python3 -m unittest discover -s tests -v`，确认 20 项全绿再动代码。
 2. 打开云端网址与 `outputs/估值看板.html`，确认与文档描述一致。
 3. 想看"数据可信度"，读 `outputs/口径与误差报告.md`（含与作者截图的逐项误差）。
 4. 想改口径/换指数：**只改 `compute/config.py`**，然后 `run_all.py → report.py → render.py → 测试`。
