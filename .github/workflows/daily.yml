@@ -1,10 +1,18 @@
 name: daily-valuation
 
-# 北京时间每天 08:30（UTC 00:30）跑一次：抓数据 → 重算 → 口径核对 → 生成页面 → 发布 GitHub Pages
+# 抓数据 → 重算 → 口径核对 → 生成页面 → 发布 GitHub Pages
+#
+# ⚠️ 触发说明（2026-09-30 更新）：GitHub 的 schedule 触发器自 2026-08 起存在平台级延迟
+# （实测连续两天延迟 5h14m / 5h32m，社区报告常见 3–10 小时，且"避开整点/半点"无法规避）。
+# 因此这里用两条 cron 互为冗余：
+#   - 21:30 UTC = 北京 05:30（美股收盘后）：即使被延迟 3–5 小时，也大概率在北京上午完成更新
+#   - 00:30 UTC = 北京 08:30（原名义时间）：兜底
+# 若要"到点必跑"，用外部定时器调 workflow_dispatch API（配方见 tools/TRIGGER.md）。
 on:
   schedule:
+    - cron: '30 21 * * *'
     - cron: '30 0 * * *'
-  workflow_dispatch:        # 也可在 Actions 页面手动触发
+  workflow_dispatch:        # 也可在 Actions 页面 / 外部定时器触发
 
 permissions:
   contents: write           # 回写快照（官方估值窗口累积、口径核对结论）
