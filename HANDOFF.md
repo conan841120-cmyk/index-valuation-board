@@ -46,7 +46,7 @@ web/     template.html + app.js + render.py → 打包成单文件 outputs/估�
 tools/   watch_rule.py     → 口径变化监控（见 §4.2）
 ```
 
-### 4.1 云端（每天 08:30 北京时间 / UTC 00:30）
+### 4.1 云端（双 cron：北京 05:30 主 + 北京 08:30 兜底）
 
 `daily.yml`：抓数据 → 重算 → 口径核对 → 生成报告 → 渲染 `docs/index.html` → 回归测试 → 回写快照 → 发布 Pages。
 - 任一路数据源失败：**沿用上次成功快照**并在日志告警，页面不会缺数据。
@@ -58,6 +58,9 @@ tools/   watch_rule.py     → 口径变化监控（见 §4.2）
      z 合理、末点=数据日、各窗口点数单调、10Y≈500 点——公式或装配被改坏会立刻红，且永不因行情漂移误报；
   4. **同期截图比对**：仅当基准 `data_date` == 本期 `data_date` 时才判定；过期基准跳过（偏差写进报告）。
 - 手动触发：`gh workflow run daily.yml`；查运行：`gh run list --limit 3`。
+- **⚠️ 触发可靠性（2026-09-30 更新）**：GitHub 的 `schedule` 自 2026-08 起有**平台级延迟**——实测连续两天晚 5h14m / 5h32m，社区报告常见 3–10 小时，且「避开整点/半点」已被证伪。因此：
+  1. `daily.yml` 现有**两条 cron**：`30 21 * * *`（北京 05:30，美股收盘后，主力）+ `30 0 * * *`（北京 08:30，兜底）；
+  2. 要「到点必跑」请用**外部定时器**调 `workflow_dispatch` API（配方：`tools/TRIGGER.md`，含 cron-job.org 逐步步骤；本机脚本 `tools/trigger_dispatch.sh`）。
 
 ### 4.2 口径变化监控（tools/watch_rule.py）
 
@@ -90,7 +93,7 @@ tools/   watch_rule.py     → 口径变化监控（见 §4.2）
 | 2 | 中证A500 官方 PE 仅自 2024-09-03 起（指数 2024-09-23 发布，估值不回溯） | 只有 2 年真实区间，无法与作者 10 年分位点对齐 | 页面只展示真实区间并明示；不做推算 |
 | 3 | 数据商口径差异（蛋卷 vs 中证官方 vs 理杏仁） | 当前值差 0.2%~1.3% | 已在 `outputs/口径与误差报告.md` 量化 |
 | 4 | 免费版 GitHub Pages 只能用于公开仓库 | 仓库与数据公开；用户名含数字（用户已决定**不改名**） | 如需私有：迁 Cloudflare Pages + 仓库转私有（免费） |
-| 5 | GitHub Actions cron 在高峰时段可能延迟 | 更新时间可能晚几分钟到半小时 | 可手动 `gh workflow run` 补跑 |
+| 5 | GitHub Actions `schedule` **平台级延迟**（2026-08 起） | 实测晚 5h+（社区常见 3–10 小时），部分运行不触发 | 双 cron 冗余 + **外部定时器调 `workflow_dispatch`**（`tools/TRIGGER.md`）；手动补跑 `gh workflow run daily.yml` |
 | 6 | 本机沙箱限制 | 写 `~/.dsh/skills`、`~/.codex/skills`、`~/.cache/gh` 被拒；Swift Vision OCR 不可用 | skill 装到工作区 `.dsh/skills/`；OCR 用 tesseract；`gh` 日志改用 API 取 |
 
 ## 7. 下一步计划（NEXT）
