@@ -100,6 +100,13 @@ def now():
     return datetime.now(ZoneInfo('Asia/Shanghai')).isoformat(timespec='seconds')
 
 
+def complete_gdp_months(data, frame):
+    # An unpublished new quarter must not produce a new complete observation
+    # using the previous quarter's denominator. Q2 covers June--August only.
+    last_quarter = pd.Period(data['gdp'].dropna(subset='value').observation_period.max(), 'Q')
+    return frame.loc[:last_quarter.asfreq('M', how='end') + 2]
+
+
 def make_snapshot(data, frame, config, status, release_status):
     rows = frame.loc[config['composite_start']:].reset_index()
     rows['date'] = rows.date.astype(str)
@@ -133,7 +140,7 @@ def make_snapshot(data, frame, config, status, release_status):
         'methods': ['四项分别按36个月半衰期加权标准化，使用显式无偏加权方差，再各乘0.25合成。',
             '信用脉冲＝（最近6个月社融增量－去年同期6个月社融增量）÷最近两个季度名义GDP，再取过去3个月均值。',
             'GDP在季度末月份更新并沿用；缺失值保留，历史图用虚线连接有效端点。',
-            '月份表示经济观察期；可获得日期取决于所需数据公布时间，季度末值可能随后才公布。历史数据含修订，未认证真实历史数据版本。']}
+            '月份表示经济观察期；季度末需等待对应季度GDP公布后才生成完整新月份。历史数据含修订，未认证真实历史数据版本。']}
 
 
 def main():
@@ -152,6 +159,7 @@ def main():
         status = {n: status.get(n, {'state': 'snapshot', 'last_success_at': None, 'error': None}) for n in DATASETS}
         release_status = prior.get('release_lookup_status', [])
     data = load_data();frame = build(data, config['gdp_alignment_mode'], config['standardization_mode'], config)
+    frame = complete_gdp_months(data, frame)
     snapshot = make_snapshot(data, frame, config, status, release_status)
     frame.to_csv(ROOT / 'output/diagnostics/indicator_diagnostics.csv')
     frame.loc[config['composite_start']:].to_csv(ROOT / 'data/processed/historical_replication.csv')

@@ -56,7 +56,7 @@
   function render(){
     var rows=select(D.series,document.getElementById('macro-range').value);
     chart.setOption(mainOption(rows),true);
-    contribution.setOption({animation:false,color:colors,grid:{left:50,right:15,top:35,bottom:30},legend:{textStyle:{fontSize:11}},tooltip:{trigger:'axis'},
+    contribution.setOption({animation:false,color:colors,grid:{left:50,right:35,top:35,bottom:30},legend:{textStyle:{fontSize:11}},tooltip:{trigger:'axis'},
       xAxis:{type:'category',data:rows.map(function(r){return r.date;}),boundaryGap:false,axisLabel:{hideOverlap:true}},yAxis:{type:'value',splitLine:{lineStyle:{color:'#EAE3D6'}}},
       series:factors.map(function(name,i){return {name:labels[i],type:'line',showSymbol:false,connectNulls:false,data:rows.map(function(r){return r['contribution_'+name];})};})},true);
     document.getElementById('macro-detail-table').innerHTML='<thead><tr><th>观察月份</th><th>领先指标</th><th>恒生指数（点）</th><th>社零同比（%）</th><th>出厂价格同比（%）</th><th>香港广义货币同比（%）</th><th>信用脉冲（%）</th></tr></thead><tbody>'+rows.slice().reverse().map(function(r){return '<tr><td>'+escape(r.date)+'</td><td>'+fmt(r.leading_indicator)+'</td><td>'+fmt(r.hsi_close,2)+'</td><td>'+fmt(r.retail_yoy,2)+'</td><td>'+fmt(r.ppi_yoy,2)+'</td><td>'+fmt(r.hk_m2_yoy,2)+'</td><td>'+fmt(r.credit_impulse_3m===null?null:100*r.credit_impulse_3m,2)+'</td></tr>';}).join('')+'</tbody>';

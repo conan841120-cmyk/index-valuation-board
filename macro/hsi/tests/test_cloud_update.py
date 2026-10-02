@@ -1,7 +1,7 @@
 import json
 import pandas as pd
 import pytest
-from update import load_data, make_snapshot, transactional_refresh, validate_source, DATASETS
+from update import load_data, make_snapshot, transactional_refresh, validate_source, complete_gdp_months, DATASETS
 from src.indicators.leading_indicator import build, load_config
 
 
@@ -39,3 +39,11 @@ def test_web_snapshot_keeps_gaps_and_matches_confirmed_algorithm():
     financing = next(s for s in snapshot['sources'] if s['dataset'] == 'social_financing')
     assert financing['official_field'] == '社会融资规模增量（月度）'
     json.dumps(snapshot, allow_nan=False)
+
+
+def test_unpublished_quarter_does_not_reuse_old_denominator_for_new_month():
+    data = {'gdp': pd.DataFrame({'observation_period': ['2026-Q1', '2026-Q2', '2026-Q3'], 'value': [100., 110., None]})}
+    frame = pd.DataFrame({'leading_indicator': [1., 2., 3., 4.]}, index=pd.period_range('2026-06', '2026-09', freq='M'))
+    assert str(complete_gdp_months(data, frame).index[-1]) == '2026-08'
+    data['gdp'].loc[2, 'value'] = 120.
+    assert str(complete_gdp_months(data, frame).index[-1]) == '2026-09'
