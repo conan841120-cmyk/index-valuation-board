@@ -1,0 +1,132 @@
+name: hsi-release-watch
+
+on:
+  schedule:
+    - cron: '30 10 * * *' # 北京时间18:30；日历门控通过才访问宏观来源。
+  workflow_dispatch:
+    inputs:
+      force_refresh:
+        description: '手动强制刷新全部宏观来源（忽略日历门控）'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+# 与估值工作流共用发布锁，串行运行；启动时读取最新main快照。
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      publish: ${{ steps.plan.outputs.needs_check }}
+      new_alarm: ${{ steps.monitor.outputs.new_alarm }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: 判断发布窗口和未完成轮次（不联网、不安装依赖）
+        id: plan
+        env:
+          FORCE_REFRESH: ${{ inputs.force_refresh || false }}
+        run: |
+          if [ "$FORCE_REFRESH" = true ]; then
+            python3 macro/hsi/release_watch.py --plan --force-refresh
+          else
+            python3 macro/hsi/release_watch.py --plan
+          fi
+
+      - uses: actions/setup-python@v5
+        if: steps.plan.outputs.needs_check == 'true'
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: 安装 Python 依赖
+        if: steps.plan.outputs.needs_check == 'true'
+        run: pip install -r requirements.txt
+
+      - uses: actions/setup-node@v4
+        if: steps.plan.outputs.needs_check == 'true'
+        with:
+          node-version: '22'
+
+      - name: 恢复官方宏观响应缓存
+        if: steps.plan.outputs.needs_check == 'true'
+        uses: actions/cache@v4
+        with:
+          path: macro/hsi/data/raw
+          key: hsi-official-raw-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: hsi-official-raw-${{ runner.os }}-
+
+      - name: 轻量检查；有变化才更新对应来源
+        if: steps.plan.outputs.needs_check == 'true'
+        id: monitor
+        env:
+          FORCE_REFRESH: ${{ inputs.force_refresh || false }}
+        run: |
+          if [ "$FORCE_REFRESH" = true ]; then
+            python macro/hsi/release_watch.py --force-refresh
+          else
+            python macro/hsi/release_watch.py
+          fi
+
+      - name: 复用估值快照并生成合并页面（不抓取估值）
+        if: steps.plan.outputs.needs_check == 'true'
+        run: |
+          python compute/run_all.py --rebuild
+          python compute/report.py
+          python macro/hsi/release_statistics.py
+          python web/render.py --out docs/index.html
+
+      - name: 校验监测、页面及估值快照
+        if: steps.plan.outputs.needs_check == 'true'
+        run: |
+          python -m unittest discover -s tests -v
+          node tests/test_frontend_logic.js
+          node tests/test_macro_frontend.js
+          cd macro/hsi
+          python -m pytest tests/test_release_watch.py tests/test_release_probe.py -q
+
+      - name: 更新数据后的完整宏观回归
+        if: steps.monitor.outputs.refreshed == 'true'
+        working-directory: macro/hsi
+        run: python -m pytest -q
+
+      - name: 保存数据与报警状态
+        if: steps.plan.outputs.needs_check == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(macro): release monitoring $(date -u +%F)"
+            git push
+          fi
+
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.plan.outputs.needs_check == 'true'
+        with:
+          path: docs
+
+  deploy:
+    needs: build
+    if: needs.build.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
+      - name: 新逾期报警（网页和状态已保存，再触发任务失败提示）
+        if: needs.build.outputs.new_alarm == 'true'
+        run: |
+          echo "::error::上一轮宏观数据仍未取得，已进入下一轮发布窗口。请查看网页宏观监测区和build任务摘要。"
+          exit 1

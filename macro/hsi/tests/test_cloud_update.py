@@ -47,3 +47,32 @@ def test_unpublished_quarter_does_not_reuse_old_denominator_for_new_month():
     assert str(complete_gdp_months(data, frame).index[-1]) == '2026-08'
     data['gdp'].loc[2, 'value'] = 120.
     assert str(complete_gdp_months(data, frame).index[-1]) == '2026-09'
+
+
+def test_selected_refresh_preserves_other_datasets_and_fetch_times(tmp_path, monkeypatch):
+    import update
+    from src.data import download_nbs, download_pboc, download_hkma, download_hsi, download_release_dates
+    from unittest.mock import Mock
+    processed = tmp_path / 'data/processed';processed.mkdir(parents=True)
+    old = pd.DataFrame({'observation_period': ['2026-08'], 'value': [1.], 'unit': ['percent'], 'release_date': ['2026-09-09']})
+    for name in DATASETS:
+        old.to_csv(processed / f'{name}.csv', index=False)
+    previous = {'sources': [{'dataset': n, 'state': 'fresh', 'last_success_at': '2026-09-30T18:00:00+08:00', 'error': None} for n in DATASETS]}
+    destination = tmp_path / 'snapshot.json';destination.write_text(json.dumps(previous))
+    monkeypatch.setattr(update, 'ROOT', tmp_path);monkeypatch.setattr(update, 'DESTINATION', destination)
+    nbs = Mock(return_value=old.copy());monkeypatch.setattr(download_nbs, 'download', nbs)
+    unused = Mock(side_effect=AssertionError('unselected source must not be downloaded'))
+    for module in (download_pboc, download_hkma, download_hsi):
+        monkeypatch.setattr(module, 'download', unused)
+    dates = Mock();monkeypatch.setattr(download_release_dates, 'nbs', dates)
+    monkeypatch.setattr(download_release_dates, 'pboc', unused)
+    before = {n: (processed / f'{n}.csv').read_bytes() for n in DATASETS if n != 'ppi'}
+    status, _ = update.refresh_sources(['ppi'])
+    nbs.assert_called_once_with('ppi', True)
+    dates.assert_called_once_with(True)
+    unused.assert_not_called()
+    assert status['ppi']['state'] == 'fresh'
+    for name, contents in before.items():
+        assert (processed / f'{name}.csv').read_bytes() == contents
+        assert status[name]['state'] == 'retained'
+        assert status[name]['last_success_at'] == '2026-09-30T18:00:00+08:00'

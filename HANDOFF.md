@@ -2,6 +2,8 @@
 
 > 复制定位：本文件是**项目交接文档**，接手任何与本项目相关的任务前先读它。
 > 2026-10-02用户选择修复预览版作为集成基线，并授权把恒生指数领先指标部署到原页面。独立集成目录保留最新云端估值输入；原版与修复预览目录继续保留。
+
+> 同日用户授权按实际发布日期统计拆分调度：估值daily.yml每天08:30；宏观macro.yml每天18:30先日历门控，仅在来源窗口内或未取得数据的追踪期访问官方源。有变化才更新；下一轮窗口仍缺上一轮时网页报警并触发一次GitHub任务失败提示。详见RELEASE_CALENDAR_REPORT.md、macro/hsi/release_policy.json和macro/hsi/README.md。
 > 云端仓库：`conan841120-cmyk/index-valuation-board`（公开）　本地：`~/Documents/DSH/index-valuation-board/`
 
 ## 1. 项目一句话

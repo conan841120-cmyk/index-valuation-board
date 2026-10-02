@@ -93,6 +93,10 @@ def build(out_path):
     if os.path.exists(macro_path):
         with open(macro_path, encoding="utf-8") as fh:
             macro = json.load(fh)
+        monitor_path = os.path.join(os.path.dirname(WEB), "data", "hsi_macro_monitor.json")
+        if os.path.exists(monitor_path):
+            with open(monitor_path, encoding="utf-8") as fh:
+                macro["monitor"] = json.load(fh)
     for marker, name in [("MACROCSS", "macro.css"), ("MACROHTML", "macro.html"), ("MACROJS", "macro.js")]:
         with open(os.path.join(WEB, name), encoding="utf-8") as fh:
             html = html.replace("<!--" + marker + "-->", fh.read() if macro else "")

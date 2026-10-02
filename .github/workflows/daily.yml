@@ -24,6 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - uses: actions/setup-python@v5
         with:
@@ -36,13 +38,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-
-      - name: 恢复官方宏观原始响应缓存
-        uses: actions/cache@v4
-        with:
-          path: macro/hsi/data/raw
-          key: hsi-official-raw-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: hsi-official-raw-${{ runner.os }}-
 
       - name: 安装 OCR（口径监控用）
         run: |
@@ -59,10 +54,6 @@ jobs:
       - name: 生成口径报告
         run: python compute/report.py
 
-      - name: 抓取官方宏观数据并计算恒生领先指标
-        working-directory: macro/hsi
-        run: python update.py --refresh
-
       - name: 渲染单文件看板 → docs/index.html
         run: python web/render.py --out docs/index.html
 
@@ -71,8 +62,6 @@ jobs:
           python -m unittest discover -s tests -v
           node tests/test_frontend_logic.js
           node tests/test_macro_frontend.js
-          cd macro/hsi
-          python -m pytest -q
 
       - name: 回写快照
         run: |

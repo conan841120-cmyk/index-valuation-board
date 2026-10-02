@@ -15,6 +15,7 @@
 - 仓库：`conan841120-cmyk/index-valuation-board`（公开）· 工作流：`.github/workflows/daily.yml`
 - 每天 `30 0 * * *`（UTC）= **08:30（北京时间）** 自动跑：抓数据 → 重算 → 口径核对 → 生成报告 → 渲染页面 → 发布 Pages → 回写快照。
   （定时执行与部署完成均无准点保证；外部触发只是未启用备选，见 `tools/TRIGGER.md`）
+- 恒生宏观指标独立使用 `.github/workflows/macro.yml`：每天北京时间18:30先检查日历，仅在各来源发布窗口或未完成轮次追踪期访问宏观来源；发现变化才抓取并重算。统计及窗口见 [实际公布日期报告](RELEASE_CALENDAR_REPORT.md)。
 - 任何一路数据源失败都会**沿用上一次成功快照**并在控制台告警，不会让页面缺数据；
   回归测试不通过则中止发布（避免发错数据）。
 - 手动触发：`gh workflow run daily.yml`；查看运行：`gh run list --limit 3`
@@ -155,6 +156,8 @@ index-valuation-board/
 
 同一页面增加月度宏观指标区：双轴曲线、缺失月虚线、四项贡献、最新值、范围筛选、月度明细和CSV导出。计算口径沿用用户确认的季度末GDP映射与显式无偏加权方差；详见 [宏观模块说明](macro/hsi/README.md)。
 
-云端同一日更工作流新增官方数据抓取及回归检查。每个来源下载或校验失败时保留有效历史，并显示抓取失败；不会把生成时间当作最新数据月份。手动更新仍使用 `gh workflow run daily.yml`，随后核对Actions结果与页面日期。
+估值和宏观现已分为两条工作流。`daily.yml`仅抓取估值与口径监控，保留宏观快照；`macro.yml`仅检查宏观来源，使用现有估值输入离线重建合并页面。两者串行发布，并在启动时读取最新main。窗口后的未完成轮次每日追踪，进入下一轮仍缺上一轮时网页报警；新报警在网页发布和状态保存后触发GitHub任务失败。相同报警不每天重复触发失败提示，补齐后自动解除。GitHub邮件取决于用户已有通知设置。
+
+手动更新估值：`gh workflow run daily.yml`；按日历检查宏观：`gh workflow run macro.yml`；忽略日历强制刷新宏观：`gh workflow run macro.yml -f force_refresh=true`。每个来源下载或校验失败时保留有效历史，并显示失败；不会把检查时间或生成时间当作最新数据月份。
 
 本地：`python macro/hsi/update.py` 离线计算；在 `macro/hsi` 目录运行 `python update.py --refresh` 实际抓取。`python tools/verify_local.py` 重建两个模块并检查估值与前端；宏观公式/无未来月份测试另在 `macro/hsi` 运行 `python -m pytest -q`。

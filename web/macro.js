@@ -48,9 +48,18 @@
     var change=previous&&previous['contribution_'+name]!==null?latest['contribution_'+name]-previous['contribution_'+name]:null;
     return '<tr><td>'+labels[i]+'</td><td>'+fmt(raw,2)+'%</td><td>'+fmt(latest['z_'+name],3)+'</td><td>'+fmt(latest['contribution_'+name],4)+'</td><td>'+fmt(change,4)+'</td></tr>';
   }).join('')+'</tbody>';
-  document.getElementById('macro-methods').innerHTML=D.methods.map(function(s){return '<p>'+escape(s)+'</p>';}).join('')+'<p>云端每日名义更新时刻为北京时间08:30；执行可能延迟。成功抓取不表示有新月份公布，生成时间也不等于数据月份。</p>';
-  var states={fresh:'本次抓取成功',cached:'抓取失败，沿用缓存',snapshot:'历史快照（未联网刷新）'};
-  document.getElementById('macro-source-table').innerHTML='<thead><tr><th>数据</th><th>官方字段／来源</th><th>最新观察期</th><th>公布日期</th><th>抓取状态</th><th>最近成功抓取</th></tr></thead><tbody>'+D.sources.map(function(s){return '<tr><td>'+escape(s.label)+'</td><td><a href="'+escape(s.url)+'" target="_blank" rel="noopener">'+escape(s.official_field)+'</a></td><td>'+escape(s.latest_observation)+'</td><td>'+escape(s.release_date)+'</td><td title="'+escape(s.error||'')+'">'+escape(states[s.state]||s.state)+'</td><td>'+escape(s.last_success_at)+'</td></tr>';}).join('')+'</tbody>';
+  var monitor=D.monitor||{sources:[],alerts:[]};
+  var watched={};monitor.sources.forEach(function(s){watched[s.dataset]=s;});
+  var warnings=monitor.sources.filter(function(s){return s.last_probe_error;});
+  var pending=monitor.sources.filter(function(s){return s.phase==='catch_up';});
+  document.getElementById('macro-monitor').innerHTML='<p>估值日报每日08:30更新；本指标在各来源发布窗口内每日18:30检查，有新数据才重算（北京时间，云端执行可能延迟）。</p>'+
+    monitor.alerts.map(function(a){return '<p class="macro-warning" role="alert">报警：'+escape(a.message)+'</p>';}).join('')+
+    pending.map(function(s){return '<p>'+escape(s.label)+'仍缺 '+escape(s.missing_periods.join('、'))+'，已转为每日追踪。</p>';}).join('')+
+    (warnings.length?'<p class="macro-warning">'+warnings.map(function(s){return escape(s.label);}).join('、')+'最近轻量检查失败；已有数据保留，详情见来源表。</p>':'');
+  var windows=monitor.sources.map(function(s){return escape(s.label)+'：'+escape(s.window)+(s.dataset==='gdp'?'（仅1、4、7、10月）':s.dataset==='retail'?'（2月无独立发布轮次）':'');});
+  document.getElementById('macro-methods').innerHTML=D.methods.map(function(s){return '<p>'+escape(s)+'</p>';}).join('')+'<p>发布窗口：'+windows.join('；')+'。窗口结束仍未取得数据则每天继续检查，进入下一轮仍缺上一轮时报警，补齐后解除。社零1—2月合并公告不填补独立月度值。</p><p>成功检查不等于重新抓取，也不表示出现新月份；生成时间不等于数据月份。仅检查近期数据与新公告，历史静默修订可手动强制刷新核对。</p>';
+  var states={fresh:'本次抓取成功',cached:'抓取失败，沿用缓存',retained:'沿用已取得数据',snapshot:'历史快照（未联网刷新）'};
+  document.getElementById('macro-source-table').innerHTML='<thead><tr><th>数据</th><th>官方字段／来源</th><th>最新观察期</th><th>公布日期</th><th>抓取状态</th><th>最近成功抓取</th><th>最近轻量检查</th></tr></thead><tbody>'+D.sources.map(function(s){var check=watched[s.dataset]||{};return '<tr><td>'+escape(s.label)+'</td><td><a href="'+escape(s.url)+'" target="_blank" rel="noopener">'+escape(s.official_field)+'</a></td><td>'+escape(s.latest_observation)+'</td><td>'+escape(s.release_date)+'</td><td title="'+escape(s.error||'')+'">'+escape(states[s.state]||s.state)+'</td><td>'+escape(s.last_success_at)+'</td><td title="'+escape(check.last_probe_error||'')+'">'+escape(check.last_checked_at)+'</td></tr>';}).join('')+'</tbody>';
   var failures=(D.release_lookup_status||[]).filter(function(s){return s.state==='cached';});
   if(failures.length)document.getElementById('macro-methods').innerHTML+='<p class="macro-warning">部分公布日期本次核验失败，保留已有日期；未知日期不推测。</p>';
   function render(){

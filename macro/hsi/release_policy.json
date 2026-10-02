@@ -1,0 +1,11 @@
+{
+  "timezone": "Asia/Shanghai",
+  "check_time": "18:30",
+  "sources": {
+    "retail": {"label": "社零同比", "start_day": 14, "end_day": 20, "skip_release_months": [2]},
+    "ppi": {"label": "PPI同比", "start_day": 8, "end_day": 14},
+    "social_financing": {"label": "社融增量（信用脉冲输入）", "start_day": 8, "end_day": 16},
+    "hk_m2": {"label": "香港M2同比", "start_day": 26, "end_day": 31},
+    "gdp": {"label": "名义GDP（信用脉冲输入）", "start_day": 16, "end_day": 21, "release_months": [1, 4, 7, 10]}
+  }
+}

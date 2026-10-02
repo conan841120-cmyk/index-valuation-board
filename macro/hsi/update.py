@@ -51,7 +51,7 @@ def transactional_refresh(action, paths):
         raise
 
 
-def refresh_sources():
+def refresh_sources(selected=None):
     from src.data import download_nbs, download_pboc, download_hkma, download_hsi, download_release_dates
     actions = {'retail': lambda: download_nbs.download('retail', True),
         'ppi': lambda: download_nbs.download('ppi', True), 'gdp': lambda: download_nbs.download('gdp', True),
@@ -59,8 +59,11 @@ def refresh_sources():
         'hk_m2': lambda: download_hkma.download(True), 'hsi': lambda: download_hsi.download(True)}
     prior = json.loads(DESTINATION.read_text()) if DESTINATION.exists() else {}
     previous_status = {r['dataset']: r for r in prior.get('sources', [])}
-    status = {}
-    for name in DATASETS:
+    selected = list(DATASETS) if selected is None else selected
+    status = {name: {'state': 'cached' if previous_status.get(name, {}).get('state') == 'cached' else 'retained',
+        'last_success_at': previous_status.get(name, {}).get('last_success_at'),
+        'error': previous_status.get(name, {}).get('error')} for name in DATASETS}
+    for name in selected:
         path = ROOT / f'data/processed/{name}.csv'
         old = pd.read_csv(path) if path.exists() else None
         def action(name=name, old=old):
@@ -84,16 +87,18 @@ def refresh_sources():
             status[name] = {'state': 'cached', 'last_success_at': previous_status.get(name, {}).get('last_success_at'),
                 'error': str(error)[:500]}
             print(f'CACHE FALLBACK {name}: {error}', flush=True)
-    release_status = []
+    release_status = {r['source']: r for r in prior.get('release_lookup_status', [])}
     for name, action, affected in [('nbs', download_release_dates.nbs, ['retail', 'ppi', 'gdp', 'nbs_release_dates']),
         ('pboc', download_release_dates.pboc, ['social_financing', 'pboc_release_dates'])]:
+        if not (set(selected) & (set(affected) - {name + '_release_dates'})):
+            continue
         try:
             transactional_refresh(lambda action=action: action(True), [ROOT / f'data/processed/{n}.csv' for n in affected])
-            release_status.append({'source': name, 'state': 'fresh', 'error': None})
+            release_status[name] = {'source': name, 'state': 'fresh', 'error': None}
         except Exception as error:
-            release_status.append({'source': name, 'state': 'cached', 'error': str(error)[:500]})
+            release_status[name] = {'source': name, 'state': 'cached', 'error': str(error)[:500]}
             print(f'RELEASE DATE FALLBACK {name}: {error}', flush=True)
-    return status, release_status
+    return status, list(release_status.values())
 
 
 def now():
@@ -143,16 +148,14 @@ def make_snapshot(data, frame, config, status, release_status):
             '月份表示经济观察期；季度末需等待对应季度GDP公布后才生成完整新月份。历史数据含修订，未认证真实历史数据版本。']}
 
 
-def main():
-    parser = argparse.ArgumentParser();parser.add_argument('--refresh', action='store_true')
-    args = parser.parse_args()
+def run(refresh=False, selected=None):
     for directory in ('data/raw', 'data/interim', 'output/diagnostics'):
         (ROOT / directory).mkdir(parents=True, exist_ok=True)
     config = load_config()
     if config['gdp_alignment_mode'] != 'observation_period' or config['standardization_mode'] != 'explicit_unbiased':
         raise ValueError('User-confirmed production mapping and variance must remain fixed')
-    if args.refresh:
-        status, release_status = refresh_sources()
+    if refresh:
+        status, release_status = refresh_sources(selected)
     else:
         prior = json.loads(DESTINATION.read_text()) if DESTINATION.exists() else {}
         status = {r['dataset']: {k: r.get(k) for k in ('state', 'last_success_at', 'error')} for r in prior.get('sources', [])}
@@ -168,6 +171,13 @@ def main():
     temporary.replace(DESTINATION)
     print(json.dumps({'latest': snapshot['latest']['date'], 'indicator': snapshot['latest']['leading_indicator'],
         'missing_months': snapshot['missing_months'], 'sources': status}, ensure_ascii=False), flush=True)
+    return snapshot
+
+
+def main():
+    parser = argparse.ArgumentParser();parser.add_argument('--refresh', action='store_true')
+    args = parser.parse_args()
+    run(refresh=args.refresh)
 
 
 if __name__ == '__main__':
