@@ -19,3 +19,10 @@ outputs/*
 data/reference/article_images/
 data/reference/v1_screenshots/
 data/watch/images/
+
+# 宏观官方响应由 Actions 缓存；仓库保留可重算的处理后数据。
+macro/hsi/data/raw/
+macro/hsi/data/interim/
+macro/hsi/output/
+macro/hsi/.pytest_cache/
+output/playwright/

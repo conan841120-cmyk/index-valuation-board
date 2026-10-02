@@ -124,6 +124,7 @@ def hint_of(percentile, direction):
 def views(points, years):
     """「分位点」「标准差」两个视图的序列（与主序列同长度对齐）。
 
+    用整个当前选定窗口给历史日期排名（事后回顾，不是当时可见信号）。
     返回 {"start": 窗口起点在主序列中的下标, "pct": [...], "z": [...]}，
     数组长度等于窗口内的点数（即主序列 start 之后的部分）。
     """
@@ -145,4 +146,4 @@ def views(points, years):
     n = len(values)
     pct = [round(bisect.bisect_left(ordered, v) / n * 100.0, 2) for v in values]
     z = [round((v - mean) / std, 2) if std else 0.0 for v in values]
-    return {"start": n_all - n, "pct": pct, "z": z}
+    return {"start": n_all - n, "pct": pct, "z": z, "basis": "current_window_retrospective"}

@@ -1,0 +1,18 @@
+<section id="hsi-macro" class="macro-section" aria-labelledby="macro-title">
+  <div class="grid-head"><h3 id="macro-title">恒生指数领先指标（实时标准化版）</h3><span class="mono" id="macro-update"></span></div>
+  <div class="macro-summary mono" id="macro-summary"></div>
+  <div class="controls">
+    <span class="ctl-group"><label for="macro-range" class="ctl-label">时间范围</label><select class="plain mono" id="macro-range"><option value="ALL">全部历史</option><option value="60">近5年</option><option value="36">近3年</option><option value="12">近1年</option></select></span>
+    <button class="btn mono" id="macro-export">导出当前范围 CSV</button>
+    <a href="#macro-sources" class="macro-source-link">数据来源与更新状态</a>
+  </div>
+  <div id="macro-chart" class="macro-chart" role="img" aria-label="领先指标与恒生指数双轴图"></div>
+  <div class="legend mono"><span><i class="bar" style="border-color:#243e50"></i>领先指标（左轴）</span><span><i class="bar" style="border-color:#bd864d"></i>恒生指数（右轴）</span><span><i class="dash" style="border-color:#243e50"></i>缺失月连线，无月度值</span></div>
+  <p class="macro-note">月份表示经济观察期，数据齐备后才能计算；季度末 GDP 随后才公布。虚线仅连接历史有效端点，缺失月仍为空值，不作为实时月度信号。</p>
+  <div class="macro-components">
+    <div><h4>四项组件的月度贡献</h4><div id="macro-contribution-chart" role="img" aria-label="四项组件的贡献曲线"></div></div>
+    <div><table class="read" id="macro-latest-components"></table><p class="macro-note">贡献＝0.25 × 标准分；四项齐备才合成。信用脉冲原始值以百分比展示。</p></div>
+  </div>
+  <details id="macro-sources" class="macro-details"><summary>计算口径、数据来源与更新状态</summary><div id="macro-methods" class="notes"></div><div class="macro-table-wrap"><table class="dt" id="macro-source-table"></table></div></details>
+  <details class="macro-details"><summary>查看当前范围的月度明细</summary><div class="macro-table-wrap"><table class="dt" id="macro-detail-table"></table></div></details>
+</section>

@@ -10,8 +10,10 @@
 import argparse
 import datetime
 import json
+import math
 import os
 import sys
+import tempfile
 import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -23,12 +25,64 @@ from fetch import fetch_csindex, fetch_danjuan, fetch_tencent  # noqa: E402
 RAW_INPUTS = os.path.join(SERIES, "raw_inputs.json")
 
 
-def fetch_all(previous=None):
-    """抓取全部数据源。任何一路失败都沿用上一次成功的快照（previous），并记录状态。
+def _number(value):
+    if isinstance(value, bool):
+        raise ValueError("数值为布尔值")
+    value = float(value)
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError("数值非有限正数")
 
-    云端每天运行，单个数据源被风控/超时不应该让整页数据消失——因此用「增量覆盖 + 状态标记」
-    的方式：成功的部分覆盖，失败的保留旧值，并把状态写进 raw["_status"]，页面据此提示。
-    """
+
+def _date(value):
+    return datetime.date.fromisoformat(value).isoformat()
+
+
+def validate_snapshot(part, data, cfg):
+    """验证适配器最终数据；空结果、业务错误与损坏行不能覆盖缓存。"""
+    dates = []
+    if part == "danjuan":
+        if not isinstance(data, dict) or not isinstance(data.get("current"), dict):
+            raise ValueError("蛋卷响应缺少当前估值")
+        current = data["current"]
+        for field in ("pe", "pb", "dy"):
+            _number(current.get(field))
+        for field in ("pe", "pb"):
+            rows = data.get(field)
+            if not isinstance(rows, (list, tuple)) or not rows:
+                raise ValueError("蛋卷 %s 历史为空" % field)
+            series_dates = []
+            for row in rows:
+                day, value = row
+                series_dates.append(_date(day))
+                _number(value)
+            if series_dates != sorted(set(series_dates)):
+                raise ValueError("蛋卷历史日期重复或乱序")
+            dates.extend(series_dates)
+        day = current.get("date")
+        if not isinstance(day, str):
+            raise ValueError("蛋卷当前日期缺失")
+        if len(day) == 5:
+            _date(max(dates)[:4] + "-" + day)
+        else:
+            _date(day)
+    else:
+        if not isinstance(data, list) or not data:
+            raise ValueError("%s 数据为空或格式非法" % part)
+        for row in data:
+            dates.append(_date(row["date"]))
+            if part == "official":
+                _number(row.get("pe1" if cfg["metric"] == "pe" else "dy1"))
+            else:
+                _number(row.get("close"))
+        if dates != sorted(set(dates)):
+            raise ValueError("%s 日期重复或乱序" % part)
+        if part == "csindex_perf" and cfg["metric"] == "pe":
+            _number(data[-1].get("pe_official"))
+    return max(dates)
+
+
+def fetch_all(previous=None):
+    """每路先验证候选数据，再替换缓存；失败保留上次成功快照。"""
     raw_all = {k: dict(v) for k, v in (previous or {}).items()}
     for cfg in INDICES:
         key = cfg["key"]
@@ -37,72 +91,58 @@ def fetch_all(previous=None):
         status = dict(raw.get("_status") or {})
         print("[抓取] %s %s" % (key, cfg["name"]))
 
-        def mark(part, ok, detail=""):
-            status[part] = {"ok": bool(ok), "detail": detail,
-                            "at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M")}
+        def attempt(part, loader):
+            at = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).isoformat(timespec="seconds")
+            old_status = status.get(part) or {}
+            fields = ("tencent_week", "tencent_day") if part == "tencent" else (part,)
+            old_date = old_status.get("last_data_date")
+            fallback = False
+            try:
+                old_dates = [validate_snapshot(f, raw.get(f), cfg) for f in fields]
+                old_date = max(old_dates)
+                fallback = True
+            except (TypeError, ValueError, KeyError):
+                pass
+            try:
+                candidate = loader()
+                values = candidate if part == "tencent" else (candidate,)
+                dates = [validate_snapshot(f, value, cfg) for f, value in zip(fields, values)]
+                # 腾讯周线、日线全部有效后才一起替换。
+                raw.update(dict(zip(fields, values)))
+                status[part] = {"ok": True, "at": at, "last_success_at": at,
+                                "last_data_date": max(dates), "fallback": False, "detail": ""}
+                print("   %s: 已验证，最新 %s" % (part, max(dates)))
+            except Exception as exc:  # noqa: BLE001
+                status[part] = {"ok": False, "at": at,
+                                "last_success_at": old_status.get("last_success_at") or
+                                    (old_status.get("at") if old_status.get("ok") else None),
+                                "last_data_date": old_date, "fallback": fallback, "detail": str(exc)}
+                print("   %s 失败（%s），%s" % (part, exc, "沿用上次快照" if fallback else "无有效旧快照"))
 
         if src.get("danjuan"):
-            try:
-                raw["danjuan"] = fetch_danjuan.fetch_index(cfg)
-                cur = raw["danjuan"]["current"]
-                print("   蛋卷: PE=%s PB=%s 股息率=%s (%s) PE点数=%d"
-                      % (cur.get("pe"), cur.get("pb"), cur.get("dy"), cur.get("date"),
-                         len(raw["danjuan"]["pe"])))
-                mark("danjuan", True)
-            except Exception as exc:  # noqa: BLE001
-                print("   蛋卷失败（%s），沿用上次快照" % exc)
-                mark("danjuan", False, str(exc))
-
+            attempt("danjuan", lambda: fetch_danjuan.fetch_index(cfg))
         if src.get("csindex"):
-            try:
-                raw["csindex_perf"] = fetch_csindex.fetch_perf(src["csindex"])
-                print("   中证行情: %d 行, %s ~ %s" % (len(raw["csindex_perf"]),
-                       raw["csindex_perf"][0]["date"], raw["csindex_perf"][-1]["date"]))
-                mark("csindex_perf", True)
-            except Exception as exc:  # noqa: BLE001
-                print("   中证行情失败（%s），沿用上次快照" % exc)
-                mark("csindex_perf", False, str(exc))
-            try:
-                raw["official"] = fetch_csindex.fetch_indicator(src["csindex"])
-                first, last = raw["official"][0], raw["official"][-1]
-                print("   官方估值窗口: %d 行, %s ~ %s (PE1=%s 股息率1=%s)"
-                      % (len(raw["official"]), first["date"], last["date"], last["pe1"], last["dy1"]))
-                mark("official", True)
-            except Exception as exc:  # noqa: BLE001
-                print("   官方估值文件失败（%s），沿用上次快照" % exc)
-                mark("official", False, str(exc))
-
+            attempt("csindex_perf", lambda: fetch_csindex.fetch_perf(src["csindex"]))
+            attempt("official", lambda: fetch_csindex.fetch_indicator(src["csindex"]))
         if src.get("csindex_tr"):
-            try:
-                raw["csindex_tr"] = fetch_csindex.fetch_perf(src["csindex_tr"])
-                print("   全收益指数: %d 行" % len(raw["csindex_tr"]))
-                mark("csindex_tr", True)
-            except Exception as exc:  # noqa: BLE001
-                print("   全收益指数失败（%s），沿用上次快照" % exc)
-                mark("csindex_tr", False, str(exc))
-
+            attempt("csindex_tr", lambda: fetch_csindex.fetch_perf(src["csindex_tr"]))
         if src.get("tencent"):
-            try:
-                raw["tencent_week"] = fetch_tencent.fetch_kline(src["tencent"], "week", 600)
-                raw["tencent_day"] = fetch_tencent.fetch_kline(src["tencent"], "day", 1200)
-                print("   腾讯: 周线 %d 根, 日线 %d 根, 最新 %s"
-                      % (len(raw["tencent_week"]), len(raw["tencent_day"]),
-                         raw["tencent_day"][-1] if raw["tencent_day"] else "-"))
-                mark("tencent", True)
-            except Exception as exc:  # noqa: BLE001
-                print("   腾讯失败（%s），沿用上次快照" % exc)
-                mark("tencent", False, str(exc))
-
+            attempt("tencent", lambda: (fetch_tencent.fetch_kline(src["tencent"], "week", 600),
+                                        fetch_tencent.fetch_kline(src["tencent"], "day", 1200)))
         raw["_status"] = status
         raw_all[key] = raw
 
     os.makedirs(SERIES, exist_ok=True)
-    with open(RAW_INPUTS, "w", encoding="utf-8") as fh:
-        json.dump(raw_all, fh, ensure_ascii=False)
-    failed = [(k, p) for k, v in raw_all.items() for p, s in (v.get("_status") or {}).items() if not s["ok"]]
-    if failed:
-        print("\n⚠️ 本次有 %d 个数据源沿用上次快照：%s"
-              % (len(failed), ", ".join("%s/%s" % (k, p) for k, p in failed)))
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=SERIES,
+                                         prefix="raw_inputs_", suffix=".json", delete=False) as fh:
+            temporary = fh.name
+            json.dump(raw_all, fh, ensure_ascii=False, allow_nan=False)
+        os.replace(temporary, RAW_INPUTS)
+    finally:
+        if temporary and os.path.exists(temporary):
+            os.remove(temporary)
     return raw_all
 
 

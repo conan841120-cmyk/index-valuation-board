@@ -8,6 +8,7 @@
 """
 
 import datetime
+import math
 import os
 import sys
 
@@ -51,6 +52,8 @@ def fetch_perf(code, start="20100101", end=None):
 
 def _iso(d):
     s = str(d)
+    if len(s) >= 10 and s[4] == "-":
+        return s[:10]
     return "%s-%s-%s" % (s[0:4], s[4:6], s[6:8])
 
 
@@ -80,6 +83,13 @@ def fetch_indicator(code):
             }
         )
     rows = [r for r in rows if r["date"]]
+    # 未验证的业务响应不得污染长期累积历史。
+    if not rows:
+        raise ValueError("官方估值文件没有有效数据")
+    for row in rows:
+        datetime.date.fromisoformat(row["date"])
+        if row["dy1"] is None or not math.isfinite(row["dy1"]) or row["dy1"] < 0:
+            raise ValueError("官方估值文件股息率1无效")
     _append_csv(code, rows)
     return sorted(rows, key=lambda r: r["date"])   # 统一升序（xls 原始顺序是最新在前）
 
@@ -117,6 +127,7 @@ def load_indicator_csv(code):
                 "pe2": _num(r.get("pe2")),
                 "dy1": _num(r.get("dy1")),
                 "dy2": _num(r.get("dy2")),
+                "fetched_at": r.get("fetched_at", ""),
             }
         )
     return sorted(out, key=lambda r: r["date"])

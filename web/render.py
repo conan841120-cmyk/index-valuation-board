@@ -24,8 +24,10 @@ def with_fresh_rule_watch(dashboard, watch_path=None):
     页面上的口径核对行必须用最新一次的结论，否则作者改口径时红条会晚一天出现。
     """
     fresh = rule_watch_payload(watch_path)
-    if fresh:
-        dashboard["rule_watch"] = fresh
+    dashboard["rule_watch"] = fresh or {
+        "state": "failed", "checked_at": None, "article_date": None,
+        "matched": 0, "missing": 5, "rows": [],
+    }
     return dashboard
 
 
@@ -37,12 +39,16 @@ def slim(dashboard):
         "windows": dashboard["windows"],
         "indices": [],
     }
+    if "provenance" in dashboard:
+        out["provenance"] = dashboard["provenance"]
+    if dashboard.get("source_status"):
+        out["source_status"] = dashboard["source_status"]
     if dashboard.get("rule_watch"):
         out["rule_watch"] = dashboard["rule_watch"]
     for idx in dashboard["indices"]:
         item = {k: v for k, v in idx.items() if k != "level_series"}
         item["series"] = [
-            {"date": p["date"], "value": round(p["value"], 4), "level": p.get("level")}
+            {**p, "value": round(p["value"], 4), "level": p.get("level")}
             for p in idx["series"]
         ]
         item["stats"] = {
@@ -53,7 +59,7 @@ def slim(dashboard):
         for k, alt in (idx.get("alternates") or {}).items():
             alt = dict(alt)
             alt["series"] = [
-                {"date": p["date"], "value": round(p["value"], 4), "level": p.get("level")}
+                {**p, "value": round(p["value"], 4), "level": p.get("level")}
                 for p in alt["series"]
             ]
             alt["stats"] = {
@@ -82,6 +88,16 @@ def build(out_path):
     html = html.replace("<!--ECHARTS-->", echarts_js)
     html = html.replace("<!--DATA-->", "window.DASHBOARD = " + json.dumps(payload, ensure_ascii=False) + ";")
     html = html.replace("<!--APPJS-->", app_js)
+    macro_path = os.path.join(os.path.dirname(WEB), "data", "hsi_macro.json")
+    macro = None
+    if os.path.exists(macro_path):
+        with open(macro_path, encoding="utf-8") as fh:
+            macro = json.load(fh)
+    for marker, name in [("MACROCSS", "macro.css"), ("MACROHTML", "macro.html"), ("MACROJS", "macro.js")]:
+        with open(os.path.join(WEB, name), encoding="utf-8") as fh:
+            html = html.replace("<!--" + marker + "-->", fh.read() if macro else "")
+    macro_json = json.dumps(macro, ensure_ascii=False, allow_nan=False).replace("</", "<\\/")
+    html = html.replace("<!--MACRODATA-->", "window.HSI_MACRO = " + macro_json + ";")
 
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as fh:

@@ -21,7 +21,7 @@ def to_iso(date_str):
 def to_weekly(rows, value_field="value"):
     """按 ISO 周聚合，取每周最后一个交易日的值。rows: [{date, ...}]。"""
     buckets = {}
-    for row in rows:
+    for row in sorted(rows, key=lambda r: to_iso(r.get("date")) or ""):
         date = to_iso(row.get("date"))
         value = row.get(value_field)
         if date is None or value is None:
@@ -35,18 +35,23 @@ def to_weekly(rows, value_field="value"):
 
 
 def attach_level(value_points, level_map):
-    """把指数点位合并到估值序列上（按日期精确匹配，缺失则取最近的前一个交易日）。"""
+    """精确匹配或最多七天前的点位；保留实际行情日期，绝不前看。"""
     if not level_map:
         return [dict(p) for p in value_points]
     dates = sorted(level_map)
     out = []
     for point in value_points:
+        level_date = point["date"] if point["date"] in level_map else None
         level = level_map.get(point["date"])
         if level is None:
             prior = [d for d in dates if d <= point["date"]]
-            level = level_map[prior[-1]] if prior else None
+            if prior and (datetime.date.fromisoformat(point["date"])
+                          - datetime.date.fromisoformat(prior[-1])).days <= 7:
+                level_date = prior[-1]
+                level = level_map[level_date]
         item = dict(point)
         item["level"] = level
+        item["level_date"] = level_date
         out.append(item)
     return out
 

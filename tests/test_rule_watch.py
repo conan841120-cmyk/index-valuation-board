@@ -13,12 +13,15 @@ import os
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 from compute.build_dataset import rule_watch_payload  # noqa: E402
 from web.render import with_fresh_rule_watch  # noqa: E402
+from tools import watch_rule
+from compute.config import INDICES
 
 
 def write_check(path, checked_at):
@@ -67,7 +70,75 @@ class TestRenderFreshness(unittest.TestCase):
             out = with_fresh_rule_watch(stale, path)
         self.assertEqual(out["rule_watch"]["checked_at"], "2026-09-28 05:46:20")
 
-    def test_keeps_dashboard_copy_when_no_check_file(self):
+    def test_missing_check_never_reuses_dashboard_green_light(self):
         stale = {"rule_watch": {"checked_at": "2026-09-27 13:44:02"}}
         out = with_fresh_rule_watch(stale, "/nonexistent/rule_check.json")
-        self.assertEqual(out["rule_watch"]["checked_at"], "2026-09-27 13:44:02")
+        self.assertIn(out["rule_watch"]["state"], ("failed", "incomplete"))
+        self.assertIsNone(out["rule_watch"]["checked_at"])
+
+
+class TestWatchCompleteness(unittest.TestCase):
+    def rows(self):
+        return [{"index_key": cfg["key"], "author_metric": watch_rule.METRIC_LABEL[cfg["metric"]],
+                 "match": True} for cfg in INDICES]
+
+    def test_all_unique_indices_are_required(self):
+        self.assertEqual(watch_rule.summarize_result({"rows": self.rows()})["state"], "consistent")
+        for rows in ([], self.rows()[:1], [self.rows()[0]] * 5):
+            with self.subTest(rows=rows):
+                summary = watch_rule.summarize_result({"rows": rows})
+                self.assertEqual(summary["state"], "incomplete")
+                self.assertEqual(summary["expected"], 5)
+                self.assertTrue(summary["missing"])
+
+    def test_duplicate_and_unrecognized_metric_are_incomplete(self):
+        rows = self.rows()
+        rows.append(dict(rows[0]))
+        summary = watch_rule.summarize_result({"rows": rows})
+        self.assertEqual(summary["state"], "incomplete")
+        self.assertEqual(summary["coverage"], 4)
+        rows = self.rows()
+        rows[0]["match"] = None
+        rows[0]["author_metric"] = None
+        self.assertEqual(watch_rule.summarize_result({"rows": rows})["state"], "incomplete")
+
+    def test_mismatch_remains_visible_despite_missing_coverage(self):
+        rows = self.rows()[:1]
+        rows[0]["match"] = False
+        summary = watch_rule.summarize_result({"rows": rows})
+        self.assertEqual(summary["state"], "mismatch")
+        self.assertEqual(summary["mismatched"], 1)
+        self.assertEqual(summary["coverage"], 1)
+
+    def test_empty_check_is_incomplete(self):
+        result = watch_rule.check_images([])
+        self.assertEqual(result["state"], "incomplete")
+        self.assertEqual(result["coverage"], 0)
+
+    def test_main_records_failure_and_preserves_previous_mismatch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "rule_check.json")
+            previous = {"rows": [dict(self.rows()[0], match=False)], "state": "mismatch"}
+            with open(path, "w") as fh:
+                json.dump(previous, fh)
+            with mock.patch.object(watch_rule, "WATCH_DIR", tmp), \
+                 mock.patch.object(sys, "argv", ["watch_rule.py"]), \
+                 mock.patch.object(watch_rule, "latest_daily_article", side_effect=RuntimeError("offline")):
+                self.assertEqual(watch_rule.main(), 1)
+            with open(path) as fh:
+                result = json.load(fh)
+            self.assertEqual(result["state"], "failed")
+            self.assertEqual(result["previous_result"]["state"], "mismatch")
+            self.assertIn("offline", result["detail"])
+
+    def test_main_empty_scan_never_exits_successfully(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch.object(watch_rule, "WATCH_DIR", tmp), \
+                 mock.patch.object(sys, "argv", ["watch_rule.py", "--images-dir", tmp]):
+                self.assertEqual(watch_rule.main(), 1)
+            with open(os.path.join(tmp, "rule_check.json")) as fh:
+                self.assertEqual(json.load(fh)["state"], "incomplete")
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,18 @@
+half_life_months: 36
+component_weights:
+  retail: 0.25
+  ppi: 0.25
+  hk_m2: 0.25
+  credit_impulse: 0.25
+credit_impulse:
+  sf_window_months: 6
+  yoy_lag_months: 12
+  smoothing_months: 3
+gdp_alignment_mode: observation_period
+standardization_mode: explicit_unbiased
+composite_start: '2012-07'
+m2_history_start: '2011-08'
+min_history_observations: 12
+gdp_observation_rule: quarter_end_carry_forward
+missing_value_policy: preserve_nan
+variance_pandas_bias: false

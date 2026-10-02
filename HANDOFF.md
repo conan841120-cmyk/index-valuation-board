@@ -1,6 +1,7 @@
 # HANDOFF — 指数估值看板（index-valuation-board）
 
 > 复制定位：本文件是**项目交接文档**，接手任何与本项目相关的任务前先读它。
+> 2026-10-02用户选择修复预览版作为集成基线，并授权把恒生指数领先指标部署到原页面。独立集成目录保留最新云端估值输入；原版与修复预览目录继续保留。
 > 云端仓库：`conan841120-cmyk/index-valuation-board`（公开）　本地：`~/Documents/DSH/index-valuation-board/`
 
 ## 1. 项目一句话
@@ -27,7 +28,7 @@
 | Python | 系统 `python3`（3.9.x）+ `requests / pandas / numpy / xlrd / openpyxl / Pillow`（见 `requirements.txt`） |
 | OCR | `tesseract`（macOS `/opt/homebrew/bin/tesseract`，需 `chi_sim`；Actions 用 apt 安装） |
 | 图表库 | `web/vendor/echarts.min.js`（已内置，页面离线可用） |
-| 回归测试 | `python3 -m unittest discover -s tests -v`（23 项） |
+| 回归测试 | `python3 -m unittest discover -s tests -v`（以实际测试输出为准） |
 
 ## 4. 系统运行机制（现状）
 
@@ -46,21 +47,21 @@ web/     template.html + app.js + render.py → 打包成单文件 outputs/估�
 tools/   watch_rule.py     → 口径变化监控（见 §4.2）
 ```
 
-### 4.1 云端（双 cron：北京 05:30 主 + 北京 08:30 兜底）
+### 4.1 云端（原有单条 UTC 00:30 schedule，北京名义 08:30）
 
 `daily.yml`：抓数据 → 重算 → 口径核对 → 生成报告 → 渲染 `docs/index.html` → 回归测试 → 回写快照 → 发布 Pages。
-- 任一路数据源失败：**沿用上次成功快照**并在日志告警，页面不会缺数据。
+- 任一路数据源失败：有有效旧缓存时沿用并标出失败；无有效缓存时明确记录缺失，完整性检查决定是否中止。
 - 回归测试不通过：**中止发布**，避免把错数据推上线。
-- **发布闸门（23 项回归测试）的构成**——只有与时间无关的判定才拦发布：
+- **发布闸门的构成**——结构/公式检查与有效的同期截图判定共同组成闸门：
   1. **结构/口径**：5 个指数齐、口径正确（含"红利低波=股息率"护栏）、方向、12 项统计量齐、A500 真实区间声明；
   2. **公式单元测试**（`tests/test_stats.py`）：固定输入 → 固定输出（分位取值/分位点/z/方向）；
   3. **自洽性检查**（`tests/test_replication.py::TestInternalConsistency`）：危险≥中位≥机会（反向对调）、分位点 0~100、
      z 合理、末点=数据日、各窗口点数单调、10Y≈500 点——公式或装配被改坏会立刻红，且永不因行情漂移误报；
   4. **同期截图比对**：仅当基准 `data_date` == 本期 `data_date` 时才判定；过期基准跳过（偏差写进报告）。
 - 手动触发：`gh workflow run daily.yml`；查运行：`gh run list --limit 3`。
-- **⚠️ 触发可靠性（2026-09-30 更新）**：GitHub 的 `schedule` 自 2026-08 起有**平台级延迟**——实测连续两天晚 5h14m / 5h32m，社区报告常见 3–10 小时，且「避开整点/半点」已被证伪。因此：
-  1. `daily.yml` 现有**两条 cron**：`30 21 * * *`（北京 05:30，美股收盘后，主力）+ `30 0 * * *`（北京 08:30，兜底）；
-  2. 要「到点必跑」请用**外部定时器**调 `workflow_dispatch` API（配方：`tools/TRIGGER.md`，含 cron-job.org 逐步步骤；本机脚本 `tools/trigger_dispatch.sh`）。
+- 本副本保留原有一条 `30 0 * * *` cron。定时任务可能排队、延迟或未执行，不保证准点完成。
+- 外部定时器仅为**未启用备选**（`tools/TRIGGER.md`）：需要单仓最小权限、短有效期 Token，且增加第三方存储风险。
+  HTTP 204 只代表请求被接受，必须核对 Actions 构建、部署成功与页面日期；不保证到点必跑。
 
 ### 4.2 口径变化监控（tools/watch_rule.py）
 
@@ -76,11 +77,11 @@ tools/   watch_rule.py     → 口径变化监控（见 §4.2）
 
 ## 5. 已完成（DONE）
 
-- 统计口径反推并用两份独立数据验证（见 §8 公式）；23 项回归测试守住口径与截图对齐。
+- 统计公式由单元测试与自洽性检查核验；截图对齐只在存在同期同口径基准时判定，测试数以当前输出为准。
 - 5 个指数：纳斯达克100（PE）· 标普500（PE）· 中证A500（PE）· 红利低波（**股息率，反向**）· 中证红利（股息率，反向）。
-- 页面（视觉方向 B · 财经数据新闻版面，用户 2026-09-27 验收定稿）：指数切换、3Y/5Y/10Y/上市以来、
+- 页面（视觉方向 B · 财经数据新闻版面，用户 2026-09-27 验收定稿）：指数切换、3Y/5Y/10Y/全部可用、
   指标切换（含并排真实 PE/PB 序列）、视图切换（指标/分位点/标准差）、读数表、明细数据、移动平均、
-  CSV 导出、自定义分位阈值（⚙）、误差带、≈ 推导标注、调仓标志、小倍数并置、口径核对行。
+  CSV 导出、自定义分位阈值（⚙）、≈ 推导标注、调仓标志、小倍数并置、口径核对行。
 - 云端每日自动更新 + Pages 发布 + 快照回写（首次运行实测：5 个指数全部数据源真抓成功，无风控）。
 - 口径监控上线，2026-09-27 首次核对：命中 5 个指数，全部一致。
 - 设计过程留档：`design/design-spec.md`、`design/direction-approved.md`、`design/design-demos/`（三方向初稿 + 截图）。
@@ -89,11 +90,11 @@ tools/   watch_rule.py     → 口径变化监控（见 §4.2）
 
 | # | 问题 | 影响 | 现状 |
 | --- | --- | --- | --- |
-| 1 | 股息率历史是**推导值**（无免费真实长历史） | 分位点偏差约 ±6pp，阈值偏差 ≤5% | 页面用 ≈ 标注 + 误差带；并排提供真实 PE 视图；官方真实值自 2026-08-28 起逐日累积 |
+| 1 | 主股息率历史是 current_anchor **事后估算** | 截图拟合容差不是历史/未来误差保证，不可作为当时可知的择时信号 | 当前主锚点仍为蛋卷第三方口径；官方 dy1 逐日累积成独立 alternate；dy2 保留在数据文件，不混入主历史；阴影按用户要求保留，命名为“阈值附近的观察缓冲区”，仅作人为设定的视觉提醒（美股2%、红利5%），不作误差或置信区间解释 |
 | 2 | 中证A500 官方 PE 仅自 2024-09-03 起（指数 2024-09-23 发布，估值不回溯） | 只有 2 年真实区间，无法与作者 10 年分位点对齐 | 页面只展示真实区间并明示；不做推算 |
-| 3 | 数据商口径差异（蛋卷 vs 中证官方 vs 理杏仁） | 当前值差 0.2%~1.3% | 已在 `outputs/口径与误差报告.md` 量化 |
+| 3 | 数据商口径差异（蛋卷 vs 中证官方 vs 理杏仁） | 不同定义不能互相冒充或拼接 | 来源、指标日期、价格日期和生成时间分开记录；本期截图核验状态由报告动态生成 |
 | 4 | 免费版 GitHub Pages 只能用于公开仓库 | 仓库与数据公开；用户名含数字（用户已决定**不改名**） | 如需私有：迁 Cloudflare Pages + 仓库转私有（免费） |
-| 5 | GitHub Actions `schedule` **平台级延迟**（2026-08 起） | 实测晚 5h+（社区常见 3–10 小时），部分运行不触发 | 双 cron 冗余 + **外部定时器调 `workflow_dispatch`**（`tools/TRIGGER.md`）；手动补跑 `gh workflow run daily.yml` |
+| 5 | GitHub Actions schedule 的执行时间无准点保证 | 名义时间不等于执行/部署完成时间 | 保留原有单 cron；外部触发仅未启用备选（`tools/TRIGGER.md`），需检查实际运行结果 |
 | 6 | 本机沙箱限制 | 写 `~/.dsh/skills`、`~/.codex/skills`、`~/.cache/gh` 被拒；Swift Vision OCR 不可用 | skill 装到工作区 `.dsh/skills/`；OCR 用 tesseract；`gh` 日志改用 API 取 |
 
 ## 7. 下一步计划（NEXT）
@@ -102,7 +103,7 @@ tools/   watch_rule.py     → 口径变化监控（见 §4.2）
 2. 多指数同图对比（5 个指数分位点放一张图）。
 3. 自定义时间区间（拖选起止日期，替代固定 3Y/5Y/10Y）。
 4. 关键结论微信推送（可复用用户 us-trader-daily 的 PushPlus 通道；token 由用户自填 Secrets）。
-5. 理杏仁开放平台适配器开关（付费源，口径 100% 对齐；配置项已预留）。
+5. 评估理杏仁等历史数据源，先核对定义与日期覆盖；付费本身不保证口径对齐。
 6. **把「数值级」校验也长期自动化**：`tools/watch_rule.py` 每天已经拿到作者当天的图，可进一步 OCR 出图上的数字
    （当前值/分位点/危险值/中位数/机会值）做**同期**比对——这才是唯一严谨的比对方式（见 §8 坑 19）。
    过渡办法：把作者新图的数值录入 `data/reference/screenshots.json` 并写上 `data_date`，同期校验即自动恢复。
@@ -136,7 +137,7 @@ tools/   watch_rule.py     → 口径变化监控（见 §4.2）
 10. 公众号历史消息接口（`profile_ext`）无 cookie 返回"验证"页；搜狗微信账号搜索无结果
     → 改用**合集接口** `appmsgalbum`（免登录，返回最近文章标题/链接/时间）。
 11. 东方财富接口高频请求后会 `Empty reply from server`（限流）→ 加退避；美股点位主用腾讯、东财作备选。
-12. 中证官方估值文件只有最近 ~20 个交易日 → 每次运行落盘累积（`data/official_snapshots/*.csv`），真实历史随时间变长。
+12. 中证官方估值文件只有最近约 20 个交易日 → 每次运行落盘累积（`data/official_snapshots/*.csv`），装配读取累计文件；dy1 是独立 alternate，dy2 保存在数据文件，两者均不能与蛋卷主股息率混合。
 13. 中证 `perf` 接口的 `peg` 字段**就是市盈率（TTM 口径）**：沪深300 与雪球 PE 完全吻合、中证红利差 1%（别被字段名误导）。
 
 **工具类**
@@ -161,14 +162,17 @@ tools/   watch_rule.py     → 口径变化监控（见 §4.2）
 ## 9. 运维速查
 
 ```bash
-cd ~/Documents/DSH/index-valuation-board
+cd '/Users/sherlock/Documents/DSH修复预览/index-valuation-board'
 
-# 本地数据 + 页面
+# 本地修复预览（不抓取、不部署）
+python3 tools/verify_local.py              # 重建 → 报告 → 渲染 → 测试
+
+# 原项目数据 + 页面
 python3 compute/run_all.py                 # 抓取 + 重算（单源失败自动沿用上次快照）
 python3 compute/run_all.py --rebuild       # 跳过抓取，用现有 raw_inputs.json 重算
 python3 compute/report.py                  # → outputs/口径与误差报告.md
 python3 web/render.py                      # → outputs/估值看板.html（双击可看）
-python3 -m unittest discover -s tests -v    # 23 项回归测试
+python3 -m unittest discover -s tests -v    # 以实际测试输出为准
 
 # 口径监控
 python3 tools/watch_rule.py                # 自动找最新日更文章并核对口径
@@ -190,9 +194,9 @@ vim compute/config.py     # 指数表：metric（pe/pb/dy/rp）、direction、so
 
 ## 10. 交接清单（本文件被读取后的动作）
 
-1. 跑一次 `python3 -m unittest discover -s tests -v`，确认 23 项全绿再动代码。
-2. 打开云端网址与 `outputs/估值看板.html`，确认与文档描述一致。
-3. 想看"数据可信度"，读 `outputs/口径与误差报告.md`（含与作者截图的逐项误差）。
+1. 跑 `python3 tools/verify_local.py`：先离线重建 → 报告 → 渲染 → 测试，校验当前输入/代码指纹；不要先测试旧 dashboard。
+2. 本修复副本只打开 `outputs/估值看板.html` 验收；本地通过不代表已部署。
+3. 想看"数据可信度"，读 `outputs/口径与误差报告.md`：同期核验字段与失败数动态统计，无同期基准即本期未验证。
 4. 想改口径/换指数：**只改 `compute/config.py`**，然后 `run_all.py → report.py → render.py → 测试`。
 5. 口径监控若报不一致：先看页面顶部红条列出的差异，再决定改 `config.py`（以作者当天口径为准）还是保持本项目口径。
 6. 任何"顺手优化"前先问用户——视觉（B 方向）已验收定稿，字体/配色/版面不要改。

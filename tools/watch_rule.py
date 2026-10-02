@@ -176,6 +176,32 @@ METRIC_LABEL = {"pe": "市盈率TTM", "pb": "市净率LF", "dy": "股息率", "r
                 "ps": "市销率TTM", "pcf": "市现率TTM"}
 
 
+def summarize_result(w):
+    """统一监控状态：五个唯一指数均成功识别才算完整。"""
+    expected_keys = [cfg["key"] for cfg in INDICES]
+    rows = w.get("rows") or []
+    covered_keys = []
+    for key in expected_keys:
+        hits = [r for r in rows if r.get("index_key") == key]
+        if len(hits) == 1 and isinstance(hits[0].get("match"), bool) and hits[0].get("author_metric"):
+            covered_keys.append(key)
+    missing = [key for key in expected_keys if key not in covered_keys]
+    mismatched = max(sum(1 for r in rows if r.get("index_key") in expected_keys and
+                         r.get("match") is False), w.get("mismatched") or 0)
+    if w.get("state") == "failed":
+        state = "failed"
+    elif mismatched:
+        state = "mismatch"
+    elif missing:
+        state = "incomplete"
+    else:
+        state = "consistent"
+    return {"state": state, "coverage": len(covered_keys), "covered": len(covered_keys),
+            "expected": len(expected_keys), "missing": missing,
+            "matched": sum(1 for key in covered_keys if next(r for r in rows if r.get("index_key") == key).get("match") is True),
+            "mismatched": mismatched}
+
+
 def check_images(images, article=None):
     """images: [(路径, 来源描述)]。返回核对结果 dict。"""
     rows, mismatches = [], []
@@ -201,14 +227,16 @@ def check_images(images, article=None):
         rows.append(row)
         if row["match"] is False:
             mismatches.append(row)
-    return {
-        "checked_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    result = {
+        "checked_at": datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).isoformat(timespec="seconds"),
         "article": article,
         "images": len(rows),
         "matched": sum(1 for r in rows if r["match"] is True),
         "mismatched": len(mismatches),
         "rows": rows,
     }
+    result.update(summarize_result(result))
+    return result
 
 
 def main():
@@ -219,36 +247,52 @@ def main():
     args = ap.parse_args()
 
     os.makedirs(WATCH_DIR, exist_ok=True)
-    article = None
-    images = []
-
-    if args.images_dir:
-        for name in sorted(os.listdir(args.images_dir)):
-            if name.lower().endswith((".png", ".jpg", ".jpeg")):
-                images.append((os.path.join(args.images_dir, name), "本地图片"))
-        article = {"title": "(离线模式)", "url": None, "date": None}
-    else:
-        url = args.url
-        if not url:
-            found = latest_daily_article()
-            if not found:
-                print("未在合集里找到日更估值文章")
-                return 1
-            article, url = found, found["url"]
-            print("发现文章：%s（%s）" % (article["title"], article["date"]))
-        entries = article_image_urls(url)
-        print("配图 %d 张" % len(entries))
-        img_dir = os.path.join(WATCH_DIR, "images")
-        os.makedirs(img_dir, exist_ok=True)
-        for k, e in enumerate(entries, 1):
-            path = os.path.join(img_dir, "%02d.png" % k)
-            with open(path, "wb") as fh:
-                fh.write(fetch(e["url"].replace("http://", "https://"),
-                               referer="https://mp.weixin.qq.com/").content)
-            images.append((path, "文章配图 %d" % k))
-
-    result = check_images(images, article)
-    with open(os.path.join(WATCH_DIR, "rule_check.json"), "w", encoding="utf-8") as fh:
+    result_path = os.path.join(WATCH_DIR, "rule_check.json")
+    previous = None
+    if os.path.exists(result_path):
+        try:
+            with open(result_path, encoding="utf-8") as fh:
+                previous = json.load(fh)
+        except (OSError, ValueError):
+            pass
+    images, article = [], None
+    try:
+        if args.images_dir:
+            for name in sorted(os.listdir(args.images_dir)):
+                if name.lower().endswith((".png", ".jpg", ".jpeg")):
+                    images.append((os.path.join(args.images_dir, name), "本地图片"))
+            article = {"title": "(离线模式)", "url": None, "date": None}
+        else:
+            url = args.url
+            if not url:
+                found = latest_daily_article()
+                if not found:
+                    raise RuntimeError("未在合集里找到日更估值文章")
+                article, url = found, found["url"]
+                print("发现文章：%s（%s）" % (article["title"], article["date"]))
+            else:
+                article = {"title": "(指定文章)", "url": url, "date": None}
+            entries = article_image_urls(url)
+            print("配图 %d 张" % len(entries))
+            img_dir = os.path.join(WATCH_DIR, "images")
+            os.makedirs(img_dir, exist_ok=True)
+            for k, e in enumerate(entries, 1):
+                path = os.path.join(img_dir, "%02d.png" % k)
+                with open(path, "wb") as fh:
+                    fh.write(fetch(e["url"].replace("http://", "https://"),
+                                   referer="https://mp.weixin.qq.com/").content)
+                images.append((path, "文章配图 %d" % k))
+        result = check_images(images, article)
+    except Exception as exc:  # noqa: BLE001
+        result = {"checked_at": datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).isoformat(timespec="seconds"),
+                  "article": article, "images": len(images), "rows": [],
+                  "state": "failed", "detail": str(exc)}
+        print("口径核对失败：%s" % exc)
+    result.update(summarize_result(result))
+    if result["state"] in ("failed", "incomplete") and previous:
+        # 避免连续失败嵌套累积；保留最后有结论的检查供页面提示。
+        result["previous_result"] = previous.get("previous_result") or previous
+    with open(result_path, "w", encoding="utf-8") as fh:
         json.dump(result, fh, ensure_ascii=False, indent=1)
 
     print("\n%-10s %-10s %-10s %s" % ("指数", "作者口径", "本项目", "结论"))
@@ -258,15 +302,15 @@ def main():
         flag = "✅ 一致" if r["match"] else ("❌ 不一致" if r["match"] is False else "— 未识别")
         print("%-10s %-10s %-10s %s" % (r["index_name"], r["author_metric"] or "未识别",
                                         r["our_metric_label"] or r["our_metric"], flag))
-    print("\n命中本项目 5 个指数中的 %d 张图；口径不一致 %d 处" %
-          (len([r for r in result["rows"] if r["index_key"]]), result["mismatched"]))
+    print("\n覆盖 %d/%d 个唯一指数；口径不一致 %d 处；状态 %s" %
+          (result["coverage"], result["expected"], result["mismatched"], result["state"]))
     if not args.keep_images and not args.images_dir:
         for path, _ in images:
             try:
                 os.remove(path)
             except OSError:
                 pass
-    return 2 if result["mismatched"] else 0
+    return {"consistent": 0, "mismatch": 2, "incomplete": 1, "failed": 1}[result["state"]]
 
 
 if __name__ == "__main__":

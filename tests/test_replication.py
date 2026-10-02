@@ -16,12 +16,15 @@
 import json
 import os
 import sys
+import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 from compute.config import DASHBOARD_JSON, QUALITY, TOLERANCES  # noqa: E402
+from compute.provenance import input_digest, code_digest  # noqa: E402
 
 REFERENCE = os.path.join(ROOT, "data", "reference", "screenshots.json")
 THRESHOLD_FIELDS = ("danger", "median", "opportunity")
@@ -35,9 +38,30 @@ FIRST_DATE = "2016-01-01"  # 蛋卷长历史起点为 2016-09
 def load():
     with open(DASHBOARD_JSON, encoding="utf-8") as fh:
         dashboard = json.load(fh)
+    provenance = dashboard.get("provenance") or {}
+    if provenance.get("inputs_sha256") != input_digest():
+        raise AssertionError("dashboard.json 与当前原始输入/官方 CSV 不一致；先运行 tools/verify_local.py 重建")
+    if provenance.get("code_sha256") != code_digest():
+        raise AssertionError("dashboard.json 与当前计算/渲染代码不一致；先运行 tools/verify_local.py 重建")
     with open(REFERENCE, encoding="utf-8") as fh:
         reference = json.load(fh)
     return {i["key"]: i for i in dashboard["indices"]}, dashboard, reference
+
+
+class TestProvenanceGuard(unittest.TestCase):
+    def test_stale_inputs_or_code_are_rejected_before_acceptance(self):
+        for provenance, message in (
+                ({"inputs_sha256": "old", "code_sha256": "code"}, "当前原始输入"),
+                ({"inputs_sha256": "inputs", "code_sha256": "old"}, "当前计算/渲染代码")):
+            with self.subTest(provenance=provenance), tempfile.TemporaryDirectory() as temp:
+                path = os.path.join(temp, "dashboard.json")
+                with open(path, "w", encoding="utf-8") as fh:
+                    json.dump({"provenance": provenance}, fh)
+                with patch.dict(load.__globals__, DASHBOARD_JSON=path), \
+                        patch(__name__ + ".input_digest", return_value="inputs"), \
+                        patch(__name__ + ".code_digest", return_value="code"):
+                    with self.assertRaisesRegex(AssertionError, message):
+                        load()
 
 
 class TestDatasetComplete(unittest.TestCase):
@@ -135,14 +159,14 @@ class TestReplicationAgainstScreenshots(unittest.TestCase):
                 continue
             if obs.get("metric") != idx["metric"]:
                 continue
-            bucket = self.same_period if obs.get("data_date") == idx.get("data_date") else self.expired
+            bucket = self.same_period if obs.get("data_date") and obs.get("data_date") == idx.get("data_date") else self.expired
             bucket.append(obs)
         print("\n[口径比对] 同期基准 %d 条（参与判定）｜ 过期基准 %d 条（只记录，见 outputs/口径与误差报告.md）"
               % (len(self.same_period), len(self.expired)))
 
     def _same_period(self):
         if not self.same_period:
-            self.skipTest("无同期基准（本期数据日 %s）：数值比对改由 outputs/口径与误差报告.md 记录"
+            self.skipTest("本期未验证截图数值（无同期同口径基准，示例数据日 %s）；只运行结构/公式/自洽性，过期偏差仅记录"
                           % self.by_key["sp500"]["data_date"])
 
     def test_numeric_match_in_same_period(self):
@@ -177,10 +201,13 @@ class TestReplicationAgainstScreenshots(unittest.TestCase):
                 self.assertLessEqual(abs(stats["percentile"] - obs["stats"]["percentile"]),
                                      tol["percentile_pp"] + EPS, "%s 分位点偏差超出" % key)
                 checked += 1
+        if not checked:
+            self.skipTest("本期未验证截图数值：同期观察没有可判定的字段容差；结构/公式/自洽性范围仍执行")
         print("[口径比对] 本次同期判定字段数：%d" % checked)
 
     def test_levels_in_same_period(self):
         self._same_period()
+        checked = 0
         for obs in self.same_period:
             idx = self.by_key[obs["index_key"]]
             if not obs.get("level") or not idx.get("level"):
@@ -188,6 +215,9 @@ class TestReplicationAgainstScreenshots(unittest.TestCase):
             rel = abs(idx["level"] - obs["level"]) / obs["level"] * 100
             self.assertLessEqual(rel, LEVEL_TOL_PCT + EPS,
                                  "%s 点位偏差 %.2f%% 超出" % (obs["index_key"], rel))
+            checked += 1
+        if not checked:
+            self.skipTest("本期未验证截图点位：同期观察没有双方都可用的点位；不影响结构/公式/自洽性范围")
 
     def test_a500_real_range_is_declared(self):
         idx = self.by_key["csi_a500"]

@@ -52,7 +52,7 @@ TOLERANCES = {
     # 真实序列（蛋卷 PE、中证官方 PE）
     "real": {"threshold_pct": 2.0, "current_pct": 2.0, "zscore_abs": 0.15, "percentile_pp": 5.0,
              "level_pct": 0.5},
-    # 推导序列（股息率历史）：当前值必须等于官方真实值；阈值放宽并只做提示；分位点仅记录
+    # 推导序列：以下仅为同期截图验收容差，不代表未来误差或置信区间
     "derived": {"current_abs": 0.03, "threshold_pct": 5.0, "zscore_abs": 0.25,
                 "percentile_pp": None},
     # 真实区间不足（中证A500）：只检查真实区间与字段完整性
@@ -68,9 +68,11 @@ QUALITY = {
     "csi_dividend": "derived",
 }
 
-# 危险值/机会值的相对不确定度（用于在页面上画"误差带"，避免把阈值当硬线）
-# 实测依据：真实序列阈值偏差 ≤2%；股息率推导序列阈值偏差 ≤5%（且区间收窄 11~14%）
-THRESHOLD_UNCERTAINTY = {"real": 0.02, "derived": 0.05, "partial": None}
+# 阈值附近的观察缓冲区：人为设定的视觉提醒，宽度相对于阈值；不是统计误差或置信区间。
+THRESHOLD_OBSERVATION_BUFFER = {
+    "nasdaq100": 0.02, "sp500": 0.02,
+    "dividend_low_vol": 0.05, "csi_dividend": 0.05,
+}
 
 # ---------------------------------------------------------------- 指标定义
 

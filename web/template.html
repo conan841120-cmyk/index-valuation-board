@@ -61,10 +61,11 @@
   /* ---------- 主图区 ---------- */
   .lead{display:grid;grid-template-columns:1fr 320px;gap:30px;padding:18px 0 8px;border-bottom:1px solid var(--rule)}
   .lead-main{min-width:0}
-  .lead-head{display:flex;align-items:baseline;gap:12px}
+  .lead-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px}
+  .lead-head h2{flex-shrink:0}
   .lead-head h2{font-family:"Songti SC","STSong",serif;font-size:27px;margin:0;font-weight:700}
   .lead-head .code{font-size:12px;color:var(--dim);letter-spacing:.06em}
-  .lead-head .price{margin-left:auto;font-size:13px;color:var(--dim);letter-spacing:.02em}
+  .lead-head .price{flex-basis:100%;font-size:13px;color:var(--dim);letter-spacing:.02em}
   .stance{font-size:14.5px;margin:7px 0 2px}
   .stance .hot{color:var(--red)} .stance .cold{color:var(--olive)}
   #chart{height:330px;margin-top:4px}
@@ -116,6 +117,26 @@
   .colophon{margin-top:22px;border-top:1px solid var(--rule2);padding-top:10px;font-size:11.5px;color:var(--dim);
     display:flex;justify-content:space-between;gap:24px;line-height:1.8}
   .colophon em{font-style:normal;color:var(--ink)}
+  /* 日期说明和独立对照按钮在窄预览窗口内仍需可读。 */
+  @media(max-width:1000px){
+    .lead{grid-template-columns:1fr;gap:18px}
+    .lead aside{min-width:0}
+    .multiples{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .ctl-group,.chips{flex-wrap:wrap}
+    .ctl-group{max-width:100%}
+    .chip{white-space:nowrap}
+    .rail{overflow-x:auto;gap:20px}
+    .rail button{flex-shrink:0}
+    .masthead,.colophon{flex-wrap:wrap}
+    .masthead .meta{text-align:left;overflow-wrap:anywhere}
+    .grid-head{flex-wrap:wrap;gap:4px}
+    #colophonRight{text-align:left!important}
+  }
+  @media(max-width:600px){
+    .wrap{padding:16px}
+    .ctl-right{margin-left:0}
+  }
+<!--MACROCSS-->
 </style>
 </head>
 <body>
@@ -125,6 +146,7 @@
     <div>
       <h1>指数估值日报</h1>
       <div class="deck">五个重点指数的估值位置、判据线与可信度　·　周频　·　单文件离线版</div>
+      <a class="macro-source-link" href="#hsi-macro">查看恒生指数领先指标（月频） ↓</a>
     </div>
     <div class="meta mono" id="mastMeta"></div>
   </header>
@@ -169,6 +191,8 @@
   </div>
   <div class="multiples" id="multiples"></div>
 
+  <!--MACROHTML-->
+
   <footer class="colophon">
     <div id="colophonLeft"></div>
     <div id="colophonRight" class="mono" style="text-align:right"></div>
@@ -178,5 +202,7 @@
 <script><!--ECHARTS--></script>
 <script><!--DATA--></script>
 <script><!--APPJS--></script>
+<script><!--MACRODATA--></script>
+<script><!--MACROJS--></script>
 </body>
 </html>

@@ -19,13 +19,8 @@ from compute.config import (  # noqa: E402
     TOLERANCES,
 )
 from fetch.derive_yield import (  # noqa: E402
-    blend,
-    calibrate,
-    full_return,
-    official_current,
-    pe_anchored,
+    derive,
 )
-from compute.config import YIELD_CALIBRATION_DAYS  # noqa: E402
 from compute import normalize  # noqa: E402
 from compute.stats import compute  # noqa: E402
 
@@ -44,6 +39,7 @@ FIELDS = [
 ]
 
 THRESHOLD_FIELDS = {"danger", "median", "opportunity"}
+EPS = 1e-9
 
 
 def load_dashboard():
@@ -95,18 +91,18 @@ def judge(quality, field, abs_dev, rel_dev, dashboard_index):
         return "仅记录"
     if field == "current":
         if "current_abs" in tol:
-            return "✅" if abs_dev <= tol["current_abs"] else "❌"
+            return "✅" if abs_dev <= tol["current_abs"] + EPS else "❌"
         limit = tol.get("current_pct")
         if limit is None:
             return "仅记录"
-        return "✅" if (rel_dev is not None and abs(rel_dev) <= limit) else "❌"
+        return "✅" if (rel_dev is not None and abs(rel_dev) <= limit + EPS) else "❌"
     if field == "percentile":
         limit = tol.get("percentile_pp")
         if limit is None:
             return "近似（不设限）"
-        return "✅" if abs_dev <= limit else "❌"
+        return "✅" if abs_dev <= limit + EPS else "❌"
     if field == "zscore":
-        return "✅" if abs_dev <= tol.get("zscore_abs", 9) else "❌"
+        return "✅" if abs_dev <= tol.get("zscore_abs", 9) + EPS else "❌"
     if field in THRESHOLD_FIELDS:
         limit = tol.get("threshold_pct")
         if limit is None:
@@ -114,14 +110,14 @@ def judge(quality, field, abs_dev, rel_dev, dashboard_index):
         if rel_dev is None:
             return "—"
         value = abs(rel_dev)
-        return "✅" if value <= limit else ("⚠️" if value <= limit * 1.5 else "❌")
+        return "✅" if value <= limit + EPS else ("⚠️" if value <= limit * 1.5 + EPS else "❌")
     # 极值、平均值、标准差等：真实序列按阈值容差，推导序列只记录
     if quality == "derived":
         return "近似（仅记录）"
     limit = tol.get("threshold_pct")
     if limit is None or rel_dev is None:
         return "仅记录"
-    return "✅" if abs(rel_dev) <= limit * 1.5 else "⚠️"
+    return "✅" if abs(rel_dev) <= limit * 1.5 + EPS else "⚠️"
 
 
 def method_comparison(raw_inputs):
@@ -136,26 +132,78 @@ def method_comparison(raw_inputs):
         price = [{"date": r["date"], "value": r["close"]} for r in (raw.get("csindex_perf") or [])]
         tr = [{"date": r["date"], "value": r["close"]} for r in (raw.get("csindex_tr") or [])]
         official = raw.get("official") or []
-        cur = dj.get("current") or {}
-        dy_anchor = cur.get("dy")
-        pe_anchor = cur.get("pe")
-        if dy_anchor is None:
-            _d, dy_anchor = official_current(official)
-        series = {
-            "full_return": full_return(price, tr),
-            "pe_anchored": pe_anchored(pe_rows, dy_anchor, pe_anchor),
-        }
-        series["blend"] = blend(series["full_return"], series["pe_anchored"])
+        cur = dict(dj.get("current") or {})
+        cur["fetched_at"] = dj.get("fetched_at")
         out = {}
-        for name, points in series.items():
-            calibrated = calibrate(points, dy_anchor, YIELD_CALIBRATION_DAYS)
-            weekly = normalize.to_weekly(calibrated)
+        anchor = None
+        for name in ("full_return", "pe_anchored", "blend"):
+            points, meta = derive(cfg, pe_rows, price, tr, official, cur, method=name)
+            anchor = meta.get("anchor")
+            weekly = normalize.to_weekly(points)
             window = normalize.window_slice(weekly, 10)
             st = compute(window, "inverse")
             if st:
                 out[name] = st
-        rows[cfg["key"]] = {"name": cfg["name"], "methods": out, "anchor": dy_anchor}
+        rows[cfg["key"]] = {"name": cfg["name"], "methods": out, "anchor": anchor}
     return rows
+
+
+def comparison_summary(dashboard, reference):
+    """只统计同日、同口径且未作废的截图；仅记录字段不计入通过数。"""
+    by_key = {i["key"]: i for i in dashboard["indices"]}
+    result = {}
+    for key, idx in by_key.items():
+        result[key] = {"observations": 0, "checked": 0, "failed": 0}
+    for obs in reference["observations"]:
+        idx = by_key.get(obs["index_key"])
+        if (not idx or not obs.get("stats") or obs.get("obsolete")
+                or obs.get("metric") != idx["metric"]
+                or not obs.get("data_date")
+                or obs["data_date"] != idx.get("data_date")):
+            continue
+        summary = result[idx["key"]]
+        summary["observations"] += 1
+        stats = idx["stats"].get(dashboard["default_window"]) or {}
+        for field, _label, kind in FIELDS:
+            _text, abs_dev, rel_dev = deviation(obs["stats"].get(field), stats.get(field), field, kind)
+            verdict = judge(QUALITY.get(idx["key"], "real"), field, abs_dev, rel_dev, idx)
+            if verdict in ("✅", "❌", "⚠️"):
+                summary["checked"] += 1
+                summary["failed"] += verdict != "✅"
+        if obs.get("level") and idx.get("level"):
+            summary["checked"] += 1
+            rel = abs(idx["level"] - obs["level"]) / abs(obs["level"]) * 100
+            summary["failed"] += rel > 3.0 + 1e-9
+    return result
+
+
+def conclusion_lines(dashboard, reference):
+    summaries = comparison_summary(dashboard, reference)
+    lines = []
+    for idx in dashboard["indices"]:
+        summary = summaries[idx["key"]]
+        if not summary["checked"]:
+            status = "本期未验证（无可判定的同期同口径字段）"
+        else:
+            status = "同期基准 %d 条，实测判定 %d 个字段；通过 %d，失败/超出容差 %d" % (
+                summary["observations"], summary["checked"],
+                summary["checked"] - summary["failed"], summary["failed"])
+        lines.append("- **%s · %s**：%s。" % (idx["name"], idx["data_date"], status))
+        if idx.get("metric") == "dy":
+            meta = idx.get("value_meta") or {}
+            anchor = meta.get("anchor_observation") or {}
+            current_kind = "同期第三方观测" if meta.get("current_is_observed") else "模型推导值（未证实为本期真实观测）"
+            lines.append("  当前值性质：%s；锚点来源 %s，锚点日期 %s。同期截图比对只核验显示数值的拟合，不验证其真实历史。" % (
+                current_kind, anchor.get("source") or "未标注", anchor.get("date") or "未标注"))
+    lines.extend([
+        "- 蛋卷 PE/PB 与主指标股息率的当前锚点采用第三方口径；中证官方股息率1/2为独立口径，不互相替代。实际来源与日期以数据元信息为准。",
+        "- 股息率历史使用 current_anchor 模型作事后估算：以本期锚点校准过去的分布，不能当作当时可知的择时信号或用于声称历史择时收益。",
+        "- derived 的容差仅用于特定截图的拟合诊断，不是对真实历史、未来数据或投资结果的误差保证；分位点无准确性保证。",
+        "- 中证A500 只展示已有真实区间；短区间的 10Y 标签不代表具备完整十年估值历史。",
+        "- 官方估值 CSV 会逐次累积，作为独立 alternate 序列保留，不能把不同股息率口径拼进主指标历史。",
+        "- 无同期截图时，结构、公式和自洽性测试通过也不能证明本期数字与作者截图一致。"
+    ])
+    return lines
 
 
 def main():
@@ -183,11 +231,11 @@ def main():
             continue
         first = idx["series"][0]["date"]
         quality = QUALITY.get(cfg["key"], "real")
-        qlabel = {"real": "真实", "derived": "当前真实 / 历史推导", "partial": "真实但区间不足"}[quality]
+        qlabel = {"real": "真实", "derived": "历史推导 / 当前性质见结论", "partial": "真实但区间不足"}[quality]
         lines.append("| %s | %s | %s | %s | %s | %s | %s ~ %s | %s |" % (
             idx["name"], idx["metric_label"], "越高越便宜（反向）" if idx["direction"] == "inverse" else "越高越贵",
             idx["data_date"], "%.2f" % idx["level"] if idx["level"] else "—",
-            " + ".join([k for k, v in (idx["sources"] or {}).items() if v]) or "—",
+            (idx.get("value_meta") or {}).get("basis") or idx.get("source") or "未标注",
             first, idx["series"][-1]["date"], qlabel))
 
     # ---------- 2. 与截图逐项对照
@@ -198,7 +246,7 @@ def main():
     for obs in reference["observations"]:
         key = obs["index_key"]
         idx = by_key.get(key)
-        if not idx or obs.get("stats") is None:
+        if not idx or obs.get("stats") is None or obs.get("obsolete"):
             continue
         if obs.get("metric") != idx["metric"]:
             lines.append("### %s（截图口径 %s，已作废）\n" % (idx["name"], obs["metric"].upper()))
@@ -207,7 +255,7 @@ def main():
         quality = QUALITY.get(key, "real")
         stats = idx["stats"].get(window)
         # 作者的数字每天也在重算：只有同一数据日的基准才有资格判定，过期基准只记录
-        same_period = obs.get("data_date") == idx.get("data_date")
+        same_period = bool(obs.get("data_date")) and obs.get("data_date") == idx.get("data_date")
         lines.append("### %s · %s · %s（截图 %s）\n"
                      % (idx["name"], idx["metric_label"], window, obs["article"]))
         lines.append("> 基准数据日：%s ｜ 本期数据日：%s ｜ %s\n"
@@ -247,23 +295,11 @@ def main():
             lines.append("| %s | %s | %.2f | %.2f%% | %.2f | %.2f | %.2f | %.2f | %.2f | %.2f |" % (
                 data["name"], labels.get(name, name), st["current"], st["percentile"], st["danger"],
                 st["median"], st["opportunity"], st["max"], st["mean"], st["min"]))
-        lines.append("| %s | **截图（真值）** | 见第 2 节 | | | | | | | |" % data["name"])
+        lines.append("| %s | **截图（比对基准）** | 见第 2 节 | | | | | | | |" % data["name"])
 
     # ---------- 4. 结论与限制
     lines.append("\n## 4. 结论与已知限制\n")
-    lines.append("1. **纳指100 / 标普500（市盈率TTM）**：序列为第三方真实周频数据，10 年窗口完整；"
-                 "危险值/机会值/中位数等阈值类与截图偏差在容差内，可用于判断。")
-    lines.append("2. **红利低波 / 中证红利（股息率）**：当前值直接取官方真实值，与截图完全一致；"
-                 "10 年历史为推导序列（几何平均法），阈值类偏差 ≤5%，**分位点误差可达 15pp 量级**，"
-                 "页面上会标注「≈ 推导值」，不作为精确分位点使用。")
-    lines.append("3. **中证A500（市盈率TTM）**：中证官方 perf 接口自带每日市盈率（字段名 peg，"
-                 "实测与雪球/蛋卷 TTM 市盈率口径一致：沪深300 完全吻合、中证红利差 1%），"
-                 "但仅自 2024-09-03 起（指数 2024-09-23 正式发布：行情按基日回溯，估值指标不回溯），"
-                 "因此只能展示真实区间，无法与截图的 10 年分位点对齐。")
-    lines.append("4. 官方估值文件只有最近 ~20 个交易日，脚本每次运行都会落盘累积"
-                 "（data/official_snapshots/），真实历史会随时间变长。")
-    lines.append("5. 若要求股息率 10 年分位点也与截图一致，只有接入付费源（理杏仁开放平台）一条路，"
-                 "配置项已预留。")
+    lines.extend(conclusion_lines(dashboard, reference))
 
     os.makedirs(OUTPUTS, exist_ok=True)
     path = os.path.join(OUTPUTS, "口径与误差报告.md")
