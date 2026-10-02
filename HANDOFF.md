@@ -195,7 +195,7 @@ vim compute/config.py     # 指数表：metric（pe/pb/dy/rp）、direction、so
 ## 10. 交接清单（本文件被读取后的动作）
 
 1. 跑 `python3 tools/verify_local.py`：先离线重建 → 报告 → 渲染 → 测试，校验当前输入/代码指纹；不要先测试旧 dashboard。
-2. 本修复副本只打开 `outputs/估值看板.html` 验收；本地通过不代表已部署。
+2. 本目录是用户授权的云端集成副本。本地通过不代表已部署；发布后核对Actions构建、部署结果以及线上页面数据日期。原修复预览目录继续保留。
 3. 想看"数据可信度"，读 `outputs/口径与误差报告.md`：同期核验字段与失败数动态统计，无同期基准即本期未验证。
 4. 想改口径/换指数：**只改 `compute/config.py`**，然后 `run_all.py → report.py → render.py → 测试`。
 5. 口径监控若报不一致：先看页面顶部红条列出的差异，再决定改 `config.py`（以作者当天口径为准）还是保持本项目口径。
