@@ -1,0 +1,14 @@
+name: us-market-data-ready
+
+on:
+  push:
+    branches: [us-market-data]
+
+permissions:
+  contents: read
+
+jobs:
+  ready:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo '公开数据已交接；由 main 上的发布工作流读取并部署。'
