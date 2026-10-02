@@ -74,6 +74,12 @@ def acquired(name, period, data):
     return False
 
 
+def round_status(name, round_, today, data):
+    return {**round_, 'status': 'acquired' if acquired(name, round_['observation_period'], data)
+        else 'scheduled' if today < round_['window_start']
+        else 'awaiting' if today <= round_['window_end'] else 'catch_up'}
+
+
 def evaluate(today, data, previous=None, policy=None):
     previous = previous or {}
     policy = policy or json.loads((ROOT / 'release_policy.json').read_text())
@@ -86,7 +92,10 @@ def evaluate(today, data, previous=None, policy=None):
     old_alerts = {r['id']: r for r in previous.get('alerts', [])}
     sources, alerts, due = [], [], []
     for name, rule in policy['sources'].items():
-        schedule = rounds(name, rule, start, current)
+        schedule = rounds(name, rule, start, next_release_month(current, rule))
+        started = [r for r in schedule if r['window_start'] <= date_text]
+        current_round = started[-1] if started else schedule[0]
+        next_round = next(r for r in schedule if r['window_start'] > current_round['window_start'])
         pending = [r for r in schedule if r['window_start'] <= date_text and not acquired(name, r['observation_period'], data)]
         inside = any(r['window_start'] <= date_text <= r['window_end'] for r in schedule)
         catch_up = any(r['window_end'] < date_text for r in pending)
@@ -100,7 +109,10 @@ def evaluate(today, data, previous=None, policy=None):
                 'message': f"{rule['label']}仍未取得{r['observation_period']}数据，已进入下一轮发布窗口；将继续每日检查。"})
         old = old_sources.get(name, {})
         sources.append({'dataset': name, 'label': rule['label'], 'window': f"{rule['start_day']}—{rule['end_day']}日" if name != 'hk_m2' else '26日至月底',
-            'target_observation': schedule[-1]['observation_period'] if schedule else None,
+            'target_observation': current_round['observation_period'],
+            'current_round': round_status(name, current_round, date_text, data),
+            'next_round': next_round,
+            'backlog_rounds': [round_status(name, r, date_text, data) for r in pending if r['window_start'] < current_round['window_start']],
             'phase': 'alarm' if late else 'catch_up' if catch_up else 'window' if inside else 'idle',
             'missing_periods': [r['observation_period'] for r in pending],
             'last_checked_at': old.get('last_checked_at'), 'last_probe_error': old.get('last_probe_error')})

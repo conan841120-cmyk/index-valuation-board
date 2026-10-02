@@ -8,6 +8,8 @@ import argparse
 import json
 import os
 import sys
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -15,6 +17,13 @@ from compute.build_dataset import rule_watch_payload  # noqa: E402
 from compute.config import DASHBOARD_JSON, OUTPUTS  # noqa: E402
 
 WEB = os.path.dirname(os.path.abspath(__file__))
+
+
+def current_macro_monitor(previous, today=None):
+    """只读本地数据更新轮次显示，不访问宏观来源、不改写监测状态。"""
+    sys.path.insert(0, os.path.join(os.path.dirname(WEB), 'macro', 'hsi'))
+    from release_watch import evaluate, load_data
+    return evaluate(today or datetime.now(ZoneInfo('Asia/Shanghai')).date(), load_data(), previous)
 
 
 def with_fresh_rule_watch(dashboard, watch_path=None):
@@ -96,7 +105,7 @@ def build(out_path):
         monitor_path = os.path.join(os.path.dirname(WEB), "data", "hsi_macro_monitor.json")
         if os.path.exists(monitor_path):
             with open(monitor_path, encoding="utf-8") as fh:
-                macro["monitor"] = json.load(fh)
+                macro["monitor"] = current_macro_monitor(json.load(fh))
     for marker, name in [("MACROCSS", "macro.css"), ("MACROHTML", "macro.html"), ("MACROJS", "macro.js")]:
         with open(os.path.join(WEB, name), encoding="utf-8") as fh:
             html = html.replace("<!--" + marker + "-->", fh.read() if macro else "")

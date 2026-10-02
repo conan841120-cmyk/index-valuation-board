@@ -119,3 +119,55 @@ def test_refresh_then_recheck_before_raising_alarm(data):
         state = W.check(date(2026, 7, 8), previous(), probe=lambda name, *_: name == 'ppi', refresh=recovered)
     assert state['alerts'] == []
     assert state['new_alerts'] == []
+
+
+def source(state, name):
+    return next(r for r in state['sources'] if r['dataset'] == name)
+
+
+def test_round_switches_on_window_start_not_on_success(data):
+    before = source(W.evaluate(date(2026, 6, 7), data, previous()), 'ppi')
+    assert before['current_round']['window_start'] == '2026-05-08'
+    assert before['next_round']['window_start'] == '2026-06-08'
+    for day in (8, 14, 15, 30):
+        row = source(W.evaluate(date(2026, 6, day), data, previous()), 'ppi')
+        assert row['current_round']['window_start'] == '2026-06-08'
+        assert row['current_round']['observation_period'] == '2026-05'
+        assert row['current_round']['status'] == 'acquired'
+        assert row['next_round']['window_start'] == '2026-07-08'
+    assert source(W.evaluate(date(2026, 7, 7), data, previous()), 'ppi')['current_round']['window_start'] == '2026-06-08'
+
+
+def test_current_round_status_uses_exact_target_and_preserves_old_hole(data):
+    drop(data, 'ppi', '2026-05')
+    during = source(W.evaluate(date(2026, 6, 10), data, previous()), 'ppi')
+    assert during['current_round']['status'] == 'awaiting'
+    after = source(W.evaluate(date(2026, 6, 15), data, previous()), 'ppi')
+    assert after['current_round']['status'] == 'catch_up'
+    next_ = source(W.evaluate(date(2026, 7, 8), data, previous()), 'ppi')
+    assert next_['current_round']['observation_period'] == '2026-06'
+    assert next_['current_round']['status'] == 'acquired'
+    assert next_['backlog_rounds'][0]['observation_period'] == '2026-05'
+    assert next_['backlog_rounds'][0]['window_start'] == '2026-06-08'
+    assert next_['phase'] == 'alarm'
+    data['ppi'].append({'observation_period': '2026-05', 'value': '1'})
+    assert source(W.evaluate(date(2026, 7, 9), data, previous()), 'ppi')['backlog_rounds'] == []
+
+
+def test_display_gdp_and_retail_follow_special_cycles(data):
+    gdp = source(W.evaluate(date(2026, 7, 15), data, previous()), 'gdp')
+    assert gdp['current_round']['observation_period'] == '2026-Q1'
+    assert gdp['next_round']['window_start'] == '2026-07-16'
+    gdp = source(W.evaluate(date(2026, 7, 16), data, previous()), 'gdp')
+    assert gdp['current_round']['observation_period'] == '2026-Q2'
+    assert gdp['next_round']['window_start'] == '2026-10-16'
+    retail = source(W.evaluate(date(2026, 2, 20), data, {'monitoring_start_month': '2026-01'}), 'retail')
+    assert retail['current_round']['window_start'] == '2026-01-14'
+    assert retail['next_round']['window_start'] == '2026-03-14'
+
+
+def test_display_next_window_handles_year_end_and_leap_month(data):
+    row = source(W.evaluate(date(2026, 12, 31), data, previous()), 'ppi')
+    assert row['next_round']['window_start'] == '2027-01-08'
+    row = source(W.evaluate(date(2024, 1, 31), data, {'monitoring_start_month': '2023-10'}), 'hk_m2')
+    assert row['next_round']['window_end'] == '2024-02-29'

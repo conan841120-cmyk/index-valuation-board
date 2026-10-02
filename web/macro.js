@@ -19,6 +19,16 @@
     'z_retail','z_ppi','z_hk_m2','z_credit_impulse','contribution_retail','contribution_ppi','contribution_hk_m2','contribution_credit_impulse',
     'gdp_quarter','gdp_2q','retail_release_date','ppi_release_date','m2_release_date','social_financing_release_date','gdp_release_date'];
   function csv(rows){return csvColumns.join(',')+'\n'+rows.map(function(row){return csvColumns.map(function(k){return row[k]===null||row[k]===undefined?'':row[k];}).join(',');}).join('\n');}
+  function roundWindow(r){return r?escape(r.window_start)+'<br>至 '+escape(r.window_end):'—';}
+  function roundTable(sources){
+    var statuses={acquired:'已取得本轮数据',scheduled:'尚未进入本轮窗口',awaiting:'本轮尚未取得，窗口内每日检查',catch_up:'本轮超期未取得，每日追踪'};
+    return '<caption>本次与下次抓取安排（发布窗口）</caption><thead><tr><th>数据</th><th>本次抓取区间</th><th>本次目标数据</th><th>本轮数据状态</th><th>下次抓取区间</th><th>下次目标数据</th></tr></thead><tbody>'+sources.map(function(s){
+      var r=s.current_round,n=s.next_round;
+      return '<tr><td>'+escape(s.label)+'</td><td>'+roundWindow(r)+'</td><td>'+escape(r&&r.observation_period)+(s.dataset==='retail'&&r&&r.observation_period.endsWith('-02')?'<span class="macro-round-note">核验1—2月合并公告</span>':'')+'</td><td>'+escape(r&&statuses[r.status])+
+        (s.backlog_rounds||[]).map(function(b){return '<span class="macro-round-note macro-warning">旧轮次待补：'+escape(b.observation_period)+'（原区间 '+escape(b.window_start)+' 至 '+escape(b.window_end)+'），每日追踪</span>';}).join('')+
+        (s.last_probe_error?'<span class="macro-round-note macro-warning">最近轻量检查失败：'+escape(s.last_probe_error)+'</span>':'')+'</td><td>'+roundWindow(n)+'</td><td>'+escape(n&&n.observation_period)+'</td></tr>';
+    }).join('')+'</tbody>';
+  }
   function mainOption(rows){
     return {animation:false,color:['#243e50','#bd864d'],grid:{left:58,right:65,top:25,bottom:65},
       tooltip:{trigger:'axis',formatter:function(params){
@@ -33,7 +43,7 @@
         markLine:{silent:true,symbol:['none','none'],label:{show:false},tooltip:{show:false},lineStyle:{type:'dashed',color:'#243e50',width:2},data:gaps(rows)}},
         {name:'恒生指数',type:'line',yAxisIndex:1,data:rows.map(function(r){return r.hsi_close;}),connectNulls:false,showSymbol:false,lineStyle:{width:1.5}}]};
   }
-  if(typeof module!=='undefined'&&module.exports)module.exports={gaps:gaps,select:select,csv:csv,mainOption:mainOption};
+  if(typeof module!=='undefined'&&module.exports)module.exports={gaps:gaps,select:select,csv:csv,mainOption:mainOption,roundTable:roundTable};
   if(typeof document==='undefined')return;
   var D=window.HSI_MACRO,root=document.getElementById('hsi-macro');
   if(!D){root.hidden=true;return;}
@@ -58,8 +68,10 @@
     (warnings.length?'<p class="macro-warning">'+warnings.map(function(s){return escape(s.label);}).join('、')+'最近轻量检查失败；已有数据保留，详情见来源表。</p>':'');
   var windows=monitor.sources.map(function(s){return escape(s.label)+'：'+escape(s.window)+(s.dataset==='gdp'?'（仅1、4、7、10月）':s.dataset==='retail'?'（2月无独立发布轮次）':'');});
   document.getElementById('macro-methods').innerHTML=D.methods.map(function(s){return '<p>'+escape(s)+'</p>';}).join('')+'<p>发布窗口：'+windows.join('；')+'。窗口结束仍未取得数据则每天继续检查，进入下一轮仍缺上一轮时报警，补齐后解除。社零1—2月合并公告不填补独立月度值。</p><p>成功检查不等于重新抓取，也不表示出现新月份；生成时间不等于数据月份。仅检查近期数据与新公告，历史静默修订可手动强制刷新核对。</p>';
-  var states={fresh:'本次抓取成功',cached:'抓取失败，沿用缓存',retained:'沿用已取得数据',snapshot:'历史快照（未联网刷新）'};
-  document.getElementById('macro-source-table').innerHTML='<thead><tr><th>数据</th><th>官方字段／来源</th><th>最新观察期</th><th>公布日期</th><th>抓取状态</th><th>最近成功抓取</th><th>最近轻量检查</th></tr></thead><tbody>'+D.sources.map(function(s){var check=watched[s.dataset]||{};return '<tr><td>'+escape(s.label)+'</td><td><a href="'+escape(s.url)+'" target="_blank" rel="noopener">'+escape(s.official_field)+'</a></td><td>'+escape(s.latest_observation)+'</td><td>'+escape(s.release_date)+'</td><td title="'+escape(s.error||'')+'">'+escape(states[s.state]||s.state)+'</td><td>'+escape(s.last_success_at)+'</td><td title="'+escape(check.last_probe_error||'')+'">'+escape(check.last_checked_at)+'</td></tr>';}).join('')+'</tbody>';
+  document.getElementById('macro-methods').innerHTML+='<p>本次指最近已开启的发布轮次；下一轮窗口开始时自动切换，本轮成功后仍保留结果。旧轮次缺口单独保留，不因切换消失。区间是计划检查窗口，目标数据是经济观察期；日期安排按北京时间在每次页面生成时更新。恒指仅随宏观更新作为对照，不设独立发布轮次。</p>';
+  document.getElementById('macro-round-table').innerHTML=roundTable(monitor.sources);
+  var states={fresh:'最近下载成功',cached:'最近下载失败，沿用缓存',retained:'本次未下载，沿用已有数据',snapshot:'历史快照（未联网刷新）'};
+  document.getElementById('macro-source-table').innerHTML='<caption>官方来源与下载记录（下载成功不代表本轮目标数据已取得）</caption><thead><tr><th>数据</th><th>官方字段／来源</th><th>最新观察期</th><th>公布日期</th><th>最近下载结果</th><th>最近成功抓取</th><th>最近轻量检查</th></tr></thead><tbody>'+D.sources.map(function(s){var check=watched[s.dataset]||{};return '<tr><td>'+escape(s.label)+'</td><td><a href="'+escape(s.url)+'" target="_blank" rel="noopener">'+escape(s.official_field)+'</a></td><td>'+escape(s.latest_observation)+'</td><td>'+escape(s.release_date)+'</td><td title="'+escape(s.error||'')+'">'+escape(states[s.state]||s.state)+'</td><td>'+escape(s.last_success_at)+'</td><td title="'+escape(check.last_probe_error||'')+'">'+escape(check.last_checked_at)+'</td></tr>';}).join('')+'</tbody>';
   var failures=(D.release_lookup_status||[]).filter(function(s){return s.state==='cached';});
   if(failures.length)document.getElementById('macro-methods').innerHTML+='<p class="macro-warning">部分公布日期本次核验失败，保留已有日期；未知日期不推测。</p>';
   function render(){

@@ -11,6 +11,8 @@
 .macro-details summary{cursor:pointer;color:var(--dim)}
 .macro-table-wrap{overflow:auto;max-height:340px;margin-top:10px}
 .macro-section table{white-space:nowrap}
+.macro-section table caption{text-align:left;color:var(--dim);padding-bottom:8px}
+.macro-round-note{display:block;white-space:normal;max-width:290px;color:var(--dim);line-height:1.6}
 .macro-source-link{color:var(--dim);font-size:12px}
 .macro-warning{color:var(--red)}
 .macro-section [role="alert"]{border-left:3px solid var(--red);padding:8px 12px;background:rgba(156,76,57,.06);font-size:13px}
