@@ -96,5 +96,14 @@
   ],
   "due_sources": [],
   "alerts": [],
-  "new_alerts": []
+  "new_alerts": [],
+  "refreshed_sources": [
+    "retail",
+    "ppi",
+    "social_financing",
+    "hk_m2",
+    "gdp",
+    "hsi"
+  ],
+  "last_run_at": "2026-10-02T18:21:22+08:00"
 }
