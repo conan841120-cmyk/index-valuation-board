@@ -1,5 +1,5 @@
 {
- "checked_at": "2026-10-02 06:04:58",
+ "checked_at": "2026-10-02T16:40:32+08:00",
  "article": {
   "title": "【2026-09-29】A股+美股+港股 核心指数估值",
   "url": "http://mp.weixin.qq.com/s?__biz=Mzk2NDA3Mzk2NA==&mid=2247513506&idx=1&sn=ed5681466c4f35da83cf10d6e9e2dbbc&chksm=c47bf521f30c7c37db1ca8c0daea8e094b3863b2d2915fc4c53251066c0d59493511c56b1d6d#rd",
@@ -262,5 +262,279 @@
    "match": null,
    "detected": false
   }
- ]
+ ],
+ "state": "incomplete",
+ "coverage": 3,
+ "covered": 3,
+ "expected": 5,
+ "missing": [
+  "nasdaq100",
+  "csi_a500"
+ ],
+ "previous_result": {
+  "checked_at": "2026-10-02 06:04:58",
+  "article": {
+   "title": "【2026-09-29】A股+美股+港股 核心指数估值",
+   "url": "http://mp.weixin.qq.com/s?__biz=Mzk2NDA3Mzk2NA==&mid=2247513506&idx=1&sn=ed5681466c4f35da83cf10d6e9e2dbbc&chksm=c47bf521f30c7c37db1ca8c0daea8e094b3863b2d2915fc4c53251066c0d59493511c56b1d6d#rd",
+   "date": "2026-09-29",
+   "ts": 1790674439
+  },
+  "images": 21,
+  "matched": 3,
+  "mismatched": 0,
+  "rows": [
+   {
+    "image": "01.png",
+    "source": "文章配图 1",
+    "ocr_header": "港股通创新药 987018.CNI 1849.82 +2.79% ，历史PE/PB",
+    "index_key": null,
+    "index_name": null,
+    "author_metric": "市净率LF",
+    "our_metric": null,
+    "our_metric_label": null,
+    "match": null,
+    "detected": false
+   },
+   {
+    "image": "02.png",
+    "source": "文章配图 2",
+    "ocr_header": "港股通创新药 987018.CNI 1849.82 +2.79% ，历史PE/PB",
+    "index_key": null,
+    "index_name": null,
+    "author_metric": "市净率LF",
+    "our_metric": null,
+    "our_metric_label": null,
+    "match": null,
+    "detected": false
+   },
+   {
+    "image": "03.png",
+    "source": "文章配图 3",
+    "ocr_header": "成长100 980080.CNI 12011.06 +1.61% ，历史PE/PB",
+    "index_key": null,
+    "index_name": null,
+    "author_metric": "市净率LF",
+    "our_metric": null,
+    "our_metric_label": null,
+    "match": null,
+    "detected": false
+   },
+   {
+    "image": "04.png",
+    "source": "文章配图 4",
+    "ocr_header": "有色金属 000819.SH 8112.40 +1.46% ，历史PE/PB",
+    "index_key": null,
+    "index_name": null,
+    "author_metric": "市净率LF",
+    "our_metric": null,
+    "our_metric_label": null,
+    "match": null,
+    "detected": false
+   },
+   {
+    "image": "05.png",
+    "source": "文章配图 5",
+    "ocr_header": "中证传媒 399971.SZ 1166.13 +1.40% ，历史PE/PB",
+    "index_key": null,
+    "index_name": null,
+    "author_metric": "市净率LF",
+    "our_metric": null,
+    "our_metric_label": null,
+    "match": null,
+    "detected": false
+   },
+   {
+    "image": "06.png",
+    "source": "文章配图 6",
+    "ocr_header": "中证新能 399808.SZ 2157.04 +0.87% ，历史PE/PB",
+    "index_key": null,
+    "index_name": null,
+    "author_metric": "市净率LF",
+    "our_metric": null,
+    "our_metric_label": null,
+    "match": null,
+    "detected": false
+   },
+   {
+    "image": "07.png",
+    "source": "文章配图 7",
+    "ocr_header": "科创50 000688.SH 1569.34 +0.86% ，历史PE/PB",
+    "index_key": null,
+    "index_name": null,
+    "author_metric": "市净率LF",
+    "our_metric": null,
+    "our_metric_label": null,
+    "match": null,
+    "detected": false
+   },
+   {
+    "image": "08.png",
+    "source": "文章配图 8",
+    "ocr_header": "港股通非银 931024.CSI 3832.11 +0.54% ， 历史PE/PB",
+    "index_key": null,
+    "index_name": null,
+    "author_metric": "市净率LF",
+    "our_metric": null,
+    "our_metric_label": null,
+    "match": null,
+    "detected": false
+   },
+   {
+    "image": "09.png",
+    "source": "文章配图 9",
+    "ocr_header": "中证500 000905.SH 7439.63 +0.50% 历史PE/PB",
+    "index_key": null,
+    "index_name": null,
+    "author_metric": "市盈率TTM",
+    "our_metric": null,
+    "our_metric_label": null,
+    "match": null,
+    "detected": false
+   },
+   {
+    "image": "10.png",
+    "source": "文章配图 10",
+    "ocr_header": "价值100 980081.CNI 4359.33 +0.31% ， 历史PE/PB",
+    "index_key": null,
+    "index_name": null,
+    "author_metric": "市盈率TTM",
+    "our_metric": null,
+    "our_metric_label": null,
+    "match": null,
+    "detected": false
+   },
+   {
+    "image": "11.png",
+    "source": "文章配图 11",
+    "ocr_header": "红利质量 931468.CSI 31834.61 +0.30% ，历史PE/PB",
+    "index_key": null,
+    "index_name": null,
+    "author_metric": "市盈率TTM",
+    "our_metric": null,
+    "our_metric_label": null,
+    "match": null,
+    "detected": false
+   },
+   {
+    "image": "12.png",
+    "source": "文章配图 12",
+    "ocr_header": "医药50 931140.CSI 9988.33 +0.28% ，历史PE/PB",
+    "index_key": null,
+    "index_name": null,
+    "author_metric": "市净率LF",
+    "our_metric": null,
+    "our_metric_label": null,
+    "match": null,
+    "detected": false
+   },
+   {
+    "image": "13.png",
+    "source": "文章配图 13",
+    "ocr_header": "册生 SO Me SO eI     Im",
+    "index_key": null,
+    "index_name": null,
+    "author_metric": "市净率LF",
+    "our_metric": null,
+    "our_metric_label": null,
+    "match": null,
+    "detected": false
+   },
+   {
+    "image": "14.png",
+    "source": "文章配图 14",
+    "ocr_header": "自由现金流 980092.CNI 4972.80 +0.18% ，历史PE/PB",
+    "index_key": null,
+    "index_name": null,
+    "author_metric": "市盈率TTM",
+    "our_metric": null,
+    "our_metric_label": null,
+    "match": null,
+    "detected": false
+   },
+   {
+    "image": "15.png",
+    "source": "文章配图 15",
+    "ocr_header": "沪深300 399300.SZ 4345.21 +0.10% ， 历史PE/PB",
+    "index_key": null,
+    "index_name": null,
+    "author_metric": "市盈率TTM",
+    "our_metric": null,
+    "our_metric_label": null,
+    "match": null,
+    "detected": false
+   },
+   {
+    "image": "16.png",
+    "source": "文章配图 16",
+    "ocr_header": "中证白酒 399997.SZ 6055.29 +0.09% ，历史PE/PB",
+    "index_key": null,
+    "index_name": null,
+    "author_metric": "市净率LF",
+    "our_metric": null,
+    "our_metric_label": null,
+    "match": null,
+    "detected": false
+   },
+   {
+    "image": "17.png",
+    "source": "文章配图 17",
+    "ocr_header": "创业板指 399006.SZ 3142.56 +0.09% 历史PE/PB",
+    "index_key": null,
+    "index_name": null,
+    "author_metric": "市盈率TTM",
+    "our_metric": null,
+    "our_metric_label": null,
+    "match": null,
+    "detected": false
+   },
+   {
+    "image": "18.png",
+    "source": "文章配图 18",
+    "ocr_header": "红利低波 H30269.CSI 10819.28 -0.07% ，历史PE/PB",
+    "index_key": "dividend_low_vol",
+    "index_name": "红利低波",
+    "author_metric": "股息率",
+    "our_metric": "dy",
+    "our_metric_label": "股息率",
+    "match": true,
+    "detected": true
+   },
+   {
+    "image": "19.png",
+    "source": "文章配图 19",
+    "ocr_header": "中证红利 000922.CS!1 5428.67 -0.20% 历史PE/PB",
+    "index_key": "csi_dividend",
+    "index_name": "中证红利",
+    "author_metric": "股息率",
+    "our_metric": "dy",
+    "our_metric_label": "股息率",
+    "match": true,
+    "detected": true
+   },
+   {
+    "image": "20.png",
+    "source": "文章配图 20",
+    "ocr_header": "标普500 SPX.GI 7683.69 -0.77% ，历史PE/PB",
+    "index_key": "sp500",
+    "index_name": "标普500",
+    "author_metric": "市盈率TTM",
+    "our_metric": "pe",
+    "our_metric_label": "市盈率TTM",
+    "match": true,
+    "detected": true
+   },
+   {
+    "image": "21.png",
+    "source": "文章配图 21",
+    "ocr_header": "MSCI美国50指数 750108.MI 5156.48 -0.77% ， 历史PE/PB",
+    "index_key": null,
+    "index_name": null,
+    "author_metric": "市盈率TTM",
+    "our_metric": null,
+    "our_metric_label": null,
+    "match": null,
+    "detected": false
+   }
+  ]
+ }
 }
