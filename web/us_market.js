@@ -14,19 +14,22 @@
   function preferred(day){const list=day?.digest||[];return list.at(-1)||runs(day).at(-1);}
   const indices=['^GSPC','^IXIC','^DJI','SPY','QQQ','DIA','IWM','VIX'];
   const bonds=['^TNX','^TYX','TLT','GLD','USO'];
-  const watchlistKey='us-market-watchlist-v1';
   function parseSymbols(text){
     const symbols=[...new Set(text.toUpperCase().split(/[\s,，、;；]+/).filter(Boolean))];
     const invalid=symbols.filter(symbol=>!/[A-Z0-9]/.test(symbol)||!/^[\^A-Z0-9.\-]{1,10}$/.test(symbol));
     if(invalid.length)throw new Error('代码格式无效：'+invalid.join('、')+'。请使用不超过 10 位的字母、数字、点、横线或 ^。');
+    if(symbols.length>100)throw new Error('自选清单最多 100 个代码。');
+    const fixed=symbols.filter(symbol=>indices.includes(symbol)||bonds.includes(symbol));
+    if(fixed.length)throw new Error(fixed.join('、')+' 已在固定市场 / 美债栏目中，无需加入自选。');
     return symbols;
   }
   function defaultSymbols(run){return Object.keys(run?.quotes||{}).filter(symbol=>!indices.includes(symbol)&&!bonds.includes(symbol));}
-  function readWatchlist(storage){
-    const value=storage.getItem(watchlistKey);if(value===null)return null;
-    const symbols=JSON.parse(value);
-    if(!Array.isArray(symbols)||symbols.some(symbol=>typeof symbol!=='string'))throw new Error('已保存的代码格式异常');
-    return parseSymbols(symbols.join(' '));
+  function configURL(symbols,revision){
+    if(!/^[a-f0-9]{64}$/.test(revision||''))throw new Error('尚未取得云端配置版本，请刷新网页后再提交。');
+    const url=new URL('https://github.com/conan841120-cmyk/us-trader-daily/issues/new');
+    url.searchParams.set('title','[美股配置] 更新自选代码');
+    url.searchParams.set('body','US_MARKET_WATCHLIST_V1\n'+JSON.stringify({base_revision:revision,symbols:parseSymbols(symbols.join(' '))}));
+    return url.href;
   }
   const names={'^GSPC':'标普500','^IXIC':'纳斯达克综合','^DJI':'道琼斯','SPY':'标普500 ETF','QQQ':'纳指100 ETF','DIA':'道指 ETF','IWM':'罗素2000 ETF','VIX':'VIX','^TNX':'10年美债收益率','^TYX':'30年美债收益率','TLT':'长债 ETF','GLD':'黄金 ETF','USO':'原油 ETF'};
   function quotes(data,symbols){
@@ -47,8 +50,11 @@
     return `<article><h3>${url?`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${title}</a>`:title}</h3><p class="meta">${esc(item.source||'来源未知')} · 发布 ${esc(time(item.published))}${typeof item.score==='number'?' · 筛选评分 '+esc(item.score):''}</p>${item.title_zh?`<p class="muted">原题：${esc(item.title)}</p>`:''}${item.zh?`<p>标题 / 信源摘要：${esc(item.zh)}</p>`:''}${points.length?`<p class="muted">核验正文要点</p><ul>${points.map(p=>'<li>'+esc(p)+'</li>').join('')}</ul>`:'<p class="muted">未取得核验正文要点；如有摘要，仅依据标题 / 信源摘要。</p>'}</article>`;
   }).join(''):`<p class="empty">${esc(empty)}</p>`;}
   function sourceTable(sources){return `<div class="table-wrap"><table><thead><tr><th>来源 / 类型</th><th>采集时状态</th><th>可用 / 收到</th><th>检查时间（北京）</th><th>最后数据时间（北京）</th></tr></thead><tbody>${sources.map(row=>`<tr><td>${esc(row.name)}<div class="muted">${esc({news:'新闻',quote:'行情',discussion:'讨论'}[row.kind]||row.kind)}</div></td><td>${esc(label(row.status))}</td><td class="num">${esc(row.usable??0)} / ${esc(row.received??0)}</td><td>${esc(time(row.checked_at))}</td><td>${esc(time(row.latest_published_at))}</td></tr>`).join('')}</tbody></table></div>`;}
-  function report(run,day,watchSymbols=defaultSymbols(run)){
-    if(!run)return '<p class="empty">尚无已完成的公开存档。首次交接后可在这里按日期回看。</p>';
+  function watchlist(symbols,data,cloud){
+    return `<details id="other-quotes" open><summary>其他关注行情（${symbols.length} 项）</summary><form id="watchlist-form" class="watchlist-editor"><label for="watchlist-input">自选代码（逗号、空格或换行分隔；最多 100 项）</label><textarea id="watchlist-input" rows="3" spellcheck="false" placeholder="例如：NVDA, AAPL, BRK.B">${esc(symbols.join(', '))}</textarea><button type="submit" ${cloud?'':'disabled'}>提交云端配置</button><a id="cloud-request" hidden target="_blank" rel="noopener noreferrer">打开 GitHub 确认页</a><p class="muted">${cloud?'输入或删除代码后提交，在 GitHub 登录并点击“Create”（创建）确认；仅仓库所有者可修改。提交记录自动关闭表示云端保存成功，随后等待网页同步，刷新本页查看已生效清单。配置冲突或失败时记录保持打开，请先刷新本页，再重新提交。':'云端配置尚未交接，暂不能提交。'}</p><p class="muted">云端保存后，后续定时任务按新清单采集；未取得行情的代码显示“行情缺失”。当前行情仍是所选历史批次。市场 / 美债固定栏目和旧存档保留。清空后提交会停止其他自选代码的后续采集。</p><p id="watchlist-status" role="status" aria-live="polite"></p></form>${symbols.length?quotes(data,symbols):'<p class="empty">自选清单为空；输入代码并提交即可添加。</p>'}</details>`;
+  }
+  function report(run,day,watchSymbols=defaultSymbols(run),cloud=null){
+    if(!run)return '<p class="empty">尚无已完成的公开存档。首次交接后可在这里按日期回看。</p><section>'+watchlist(watchSymbols,{},cloud)+'</section>';
     const ready=(run.sources||[]).some(row=>row.kind==='news'&&row.status==='ok');
     const news=[...(run.news||[])].sort((a,b)=>(Number(b.score)||0)-(Number(a.score)||0));
     const ticker=news.filter(row=>['ticker-news','sec-filing'].includes(row.category)).slice(0,10);
@@ -56,25 +62,25 @@
     const latestAlert=(day.alerts||[]).at(-1);
     const other=watchSymbols;
     return `<div class="banner ${run.data_status==='healthy'&&run.status==='success'?'':'warn'}"><strong>${esc(label(run.data_status))} · ${run.mode==='digest'?'日报':'预警快照'}</strong><p>采集开始：${esc(time(run.started_at))}（北京） / ${esc(time(run.started_at,'America/New_York'))}（美东）<br>完成：${esc(time(run.finished_at))}（北京）</p><p class="meta">运行：${esc(run.status==='failed'?'失败':label(run.status))} · ${esc(run.run_id)} · AI 摘要：${esc(run.ai_status==='ok'?'已生成':run.ai_status==='degraded'?'降级，可能只有原标题':'本批次未记录')}</p><p>当前展示历史快照；下方“可用”按采集时点判断，不代表实时行情。</p>${latestAlert?`<p class="meta">当天最近预警检查：${esc(time(latestAlert.started_at))} · ${esc(label(latestAlert.data_status))}。可切换批次查看，数据不足不能推断无异动。</p>`:''}</div>
-    <section><div class="grid"><div><h2>市场快照</h2>${quotes(run.quotes||{},indices)}</div><div><h2>美债与避险资产</h2>${quotes(run.quotes||{},bonds)}</div></div><details id="other-quotes" open><summary>其他关注行情（${other.length} 项）</summary><form id="watchlist-form" class="watchlist-editor"><label for="watchlist-input">自选代码（逗号、空格或换行分隔；删除代码后保存即可移除）</label><textarea id="watchlist-input" rows="3" spellcheck="false" placeholder="例如：NVDA, AAPL, BRK.B">${esc(other.join(', '))}</textarea><button type="submit">保存代码</button><p class="muted">保存到当前浏览器；只调整此处的展示清单。行情来自所选历史批次，未采集的代码会显示“行情缺失”。</p><p id="watchlist-status" role="status" aria-live="polite"></p></form>${other.length?quotes(run.quotes||{},other):'<p class="empty">自选清单为空；输入代码后保存即可添加。</p>'}</details></section>
+    <section><div class="grid"><div><h2>市场快照</h2>${quotes(run.quotes||{},indices)}</div><div><h2>美债与避险资产</h2>${quotes(run.quotes||{},bonds)}</div></div>${watchlist(other,run.quotes||{},cloud)}</section>
     <section><h2>${run.mode==='alerts'?'本轮选中快讯':'重要事件'}</h2><p class="muted">自动筛选与摘要，评分是信息筛选分，不是买卖信号。</p>${articles(news.slice(0,12),ready?'本批次没有选中条目，不代表全市场没有事件。':'新闻来源缺失、过期或为空，无法判断是否存在重要事件。')}</section>
     <section><h2>自选股动态</h2>${articles(ticker,ready?'本批次没有选中自选股动态。':'新闻数据不足，无法判断自选股动态。')}</section>
     <section><h2>当天预警检测记录</h2><p class="muted">这里记录检测结果，不代表通知已送达；空记录也不能证明全市场无异动。</p>${events.length?events.map(row=>`<details open><summary>${esc(time(row.started_at))} · ${esc(label(row.data_status))}</summary><ul>${[...(row.price_alerts||[]).map(a=>a.text),...(row.heads||[])].map(v=>'<li>'+esc(v)+'</li>').join('')}</ul>${articles(row.news||[],'此轮没有选中快讯。')}</details>`).join(''):'<p class="empty">当天尚无已存档的选中事件。</p>'}</section>
     <section><details id="source-status"><summary><h2>来源与数据状态</h2></summary><p class="muted">检查时间是请求时点；最后数据时间是文章发布时间或报价时点。仅日期报价无法证明分钟级新鲜度。</p>${sourceTable(run.sources||[])}</details></section>`;
   }
-  const API={esc,safeURL,time,runs,preferred,quotes,articles,report,parseSymbols,defaultSymbols,readWatchlist};
+  const API={esc,safeURL,time,runs,preferred,quotes,articles,report,parseSymbols,defaultSymbols,configURL};
   if(typeof module!=='undefined')module.exports=API;
   if(typeof document==='undefined')return;
   const boot=window.US_MARKET_BOOTSTRAP,dates=boot.manifest.dates;
   const dateSelect=document.getElementById('date'),runSelect=document.getElementById('run'),status=document.getElementById('load-status'),download=document.getElementById('download');
-  let day=boot.day,request=0,watchSymbols=defaultSymbols(preferred(day)),watchMessage='';
-  try{watchSymbols=readWatchlist(window.localStorage)??watchSymbols;}catch{watchMessage='未能读取本浏览器的保存记录，当前使用默认清单。';}
+  const cloud=boot.manifest.watchlist;
+  let day=boot.day,request=0;
+  const watchSymbols=cloud?.symbols??defaultSymbols(preferred(day));
   const cache=new Map(day?[[day.date,day]]:[]);
   dateSelect.innerHTML=dates.map(date=>`<option value="${esc(date)}">${esc(date)}</option>`).join('');
   function paint(){
     const selected=runs(day).find(row=>row.run_id===runSelect.value);
-    document.getElementById('report').innerHTML=report(selected,day||{},watchSymbols);
-    const message=document.getElementById('watchlist-status');if(message)message.textContent=watchMessage;
+    document.getElementById('report').innerHTML=report(selected,day||{},watchSymbols,cloud);
     download.hidden=!selected;
     if(selected)download.href='reports/'+encodeURIComponent(selected.run_id)+'.md';
   }
@@ -101,12 +107,12 @@
   document.getElementById('report').addEventListener('submit',event=>{
     if(event.target.id!=='watchlist-form')return;
     event.preventDefault();
-    let symbols;
-    try{symbols=parseSymbols(document.getElementById('watchlist-input').value);}catch(error){document.getElementById('watchlist-status').textContent=error.message;return;}
-    watchSymbols=symbols;
-    try{window.localStorage.setItem(watchlistKey,JSON.stringify(symbols));watchMessage='已保存 '+symbols.length+' 个代码，刷新页面后继续使用。';}
-    catch{watchMessage='已更新本次展示；浏览器不允许保存，刷新后可能恢复默认清单。';}
-    paint();document.getElementById('watchlist-input').focus();
+    try{
+      const url=configURL(parseSymbols(document.getElementById('watchlist-input').value),cloud?.revision);
+      const link=document.getElementById('cloud-request');link.href=url;link.hidden=false;
+      window.open(url,'_blank','noopener,noreferrer');
+      document.getElementById('watchlist-status').textContent='尚未保存：请在新打开的 GitHub 页面确认提交。若没有弹出新页面，点击上方“打开 GitHub 确认页”。';
+    }catch(error){document.getElementById('watchlist-status').textContent=error.message;}
   });
   if(!dates.length){dateSelect.disabled=true;runSelect.disabled=true;setDay(null);return;}
   const chosen=new URL(location.href).searchParams.get('date');dateSelect.value=dates.includes(chosen)?chosen:dates[0];

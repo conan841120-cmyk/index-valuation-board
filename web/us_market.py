@@ -62,6 +62,14 @@ def build(source, out):
         'schema_version': 1, 'date_timezone': 'Asia/Shanghai', 'dates': []}
     if manifest.get('schema_version') != 1 or manifest.get('date_timezone') != 'Asia/Shanghai':
         raise ValueError('Unsupported manifest')
+    if 'watchlist' in manifest:
+        cloud = manifest['watchlist']
+        if (not isinstance(cloud, dict) or not isinstance(cloud.get('symbols'), list)
+                or len(cloud['symbols']) > 100 or not isinstance(cloud.get('revision'), str)
+                or not re.fullmatch(r'[a-f0-9]{64}', cloud['revision'])
+                or any(not isinstance(symbol, str) or not re.fullmatch(r'[\^A-Z0-9.\-]{1,10}', symbol)
+                       or not re.search(r'[A-Z0-9]', symbol) for symbol in cloud['symbols'])):
+            raise ValueError('Invalid cloud watchlist')
     dates = manifest['dates']
     if not isinstance(dates, list) or any(not isinstance(date, str) or not DATE.fullmatch(date) for date in dates):
         raise ValueError('Invalid dates')

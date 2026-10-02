@@ -49,6 +49,17 @@ class USMarketTests(unittest.TestCase):
         self.fixture(); (self.source / '2026-10-02.json').unlink()
         with self.assertRaises(FileNotFoundError): us_market.build(self.source, self.out)
 
+    def test_cloud_config_is_embedded_and_invalid_config_aborts(self):
+        self.fixture()
+        manifest_path = self.source / 'manifest.json'
+        manifest = json.loads(manifest_path.read_text())
+        manifest['watchlist'] = {'symbols': ['COST', 'BRK.B'], 'revision': 'a' * 64}
+        manifest_path.write_text(json.dumps(manifest))
+        self.assertIn('"symbols": ["COST", "BRK.B"]', us_market.build(self.source, self.out).read_text())
+        for bad in ({'symbols': ['<script>'], 'revision': 'a'*64}, {'symbols': [], 'revision': 'bad'}, {'symbols': 'COST', 'revision': 'a'*64}):
+            manifest['watchlist'] = bad; manifest_path.write_text(json.dumps(manifest))
+            with self.assertRaises(ValueError): us_market.build(self.source, self.out)
+
     def test_complete_build_retains_valuation_macro_and_us_entry(self):
         # 实际渲染既有估值和宏观输入；US 使用测试数据目录。
         self.fixture()
