@@ -28,12 +28,24 @@ class WorkflowSeparation(unittest.TestCase):
         self.assertEqual(gate['if'], "steps.plan.outputs.needs_check == 'true'")
 
     def test_shared_publish_lock_and_latest_branch(self):
-        configs = [yaml.load((ROOT / '.github/workflows' / name).read_text(), Loader=yaml.BaseLoader) for name in ('daily.yml', 'macro.yml')]
+        configs = [yaml.load((ROOT / '.github/workflows' / name).read_text(), Loader=yaml.BaseLoader) for name in ('daily.yml', 'macro.yml', 'us-market.yml')]
         self.assertEqual(configs[0]['concurrency'], configs[1]['concurrency'])
+        self.assertEqual(configs[0]['concurrency'], configs[2]['concurrency'])
         self.assertEqual(configs[0]['concurrency']['cancel-in-progress'], 'false')
+        self.assertEqual(configs[0]['concurrency']['queue'], 'max')
         for config in configs:
             checkout = config['jobs']['build']['steps'][0]
             self.assertEqual(checkout['with']['ref'], 'main')
+
+    def test_all_publishers_build_the_complete_site(self):
+        for name in ('daily.yml', 'macro.yml', 'us-market.yml'):
+            text = (ROOT / '.github/workflows' / name).read_text()
+            self.assertIn('python tools/load_us_market.py', text)
+            self.assertIn('python web/build_site.py', text)
+            self.assertNotIn('web/render.py --out docs/index.html', text)
+        config = yaml.load((ROOT / '.github/workflows/us-market.yml').read_text(), Loader=yaml.BaseLoader)
+        self.assertEqual(config['on']['push']['branches'], ['us-market-data'])
+        self.assertEqual(config['permissions']['contents'], 'read')
 
     def test_alarm_happens_after_page_is_published(self):
         config = yaml.load((ROOT / '.github/workflows/macro.yml').read_text(), Loader=yaml.BaseLoader)

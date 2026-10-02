@@ -1,0 +1,35 @@
+name: complete-site-tests
+on:
+  pull_request: {}
+  push:
+    branches-ignore: [us-market-data]
+    paths: ['web/**', 'tools/**', 'tests/**', 'compute/**', 'fetch/**', 'macro/**', 'requirements.txt', '.github/workflows/**']
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          python compute/run_all.py --rebuild
+          python web/build_site.py
+          python -m unittest discover -s tests -v
+          node tests/test_frontend_logic.js
+          node tests/test_macro_frontend.js
+          node tests/test_us_market.js
+          cd macro/hsi
+          python -m pytest -q
+      - uses: actions/upload-artifact@v4
+        with:
+          name: complete-site-preview
+          path: docs
+          include-hidden-files: true
+          retention-days: 14

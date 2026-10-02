@@ -10,6 +10,8 @@
 
 ## 云端地址（北京时间名义 08:30 触发）
 
+阶段 3 新增独立美股页面与完整站点构建（待验收，尚未发布），详见 [美股模块说明](US_MARKET.md)。完整站点本地打包：`python web/build_site.py --out outputs/site`；原 `web/render.py` 仍用于单文件估值页。
+
 **https://conan841120-cmyk.github.io/index-valuation-board/**
 
 - 仓库：`conan841120-cmyk/index-valuation-board`（公开）· 工作流：`.github/workflows/daily.yml`

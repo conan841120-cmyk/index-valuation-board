@@ -1,0 +1,55 @@
+name: us-market-pages
+
+on:
+  push:
+    branches: [us-market-data]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 读取公开美股数据，使用既有估值和宏观输入
+        run: |
+          python tools/load_us_market.py
+          python compute/run_all.py --rebuild
+          python web/build_site.py
+      - name: 发布前校验
+        run: |
+          python -m unittest discover -s tests -v
+          node tests/test_frontend_logic.js
+          node tests/test_macro_frontend.js
+          node tests/test_us_market.js
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
