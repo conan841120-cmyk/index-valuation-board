@@ -26,8 +26,8 @@
         return escape(date)+'<br>领先指标：'+(row.leading_indicator===null?'缺失（虚线仅为历史连接）':fmt(row.leading_indicator))+'<br>恒生指数：'+fmt(row.hsi_close,2);
       }},
       xAxis:{type:'category',data:rows.map(function(r){return r.date;}),boundaryGap:false,axisLabel:{hideOverlap:true}},
-      yAxis:[{type:'value',name:'领先指标',min:-2.5,max:2,splitLine:{lineStyle:{color:'#EAE3D6'}}},
-        {type:'value',name:'恒生指数（点）',min:12000,max:36000,splitLine:{show:false}}],
+      yAxis:[{type:'value',name:'领先指标',min:function(v){return Math.min(-2.5,Math.floor(v.min*2)/2);},max:function(v){return Math.max(2,Math.ceil(v.max*2)/2);},splitLine:{lineStyle:{color:'#EAE3D6'}}},
+        {type:'value',name:'恒生指数（点）',min:function(v){return Math.min(12000,Math.floor(v.min/2000)*2000);},max:function(v){return Math.max(36000,Math.ceil(v.max/2000)*2000);},splitLine:{show:false}}],
       dataZoom:[{type:'inside'},{type:'slider',height:17,bottom:10}],
       series:[{name:'领先指标',type:'line',data:rows.map(function(r){return r.leading_indicator;}),connectNulls:false,showSymbol:false,lineStyle:{width:2},
         markLine:{silent:true,symbol:['none','none'],label:{show:false},tooltip:{show:false},lineStyle:{type:'dashed',color:'#243e50',width:2},data:gaps(rows)}},
@@ -59,7 +59,7 @@
     contribution.setOption({animation:false,color:colors,grid:{left:50,right:15,top:35,bottom:30},legend:{textStyle:{fontSize:11}},tooltip:{trigger:'axis'},
       xAxis:{type:'category',data:rows.map(function(r){return r.date;}),boundaryGap:false,axisLabel:{hideOverlap:true}},yAxis:{type:'value',splitLine:{lineStyle:{color:'#EAE3D6'}}},
       series:factors.map(function(name,i){return {name:labels[i],type:'line',showSymbol:false,connectNulls:false,data:rows.map(function(r){return r['contribution_'+name];})};})},true);
-    document.getElementById('macro-detail-table').innerHTML='<thead><tr><th>观察月份</th><th>领先指标</th><th>恒生指数</th><th>社零同比</th><th>出厂价格同比</th><th>香港广义货币同比</th><th>信用脉冲</th></tr></thead><tbody>'+rows.slice().reverse().map(function(r){return '<tr><td>'+escape(r.date)+'</td><td>'+fmt(r.leading_indicator)+'</td><td>'+fmt(r.hsi_close,2)+'</td><td>'+fmt(r.retail_yoy,2)+'</td><td>'+fmt(r.ppi_yoy,2)+'</td><td>'+fmt(r.hk_m2_yoy,2)+'</td><td>'+fmt(r.credit_impulse_3m===null?null:100*r.credit_impulse_3m,2)+'</td></tr>';}).join('')+'</tbody>';
+    document.getElementById('macro-detail-table').innerHTML='<thead><tr><th>观察月份</th><th>领先指标</th><th>恒生指数（点）</th><th>社零同比（%）</th><th>出厂价格同比（%）</th><th>香港广义货币同比（%）</th><th>信用脉冲（%）</th></tr></thead><tbody>'+rows.slice().reverse().map(function(r){return '<tr><td>'+escape(r.date)+'</td><td>'+fmt(r.leading_indicator)+'</td><td>'+fmt(r.hsi_close,2)+'</td><td>'+fmt(r.retail_yoy,2)+'</td><td>'+fmt(r.ppi_yoy,2)+'</td><td>'+fmt(r.hk_m2_yoy,2)+'</td><td>'+fmt(r.credit_impulse_3m===null?null:100*r.credit_impulse_3m,2)+'</td></tr>';}).join('')+'</tbody>';
   }
   document.getElementById('macro-range').onchange=render;
   document.getElementById('macro-export').onclick=function(){var rows=select(D.series,document.getElementById('macro-range').value),url=URL.createObjectURL(new Blob(['\uFEFF'+csv(rows)],{type:'text/csv;charset=utf-8'}));var a=document.createElement('a');a.href=url;a.download='恒生领先指标-'+rows[0].date+'-'+rows[rows.length-1].date+'.csv';a.click();setTimeout(function(){URL.revokeObjectURL(url);},1000);};

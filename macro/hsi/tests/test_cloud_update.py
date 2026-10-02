@@ -36,4 +36,6 @@ def test_web_snapshot_keeps_gaps_and_matches_confirmed_algorithm():
     assert rows['2021-03']['leading_indicator'] == pytest.approx(frame.loc['2021-03', 'leading_indicator'])
     assert snapshot['config']['standardization_mode'] == 'explicit_unbiased'
     assert snapshot['vintage_certified'] is False
+    financing = next(s for s in snapshot['sources'] if s['dataset'] == 'social_financing')
+    assert financing['official_field'] == '社会融资规模增量（月度）'
     json.dumps(snapshot, allow_nan=False)

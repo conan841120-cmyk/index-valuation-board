@@ -121,7 +121,7 @@ def make_snapshot(data, frame, config, status, release_status):
     for name, source in data.items():
         validate_source(name, source)
         good = source.dropna(subset='value');last = good.iloc[-1]
-        sources.append({'dataset': name, 'label': LABELS[name], 'official_field': last.official_field if 'official_field' in last else 'Hang Seng Index closing',
+        sources.append({'dataset': name, 'label': LABELS[name], 'official_field': last.official_field if 'official_field' in last else {'social_financing':'社会融资规模增量（月度）','hsi':'恒生指数月末收盘价'}[name],
             'latest_observation': str(last.observation_period), 'release_date': None if pd.isna(last.release_date) else str(last.release_date),
             'url': last.source_url, 'unit': last.unit, 'valid_rows': len(good), 'missing_rows': int(source.value.isna().sum()),
             'sha256': hashlib.sha256((ROOT / f'data/processed/{name}.csv').read_bytes()).hexdigest(),
