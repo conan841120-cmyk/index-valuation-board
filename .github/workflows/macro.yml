@@ -19,6 +19,7 @@ permissions:
 concurrency:
   group: pages
   cancel-in-progress: false
+  queue: max
 
 jobs:
   build:
@@ -83,7 +84,8 @@ jobs:
           python compute/run_all.py --rebuild
           python compute/report.py
           python macro/hsi/release_statistics.py
-          python web/render.py --out docs/index.html
+          python tools/load_us_market.py
+          python web/build_site.py
 
       - name: 校验监测、页面及估值快照
         if: steps.plan.outputs.needs_check == 'true'
@@ -91,6 +93,7 @@ jobs:
           python -m unittest discover -s tests -v
           node tests/test_frontend_logic.js
           node tests/test_macro_frontend.js
+          node tests/test_us_market.js
           cd macro/hsi
           python -m pytest tests/test_release_watch.py tests/test_release_probe.py -q
 

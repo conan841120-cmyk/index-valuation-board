@@ -18,6 +18,7 @@ permissions:
 concurrency:
   group: pages
   cancel-in-progress: false
+  queue: max
 
 jobs:
   build:
@@ -54,14 +55,17 @@ jobs:
       - name: 生成口径报告
         run: python compute/report.py
 
-      - name: 渲染单文件看板 → docs/index.html
-        run: python web/render.py --out docs/index.html
+      - name: 读取美股公开快照并生成完整站点
+        run: |
+          python tools/load_us_market.py
+          python web/build_site.py
 
       - name: 回归测试（不通过则中止，避免发布错数据）
         run: |
           python -m unittest discover -s tests -v
           node tests/test_frontend_logic.js
           node tests/test_macro_frontend.js
+          node tests/test_us_market.js
 
       - name: 回写快照
         run: |

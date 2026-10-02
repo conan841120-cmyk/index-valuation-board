@@ -10,6 +10,7 @@ data/dashboard.json
 data/series/*.json
 !data/series/raw_inputs.json
 docs/
+data/us_market/
 
 # outputs 只保留口径报告：单文件页面体积大、对照图含第三方截图，均留在本地
 outputs/*
