@@ -44,8 +44,19 @@ class WorkflowSeparation(unittest.TestCase):
             self.assertIn('python web/build_site.py', text)
             self.assertNotIn('web/render.py --out docs/index.html', text)
         config = yaml.load((ROOT / '.github/workflows/us-market.yml').read_text(), Loader=yaml.BaseLoader)
-        self.assertEqual(config['on']['push']['branches'], ['us-market-data'])
         self.assertEqual(config['permissions']['contents'], 'read')
+
+    def test_data_branch_signals_main_without_deploying(self):
+        config = yaml.load((ROOT / '.github/workflows/us-market.yml').read_text(), Loader=yaml.BaseLoader)
+        relay = yaml.load((ROOT / '.github/workflows/us-market-data.yml').read_text(), Loader=yaml.BaseLoader)
+        self.assertEqual(relay['on']['push']['branches'], ['us-market-data'])
+        self.assertEqual(relay['permissions'], {'contents': 'read'})
+        self.assertNotIn('actions/checkout', str(relay['jobs']))
+        self.assertNotIn('deploy', relay['jobs'])
+        self.assertNotIn('push', config['on'])
+        self.assertEqual(config['on']['workflow_run'], {'workflows': [relay['name']], 'types': ['completed'], 'branches': ['us-market-data']})
+        self.assertIn("github.event.workflow_run.conclusion == 'success'", config['jobs']['build']['if'])
+        self.assertEqual(config['jobs']['build']['steps'][0]['with']['ref'], 'main')
 
     def test_alarm_happens_after_page_is_published(self):
         config = yaml.load((ROOT / '.github/workflows/macro.yml').read_text(), Loader=yaml.BaseLoader)

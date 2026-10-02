@@ -2,7 +2,7 @@
 
 既有估值和恒生宏观页保留在 `/`，新增入口为 `/us-market/`。公开 JSON 来自私有采集仓库的明确字段导出；网页不携带密钥。配置提交复用 GitHub 自身登录，不在网页存储令牌。
 
-完整发布使用 `python web/build_site.py`，默认输出 `docs/`。估值、宏观、美股三条发布工作流均先读取公开 `us-market-data` 分支，再打包整个站点，共享同一个 `pages` 并发组和排队策略。美股工作流只使用估值/宏观已保存输入，不调用这些抓取器。
+完整发布使用 `python web/build_site.py`，默认输出 `docs/`。估值、宏观、美股三条发布工作流均先读取公开 `us-market-data` 分支，再打包整个站点，共享同一个 `pages` 并发组和排队策略。数据分支 push 只运行只读的 `us-market-data-ready` 信号，完成后由默认分支上的 `us-market-pages` 构建和部署，符合现有 Pages 只允许 main 发布的保护规则。美股工作流只使用估值/宏观已保存输入，不调用这些抓取器。
 
 数据协议：`data/us_market/manifest.json` 的 `schema_version=1`、`date_timezone=Asia/Shanghai` 与日期列表；每个 `YYYY-MM-DD.json` 含该日期的 `digest` 和 `alerts` 运行数组。数据目录由构建时读取数据分支产生，不混入 main 的估值/宏观快照。manifest 引用的日期缺失或损坏时停止发布，不冒充空存档。
 
