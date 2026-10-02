@@ -13,7 +13,7 @@ from src.indicators.leading_indicator import build, load_config, FACTORS
 
 BOARD = ROOT.parents[1]
 DATASETS = ('retail', 'ppi', 'hk_m2', 'social_financing', 'gdp', 'hsi')
-LABELS = dict(zip(DATASETS, ['社零同比', '出厂价格同比', '香港广义货币总额同比', '社融增量', '当季名义国内生产总值', '恒生指数']))
+LABELS = dict(zip(DATASETS, ['社零同比', 'PPI同比', '香港广义货币总额同比', '社融增量', '当季名义国内生产总值', '恒生指数']))
 DESTINATION = BOARD / 'data/hsi_macro.json'
 
 
