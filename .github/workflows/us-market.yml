@@ -44,6 +44,7 @@ jobs:
           node tests/test_frontend_logic.js
           node tests/test_macro_frontend.js
           node tests/test_us_market.js
+          node tests/test_sp500.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: docs

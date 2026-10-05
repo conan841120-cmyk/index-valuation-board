@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import re
 from urllib.parse import quote, urlsplit
+from web.navigation import CSS as NAV_STYLE, navigation
 
 WEB = Path(__file__).resolve().parent
 DATE = re.compile(r'\d{4}-\d{2}-\d{2}\Z')
@@ -93,7 +94,7 @@ def build(source, out):
     bootstrap = {'manifest': manifest, 'day': days.get(dates[0]) if dates else None}
     embedded = json.dumps(bootstrap, ensure_ascii=False, allow_nan=False).replace('<', '\\u003c')
     template = (WEB / 'us_market.html').read_text(encoding='utf-8')
-    html = template.replace('<!--DATA-->', embedded).replace('<!--STYLE-->',
+    html = template.replace('<!--NAV-->', navigation('us')).replace('<!--NAV_STYLE-->', NAV_STYLE).replace('<!--DATA-->', embedded).replace('<!--STYLE-->',
             (WEB / 'us_market.css').read_text(encoding='utf-8')).replace('<!--APP-->',
             (WEB / 'us_market.js').read_text(encoding='utf-8'))
     (out / 'data').mkdir(parents=True, exist_ok=True)

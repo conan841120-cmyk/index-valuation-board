@@ -1,0 +1,13 @@
+'use strict';
+const assert = require('node:assert/strict');
+const SP = require('../web/sp500.js');
+const row = {bin_low: -10, bin_high: -5};
+assert.equal(SP.contains(row, -10), true);
+assert.equal(SP.contains(row, -5), false);
+assert.equal(SP.contains({bin_low: null, bin_high: -25}, -26), true);
+assert.equal(SP.pct(null), '数据不足');
+assert.equal(SP.pct(undefined), '数据不足');
+assert.equal(SP.pct(0), '0.0%');
+assert.match(SP.ci({n: 1, bootstrap_degenerate: true, p_up_ci95: [1, 1], p_up_wilson_ci95: [.2, 1]}, 'p_up'), /20.0%–100.0%（Wilson）/);
+assert.equal(SP.ci({n: 0}, 'p_up'), '数据不足');
+console.log('S&P boundary and uncertainty checks passed');

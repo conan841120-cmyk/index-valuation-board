@@ -66,6 +66,7 @@ jobs:
           node tests/test_frontend_logic.js
           node tests/test_macro_frontend.js
           node tests/test_us_market.js
+          node tests/test_sp500.js
 
       - name: 回写快照
         run: |

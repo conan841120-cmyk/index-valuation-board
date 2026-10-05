@@ -71,4 +71,6 @@ class USMarketTests(unittest.TestCase):
         self.assertIn('window.HSI_MACRO', page)
         self.assertIn('us-market/', page)
         self.assertTrue((self.out / 'us-market/index.html').exists())
+        self.assertTrue((self.out / 'sp500-deviation/index.html').exists())
+        self.assertIn('sp500-deviation/', page)
         self.assertTrue((self.out / '.nojekyll').exists())

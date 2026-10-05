@@ -27,11 +27,13 @@ class PublicBranchTests(unittest.TestCase):
     def git(self, root, *args):
         return subprocess.run(['git', *args], cwd=root, check=True, capture_output=True)
 
-    def publish(self, dates=('2026-10-02',)):
+    def publish(self, dates=('2026-10-02',), sp500=None):
         self.git(self.writer, 'switch', '-qc', 'us-market-data')
         data = self.writer / 'data/us_market'; data.mkdir(parents=True)
         (data / 'manifest.json').write_text(json.dumps({'schema_version': 1, 'date_timezone': 'Asia/Shanghai', 'dates': list(dates)}))
         (data / '2026-10-02.json').write_text(json.dumps({'schema_version': 1, 'date': '2026-10-02', 'digest': [], 'alerts': []}))
+        if sp500 is not None:
+            (data / 'sp500.json').write_text(json.dumps(sp500))
         (self.writer / 'do-not-execute.py').write_text('raise AssertionError("untrusted data-branch code")')
         self.git(self.writer, 'add', '.'); self.git(self.writer, 'commit', '-qm', 'public data')
         self.git(self.writer, 'push', '-q', 'origin', 'us-market-data')
@@ -54,4 +56,15 @@ class PublicBranchTests(unittest.TestCase):
     def test_missing_referenced_day_aborts_instead_of_hiding_failure(self):
         self.publish(dates=('2026-10-01',))
         with self.assertRaises(subprocess.CalledProcessError): load(self.reader)
+        self.assertFalse((self.reader / 'data/us_market').exists())
+
+    def test_optional_sp500_data_is_read_without_branch_code(self):
+        payload = {'schema_version': 1, 'symbol': '^GSPC', 'queries': {}}
+        self.publish(sp500=payload); load(self.reader)
+        self.assertEqual(json.loads((self.reader / 'data/us_market/sp500.json').read_text()), payload)
+        self.assertFalse((self.reader / 'do-not-execute.py').exists())
+
+    def test_wrong_sp500_identity_aborts_before_any_output(self):
+        self.publish(sp500={'schema_version': 1, 'symbol': 'SPY'})
+        with self.assertRaises(ValueError): load(self.reader)
         self.assertFalse((self.reader / 'data/us_market').exists())
