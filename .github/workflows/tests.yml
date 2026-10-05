@@ -18,6 +18,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: 核对原看板打包结果可复现
+        run: |
+          npm ci --prefix web/sp500 --no-audit --no-fund
+          npm run build --prefix web/sp500
+          git diff --exit-code -- web/sp500.js
       - run: |
           python compute/run_all.py --rebuild
           python web/build_site.py

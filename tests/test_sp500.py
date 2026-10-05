@@ -16,9 +16,9 @@ class SP500PageTests(unittest.TestCase):
             for href in ('../', '../us-market/', '../sp500-deviation/'):
                 self.assertIn('href="' + href + '"', page)
             self.assertIn('aria-current="page"', page)
-            self.assertIn('低于均线多少后', page)
+            self.assertIn('id="sp500-app"', page)
             self.assertNotIn('cdn.', page)
-            self.assertTrue((out / 'echarts.min.js').is_file())
+            self.assertTrue((out / 'sp500.js').is_file())
             data = json.loads((out / 'snapshot.json').read_text())
             self.assertEqual(sum(len(q['rows']) for q in data['queries'].values()), 20837)
 

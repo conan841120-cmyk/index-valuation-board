@@ -69,5 +69,4 @@ def build(source, out):
     (out / 'index.html').write_text(html, encoding='utf-8')
     (out / 'snapshot.json').write_text(encoded, encoding='utf-8')
     shutil.copy2(WEB / 'sp500.js', out / 'sp500.js')
-    shutil.copy2(WEB / 'vendor/echarts.min.js', out / 'echarts.min.js')
     return out / 'index.html'

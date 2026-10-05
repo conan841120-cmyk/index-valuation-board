@@ -27,3 +27,4 @@ macro/hsi/data/interim/
 macro/hsi/output/
 macro/hsi/.pytest_cache/
 output/playwright/
+web/sp500/node_modules/
