@@ -25,6 +25,7 @@ jobs:
           node tests/test_frontend_logic.js
           node tests/test_macro_frontend.js
           node tests/test_us_market.js
+          node tests/test_sp500.js
           cd macro/hsi
           python -m pytest -q
       - uses: actions/upload-artifact@v4

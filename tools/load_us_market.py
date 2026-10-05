@@ -32,6 +32,12 @@ def load(root=ROOT):
         dt.date.fromisoformat(date)
         files[date + '.json'] = read(date + '.json')
     encoded = {name: json.dumps(value, ensure_ascii=False, allow_nan=False) for name, value in files.items()}
+    sp500_path = 'FETCH_HEAD:data/us_market/sp500.json'
+    if subprocess.run(['git', 'cat-file', '-e', sp500_path], cwd=root, capture_output=True).returncode == 0:
+        sp500 = json.loads(subprocess.check_output(['git', 'show', sp500_path], cwd=root))
+        if sp500.get('schema_version') != 1 or sp500.get('symbol') != '^GSPC':
+            raise ValueError('Invalid S&P 500 payload')
+        encoded['sp500.json'] = json.dumps(sp500, ensure_ascii=False, allow_nan=False)
     destination = root / 'data/us_market'
     destination.mkdir(parents=True, exist_ok=True)
     for name, value in encoded.items():
