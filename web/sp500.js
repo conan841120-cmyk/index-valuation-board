@@ -114,6 +114,7 @@ const SP = {
   },
   render() {
     this.start = Number(document.getElementById('start').value); this.ma = Number(document.getElementById('ma').value); this.horizon = Number(document.getElementById('horizon').value);
+    document.getElementById('threshold-context').textContent = this.ma + ' 日均线 · 未来 ' + this.horizon + ' 个交易日 · 四个累计时期比较';
     this.current(); this.eras(); this.thresholds('bottom'); this.thresholds('top'); this.scenario(this.scenarioPoint); this.heatmap(); this.evidence();
   },
   async init() {
