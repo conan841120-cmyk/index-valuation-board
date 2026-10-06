@@ -28,3 +28,7 @@ macro/hsi/output/
 macro/hsi/.pytest_cache/
 output/playwright/
 web/sp500/node_modules/
+
+# AOCI agent host integration (machine-bound; do not commit)
+.codex/config.toml
+.codex/config.toml.backup.*

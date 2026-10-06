@@ -1,0 +1,168 @@
+#AOCI-CODE-VOLUME: 1
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/===
+.gitattributes[FC4T]: F:统一文本检出行尾以稳定源码指纹 | R:- | A:text=auto eol=lf | S:二进制保持原始字节
+.gitignore[FC5T]: F:隔离可重建数据、发布产物、版权图片及本机配置 | R:code:web/build_site.py | A:保留raw_inputs、口径报告；忽略docs和本机MCP | S:-
+AGENTS.md[SC7S]: F:规定AOCI认知加载、语义作者化、维护和恢复边界 | R:code:aoci.txt,code:aoci.meta.txt | A:项目级Codex自动加载；实时Rules与Guide优先 | S:压缩后不能用摘要代替完整Overview；只按机器批次提交，禁止模板生成语义
+README.md[SG6S]: F:说明五指数估值口径、数据可信度、视觉选择与云端操作入口 | R:code:compute/config.py,code:US_MARKET.md | A:离线验收和每日估值发布使用说明 | S:部分阶段进度文字是历史状态，需以实际代码及Actions核实
+RELEASE_CALENDAR_REPORT.md[SW5T]: F:记录官方实际发布日期统计及窗口追踪规则 | R:code:macro/hsi/release_statistics.py,code:macro/hsi/release_policy.json | A:五类宏观输入窗口、覆盖率与公告链接 | S:信用脉冲没有独立发布日期；社零合并月缺值不算异常
+US_MARKET.md[SG6T]: F:说明独立美股页、公开交接与跨仓云端关注清单流程 | R:code:tools/load_us_market.py,code:web/us_market.py | A:manifest协议、发布链路、GitHub配置提交 | S:网页草稿不代表保存；公开页面不存令牌，清空清单不删历史数据
+requirements.txt[FC6T]: F:声明估值抓取、宏观计算和本地验收的 Python 依赖 | R:code:.github/workflows/daily.yml,code:.github/workflows/macro.yml | A:pip install -r requirements.txt | S:pandas与numpy锁定精确版本，其他包多为有界或最低版本要求
+HANDOFF.md[SG7M]: F:记录五指数估值看板、恒生宏观接入的交接入口和历史运维经验 | R:code:README.md,code:macro/hsi/README.md,code:RELEASE_CALENDAR_REPORT.md | A:运行机制、已知限制、交接清单与历史命令 | S:旧环境路径和历史进度需要现场核实；推导股息率不是当时可得数据；示例命令不构成抓取或发布授权
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/.github/workflows/===
+daily.yml[OV8T]: F:每天08:30抓取估值、校验并发布完整站点 | R:code:compute/run_all.py,code:tools/watch_rule.py,code:web/build_site.py | A:schedule、workflow_dispatch；回写main快照与Pages | S:口径监控失败不阻塞发布；与其他发布共用pages锁，测试失败则不部署
+macro.yml[OW8S]: F:18:30按发布日历检查宏观输入，有变化时更新完整页面 | R:code:macro/hsi/release_watch.py,code:macro/hsi/release_statistics.py,code:web/build_site.py | A:force_refresh手动绕过日历；条件构建与部署 | S:新逾期报警在网页和状态保存后使任务失败；不重新抓估值
+tests.yml[TQ7T]: F:验证完整站点及标普打包可复现，上传预览 | R:code:web/sp500/build.mjs,code:web/build_site.py,code:tests/test_sp500.js | A:PR与业务路径push触发；contents只读 | S:us-market-data分支排除push测试；不部署站点
+us-market-data.yml[OW6T]: F:将公开数据分支更新转成发布完成信号 | R:code:.github/workflows/us-market.yml | A:us-market-data分支push；只读ready任务 | S:发布由main工作流承接，不直接从数据分支部署
+us-market.yml[OV8T]: F:消费公开数据并从main发布整个多入口站点 | R:code:tools/load_us_market.py,code:compute/run_all.py,code:web/build_site.py | A:成功ready信号或手动触发；Pages产物docs | S:估值只重算旧输入；三个模块共用pages锁与排队避免互相覆盖
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/compute/===
+build_dataset.py[AA8M]: F:将多源行情、估值及推导股息率装配成统一周频看板和统计视图 | R:code:compute/config.py,code:compute/normalize.py,code:compute/stats.py,code:fetch/derive_yield.py | A:build_index、main；dashboard和独立指数JSON | S:官方历史与蛋卷序列独立；A500估值不回溯；重渲染读取最新口径监控
+config.py[FC8S]: F:定义指数、估值方向、统计窗口、源映射、容差及股息率校准规则 | R:code:compute/build_dataset.py,code:fetch/derive_yield.py | A:INDICES、QUALITY、METRICS、WINDOWS | S:红利低波按09-27股息率口径；推导容差仅用于同期截图，不是置信区间
+normalize.py[CD7T]: F:规范日期、聚合每周最后有效值并连接行情和窗口 | R:code:compute/build_dataset.py | A:to_weekly、attach_level、window_slice | S:行情仅精确或回看最多七日匹配，绝不采用未来日期
+provenance.py[CD6T]: F:对估值输入和计算展示代码建立内容指纹防止旧结果验收新数据 | R:code:compute/build_dataset.py,code:tools/verify_local.py | A:input_digest、code_digest | S:摘要同时绑定相对路径与原字节，按路径排序
+report.py[AA7M]: F:比较当前估值与同期作者截图并生成口径误差报告 | R:code:compute/config.py,code:compute/stats.py,code:data/reference/screenshots.json | A:comparison_summary、judge、main；Markdown报告 | S:过期、废弃或不同口径截图只记录，不参与通过数；推导分位不设硬容差
+run_all.py[EW8S]: F:抓取各源并验证候选，原子缓存成功结果，再构建估值数据 | R:code:compute/build_dataset.py,code:fetch/fetch_danjuan.py,code:fetch/fetch_csindex.py,code:fetch/fetch_tencent.py | A:main --rebuild、fetch_all、validate_snapshot | S:空或损坏候选不能覆盖旧缓存；腾讯周线日线全有效才共同替换
+stats.py[KA8S]: F:计算估值12项统计、分位区间与历史排名视图 | R:code:compute/config.py,code:compute/build_dataset.py | A:compute、quantile、views、zone_of | S:分位值取floor(p*n)，排名严格小于当前；z用样本标准差，历史视图为当前窗口事后回顾
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/data/===
+hsi_macro.json[PD7T]: F:保存恒生领先指标序列、四项贡献、来源质量和方法说明 | R:code:macro/hsi/update.py,code:web/macro.js | A:schema_version、series、latest、sources | S:历史含修订，vintage_certified=false；缺失月份不补作有效信号
+hsi_macro_monitor.json[PD6S]: F:持久化宏观发布窗口、来源检查状态、缺口和报警投影 | R:code:macro/hsi/release_watch.py,code:web/macro.js | A:sources、due_sources、alerts、new_alerts | S:经济观察期与实际检查日期分别保存
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/data/official_snapshots/===
+indicator_000300.csv[PD4T]: F:保存沪深300官方市盈率与股息率双口径历史快照 | R:code:fetch/fetch_csindex.py | A:date、pe1、pe2、dy1、dy2、fetched_at | S:-
+indicator_000510.csv[PD5T]: F:累计中证A500官方估值窗口以保留每日快照 | R:code:fetch/fetch_csindex.py,code:compute/build_dataset.py | A:date、pe1、pe2、dy1、dy2、fetched_at | S:抓取日期不替代估值日期
+indicator_000922.csv[PD5T]: F:累计中证红利官方PE与股息率作独立真实对照 | R:code:fetch/fetch_csindex.py,code:compute/build_dataset.py | A:双口径估值字段及抓取时间 | S:不与推导股息率拼成同一真实序列
+indicator_H30269.csv[PD5T]: F:累计红利低波官方估值用于当前锚和真实历史对照 | R:code:fetch/fetch_csindex.py,code:fetch/derive_yield.py | A:双口径PE、股息率及抓取时间 | S:官方dy1与dy2不能混作同一口径
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/data/reference/===
+screenshots.json[FD6S]: F:存人工读图基准、数据日期与废弃口径标识用于回归 | R:code:compute/report.py | A:articles、observations、stats、obsolete | S:只有同数据日同指标且未废弃的基准参与判定
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/data/release_calendar/===
+release_date_summary.csv[PD4T]: F:汇总各宏观来源实际发布日期、窗口覆盖和窗口外次数 | R:code:macro/hsi/release_statistics.py | A:n、median_day、window_coverage_pct、outside_window_n | S:-
+release_day_counts.csv[PD3T]: F:记录五类宏观输入在每个日历日公布的频次 | R:code:macro/hsi/release_statistics.py | A:dataset、day、count | S:-
+verified_release_dates.csv[PD6L]: F:保存经官方公告验证的宏观观察期与发布日期证据 | R:code:macro/hsi/release_statistics.py | A:dataset、observation_period、release_date、release_source_url | S:合并社零期单独标记；公告日不能用下载或URL迁移日替代
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/data/watch/===
+rule_check.json[PD5L]: F:保存作者文章配图OCR口径核对、逐指数判定及历史有效结果 | R:code:tools/watch_rule.py,code:compute/build_dataset.py | A:checked_at、rows、match、previous_result | S:未识别口径的match=null不能当作匹配通过
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/design/design-demos/===
+C-data-humanism.html[EU4M]: F:以叙事注释、估值分布尺和价格线展示五指数的C方向离线演示 | R:code:design/design-demos/_src/C-data-humanism.html | A:内嵌数据、手写SVG、renderAll | S:演示稿不用于生产发布
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/design/design-demos/_src/===
+A-gallery-dark.html[EU4M]: F:提供单屏一指数的大图暗色画廊原型 | R:code:web/build_drafts.py | A:指数及窗口切换、ECharts双轴 | S:数据与图表库由构建注入
+B-editorial-data.html[EU5M]: F:提供报刊刊头、主图及五指数小倍数的B方向模板 | R:code:web/build_drafts.py,code:design/direction-approved.md | A:范围、统计表与并置图 | S:正式迭代以web/template.html为准
+C-data-humanism.html[EU4M]: F:提供无工具栏的叙事估值尺与价格上下文原型模板 | R:code:web/build_drafts.py | A:ruler、spark、renderAll | S:反向股息率指标的贵便宜色区对调
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/design/===
+design-spec.md[SU5T]: F:规定三方向原型共同内容、尺度、字体和诚实标注要求 | R:code:design/direction-approved.md | A:1440×900、离线系统字体、五指数与可信度提示 | S:推导股息率不能伪装精确真实历史
+direction-approved.md[SU7T]: F:记录B方向选择、已验收样式和标普只改配色的恢复授权 | R:code:web/template.html,code:web/sp500/DashboardContent.jsx | A:用户原话、视觉定稿与整站扩展边界 | S:标普业务布局按原页面保留，轴修复与虚线读数是明确例外
+sp500-integration.md[SV7T]: F:规定标普独立入口、私仓07:00计算与公开白名单发布链路 | R:code:web/sp500.py,code:tools/load_us_market.py | A:sp500.json、bootstrap底稿、三入口完整打包 | S:损坏数据中止发布；公开页展示刷新失败并保留有效旧读数
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/fetch/===
+common.py[IN6T]: F:提供有界HTTP重试、原始响应保存和北京时间转换 | R:code:compute/config.py | A:fetch、get_json、save_raw、ts_to_date | S:蛋卷毫秒时间戳按UTC+8取日期而非UTC日
+derive_yield.py[KA8S]: F:用全收益分红、PE当前锚及几何混合估算历史股息率 | R:code:compute/config.py,code:compute/build_dataset.py | A:derive、full_return、pe_anchored、calibrate | S:锚与末点同日才校准；当前锚会重写历史，不能作为当时择时信号；官方单独对照
+fetch_csindex.py[ID8S]: F:适配官方行情PE字段和20日估值xls，累积独立CSV历史 | R:code:fetch/common.py,code:compute/config.py | A:fetch_perf、fetch_indicator、load_indicator_csv | S:perf的peg表示官方PE；新窗口验证后才写CSV，同日保留最新抓取
+fetch_danjuan.py[ID7T]: F:读取蛋卷长期PE/PB及当前估值并保存原始响应 | R:code:fetch/common.py,code:compute/config.py | A:fetch_index返回current、pe、pb、fetched_at | S:源字段yeild乘100转百分数；A500无该源不能补造覆盖
+fetch_tencent.py[ID6T]: F:获取腾讯美股指数日线或周线收盘序列 | R:code:fetch/common.py,code:compute/run_all.py | A:fetch_kline(code,period,count) | S:同时兼容period与qfqperiod字段，非法行忽略后由编排层验证
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/macro/hsi/===
+DATA_SOURCE_REPORT.md[SD6T]: F:记录宏观字段筛选、访问失败、实际覆盖及历史版本边界 | R:code:macro/hsi/data_sources.md | A:官方调查结果、已锁定参数和未认证事项 | S:公布日不证明修订金额当时可得；历史vintage未认证
+README.md[SA7T]: F:定义生产恒生指标口径、数据门控与云端监测运行方式 | R:code:macro/hsi/update.py,code:macro/hsi/release_watch.py | A:离线重算、refresh、plan及源状态说明 | S:季度末等待新GDP后才称完整；报警不能推定官方已公布
+config.yaml[FC8T]: F:锁定恒生四因子权重、半衰期、信用脉冲与GDP映射口径 | R:code:macro/hsi/src/main.py,code:macro/hsi/update.py | A:36月半衰期、等权0.25、6/12/3窗口、显式无偏 | S:缺失保留NaN，季度末沿用规则独立于真实发布日期门控
+data_sources.md[SD6T]: F:说明官方字段、抓取入口、排除源、单位及发布日期覆盖 | R:code:macro/hsi/DATA_SOURCE_REPORT.md | A:数据源表、修订边界和备用源调查 | S:第三方对照不替换主宏观源；备用调查不能宣称主指标已采用
+pyproject.toml[FQ4T]: F:声明恒生模块Python版本与pytest定位 | R:- | A:Python>=3.11、pythonpath当前目录、tests路径 | S:-
+release_policy.json[FC7T]: F:定义五类宏观来源日历窗口与跳过轮次 | R:code:macro/hsi/release_watch.py | A:Asia/Shanghai、18:30、月/季发布日范围 | S:社零跳过2月；GDP仅1/4/7/10月，此配置不按恒指表现调优
+release_probe.py[ID8S]: F:轻量核对近期官方字段、当年社融附表及指定月份金管局目录 | R:code:macro/hsi/release_watch.py,code:macro/hsi/src/data/common.py | A:inspect_source返回是否变化，按来源分发 | S:社零空字段另查合并公告但不填值；同URL历史静默修订不保证全捕获
+release_statistics.ipynb[XA4T]: F:交互复跑官方公布日统计并查看日频分布与社零合并期 | R:code:macro/hsi/release_statistics.py | A:执行build及CSV分组 | S:运行会重写统计报告，不是纯只读笔记
+release_statistics.py[KA6T]: F:汇总核验公告日、窗口覆盖和日历频次并生成根报告 | R:code:macro/hsi/release_policy.json,code:data/release_calendar/verified_release_dates.csv | A:build返回汇总表并写CSV/Markdown | S:未来或未知公告日剔除；同源同观察期仅保留最早核验日期
+release_watch.py[AW8M]: F:生成发布轮次、补抓追踪和新轮报警，按变化更新数据并原子保存状态 | R:code:macro/hsi/release_policy.json,code:macro/hsi/release_probe.py,code:macro/hsi/update.py | A:evaluate、check、--plan、--force-refresh | S:plan只用标准库无网络；旧缺口不被新月掩盖；合并社零公告关闭轮次但独立值仍空
+requirements.txt[FV5T]: F:声明宏观数据、PDF/Excel、图表和测试依赖 | R:code:macro/hsi/pyproject.toml | A:pandas/numpy固定版本，解析库范围约束 | S:-
+update.py[AA9S]: F:按源事务回滚刷新并生成经约束校验的生产月度网页快照 | R:code:macro/hsi/src/indicators/leading_indicator.py,code:macro/hsi/release_watch.py,code:data/hsi_macro.json | A:run、validate_source、transactional_refresh、make_snapshot | S:口径固定observation_period/explicit_unbiased；新GDP未取得则截断到上个有效季度末加2月；失败保留成功时间与缓存
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/macro/hsi/data/processed/===
+gdp.csv[PD6S]: F:保存官方名义GDP单季金额与公告证据 | R:code:macro/hsi/src/data/download_nbs.py,code:macro/hsi/src/processing/gdp.py | A:observation_period、value亿元、release_date | S:空季度不补；数值为latest_vintage_revised，非历史初值
+historical_replication.csv[PD7S]: F:保留恒生月度指标完整分解供复算和前端导出 | R:code:macro/hsi/update.py,code:macro/hsi/src/main.py | A:各因子、GDP2Q、信用脉冲、z及贡献、恒指收盘 | S:观察月标准化序列不等于严格当时可得数据版本
+hk_m2.csv[PD6S]: F:存HKMA逐月附件直接公布的全货币M2同比及原始行 | R:code:macro/hsi/src/data/download_hkma.py | A:value百分数、release_date、annex_url、source_row | S:取Total同比而非HK$余额、环比或M3
+hsi.csv[PD5S]: F:存恒指每月最后交易日收盘与来源类别作宏观对照 | R:code:macro/hsi/src/data/download_hsi.py | A:value、last_trading_date、source_url、source_type | S:恒指价格不参与四因子指标计算
+nbs_release_dates.csv[PD5S]: F:存社零PPI及GDP公告对应观察期和实际发布日期 | R:code:macro/hsi/src/data/download_release_dates.py | A:dataset、observation_period、release_date、release_title | S:迁移URL月份不是原公告日期
+pboc_release_dates.csv[PD5S]: F:保存社融公告的观察月、实际公告日及原链接 | R:code:macro/hsi/src/data/download_release_dates.py | A:observation_period、release_date、release_source_url | S:累计季度报告只映射其季末观察月
+ppi.csv[PD6L]: F:存官方出厂价格同比指数转换后的月度同比与版本说明 | R:code:macro/hsi/src/data/download_nbs.py | A:value百分数、official_field、release_date | S:上年同月100减100；空占位不是有效早期覆盖
+retail.csv[PD6L]: F:存社零独立当月同比、空值原因与公告证据 | R:code:macro/hsi/src/data/download_nbs.py,code:macro/hsi/src/processing/retail.py | A:observation_period、value、missing_reason | S:1—2月合并公报不补成两个月独立同比
+social_financing.csv[PD7M]: F:存社融月度增量金额、修订版本和公告证据 | R:code:macro/hsi/src/data/download_pboc.py,code:macro/hsi/src/indicators/credit_impulse.py | A:value亿元、source_url、vintage_status、release_date | S:含不同年度修订版本；负月增量可有效，不用存量或结构百分比替代
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/macro/hsi/src/data/===
+common.py[ID7T]: F:缓存原始HTTP字节和请求摘要，并校验处理后数据重复期 | R:code:macro/hsi/update.py | A:fetch、profile、ROOT、RAW | S:缓存与元数据同时存在才复用；HTTP失败不替换成功缓存，refresh才重下载
+decode_sina.js[ID6T]: F:在隔离VM执行数学解码器，将压缩新浪日线转JSON | R:code:macro/hsi/src/data/download_hsi.py | A:CLI输入压缩文件、解码器、输出文件 | S:VM不供网络或文件系统，执行限10秒
+discover_nbs.py[XD4T]: F:遍历国家数据公开指标树以调查官方字段身份 | R:code:macro/hsi/src/data/common.py | A:tree、explore | S:调查脚本不参与正式指标重算
+download_hkma.py[ID8T]: F:从金管局逐月新闻附件提取M2 Total直接同比和公告证据 | R:code:macro/hsi/src/data/common.py | A:download；PDF/XLS/XLSX解析 | S:刷新保留较早原始月值，仅重取近3月；严格三增长列取同比，不从余额推算
+download_hsi.py[ID7T]: F:合并HKEX官方月末与新浪日线对照价格，写恒指月度序列 | R:code:macro/hsi/src/data/common.py,code:macro/hsi/src/data/decode_sina.js | A:download、factbook、monthly_official | S:只取下载Python中的数学字面量，不执行Python；官方与新浪差超0.01点则拒绝；排除未结束月份
+download_nbs.py[ID8T]: F:从官方目录唯一匹配社零PPI和名义GDP字段并查询完整历史 | R:code:macro/hsi/src/data/common.py | A:download(name,refresh)、CATALOGUES | S:社零选独立同比；PPI上年同月100减100；空字段保留NaN，修订历史不冒充初值
+download_pboc.py[ID8T]: F:读取人民银行年度增量金额表和早期PDF，合并月度社融历史 | R:code:macro/hsi/src/data/common.py | A:download；亿元流量序列与重叠审计 | S:排除百分比附录；重叠优先较新官方文件；有效负增量保留，未来空槽剔除
+download_release_dates.py[ID7T]: F:核验统计局和人民银行公告日并回填处理后输入的证据列 | R:code:macro/hsi/src/data/common.py,code:macro/hsi/update.py | A:nbs、pboc；公告CSV与逐来源日期合并 | S:用列表或原正文日期，不猜URL迁移日；2025-01社融另验迁移原公告
+probe_sources.py[XN4T]: F:并行试探备选官方端点，保存原始响应及失败日志 | R:- | A:run与固定URL集合 | S:HTTP错误状态只记事实，不算取得有效数据
+query_nbs_probe.py[XD3T]: F:调查社零GDP字段和备用公开查询接口并打印响应片段 | R:code:macro/hsi/src/data/discover_nbs.py,code:macro/hsi/src/data/common.py | A:脚本直接运行，依赖已缓存字段JSON | S:顶层代码会请求网络
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/macro/hsi/src/indicators/===
+credit_impulse.py[KA8T]: F:统一金额单位，计算6月社融同比差占两个季度GDP的信用脉冲 | R:code:macro/hsi/src/processing/gdp.py | A:credit_impulse返回原差、比例与3月均值 | S:完整6月和3月窗口才输出；非正GDP拒绝，比例与百分比列分开
+leading_indicator.py[KA9T]: F:锁定四因子参数，连接GDP与月度输入并合成等权标准分 | R:code:macro/hsi/src/indicators/credit_impulse.py,code:macro/hsi/src/indicators/weighted_zscore.py,code:macro/hsi/src/processing/gdp.py | A:load_config、build、composite、FACTORS | S:缺一组件合成即NaN，不能重权重；恒指只对照；标准化用前缀且2012-07前清空指标
+weighted_zscore.py[KA8T]: F:按36月半衰期计算前缀加权均值、方差与z分数 | R:code:macro/hsi/src/indicators/leading_indicator.py | A:weighted_zscore、time_weight、四种MODES | S:缺月仍按日历衰减；至少12有效值；无偏分母为sum(w)-sum(w²)/sum(w)，不能换总体方差
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/macro/hsi/src/===
+main.py[EA7T]: F:编排离线算法复现、源质量、截图候选比较和发布日门控诊断 | R:code:macro/hsi/src/indicators/leading_indicator.py,code:macro/hsi/src/validation/candidate_comparison.py,code:macro/hsi/src/validation/point_in_time.py | A:main --download/--refresh、load_data、quality | S:数值最像截图不等于确认作者算法；门控历史仍未认证vintage
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/macro/hsi/src/processing/===
+gdp.py[KD8T]: F:统一名义金额单位，将相邻两个季度GDP按观察期或公告可得日映射到月 | R:code:macro/hsi/src/indicators/credit_impulse.py | A:align_gdp、in_100million | S:release_aware必须当前和前季均已公布；缺前季则分母为空
+retail.py[KA6T]: F:构造明确标记的1—2月合并同比重复假设用于独立实验 | R:- | A:repeat_janfeb_combined返回假设数据和改动审计 | S:只填原空值；标识合并信息结束月，不能冒充独立官方月同比或生产输入
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/macro/hsi/src/validation/===
+candidate_comparison.py[TA7T]: F:比较GDP映射和方差候选的截图幅度、转折与描述相关性 | R:code:macro/hsi/src/indicators/leading_indicator.py,code:macro/hsi/src/validation/turning_points.py | A:compare返回比较表、候选帧和最佳ID | S:先满足2012-07起点再按截图绝对RMSE选，绝不按恒指相关性调参
+point_in_time.py[TA7T]: F:按已核验公告截止日重建可得输入和最近有效指标 | R:code:macro/hsi/src/indicators/leading_indicator.py | A:available_history、snapshot、real_time_history | S:未知发布日期剔除；当前月只算到今天；最新修订和早期缺日期不允许称严格实时回测
+retail_source_comparison.py[TD5T]: F:对直接公布的社零同比按观察月外连接核对并总结覆盖 | R:- | A:compare_retail_source返回逐月状态与汇总 | S:重叠相同不能认证来源独有未知月；混单位、重复和非有限值拒绝
+screenshot_reference.py[TA6T]: F:人工转折与固定像素轴提取原图指标参考 | R:code:macro/hsi/src/validation/candidate_comparison.py | A:extract输出refs、curve和校准文件 | S:固定轴不拟合振幅或日期；多蓝对象的列留空，截图只有近似精度
+turning_points.py[TA6T]: F:识别相邻月局部峰谷并评分与原图转折距离 | R:code:macro/hsi/src/validation/candidate_comparison.py | A:turning_points、match_score | S:不跨缺月捏造极值；参考左右月缺失则不可评分
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/macro/hsi/src/visualization/===
+plot_indicator.py[EU5T]: F:导出宏观原值、z、贡献、候选和恒指对照研究图 | R:code:macro/hsi/src/indicators/leading_indicator.py | A:generate、historical_comparison、finish | S:缺月连接画虚线但值仍空；对照图不认证当时数据版本
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/outputs/===
+口径与误差报告.md[SA5S]: F:保存五指数本期来源、截图偏差、股息率候选及验证限制 | R:code:compute/report.py | A:统计窗口、同期判定与当前值性质说明 | S:过期基准只记录，不可把自洽性通过宣称同期截图一致
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/tools/===
+TRIGGER.md[SW4T]: F:说明外部触发云端估值任务的备选方案与验收方法 | R:code:tools/trigger_dispatch.sh,code:.github/workflows/daily.yml | A:workflow_dispatch请求示例 | S:方案尚未启用；HTTP 204仅表示接受请求，不能证明部署成功
+load_us_market.py[ID8T]: F:从公开数据分支提取美股日期存档与标普快照供站点构建 | R:code:web/us_market.py,code:web/sp500.py,code:.github/workflows/daily.yml | A:load(root=ROOT)；CLI无参数 | S:只用git show读取JSON，不执行分支代码；分支不存在时保持等待，其他错误中止；全部编码通过后才写本地文件
+trigger_dispatch.sh[OW4T]: F:使用已登录 gh 手动触发云端估值工作流 | R:code:.github/workflows/daily.yml,code:tools/TRIGGER.md | A:gh workflow run daily.yml | S:本机睡眠或关机时不能触发；提交请求后仍需检查运行结果
+verify_local.py[XQ6T]: F:串行重建本地输入、报告、宏观指标与页面并运行验收测试 | R:code:compute/run_all.py,code:web/render.py,code:macro/hsi/update.py | A:CLI --out | S:使用离线重建参数；任一步非零退出即停止，不代表完整站点与云端部署已验收
+watch_rule.py[KA7M]: F:从作者文章配图识别指数与估值按钮，检查本项目口径是否一致 | R:code:compute/config.py,code:fetch/common.py,code:compute/build_dataset.py | A:--url/--images-dir/--keep-images；data/watch/rule_check.json | S:蓝色按钮按固定截图坐标标定；五个唯一指数均识别才算完整；失败保留上次结论，口径一致不等于数值验证
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/web/===
+app.js[AU8L]: F:呈现五指数估值主图、读数、独立指标序列和周频明细 | R:code:web/template.html,code:web/render.py,code:compute/build_dataset.py | A:window.DASHBOARD；index/window/metric/view/tab查询参数；CSV导出 | S:真实对照与推导历史不拼接；图中历史排名为整个窗口事后排名；自定义阈值只改本页显示；口径检查过期不得显示一致
+build_drafts.py[XV4T]: F:将三个设计方向模板打包成内联数据的离线 HTML 样稿 | R:code:web/render.py,code:compute/config.py | A:CLI；design/design-demos下三份HTML | S:C方向不内联ECharts；缺失模板会跳过，不生成替代设计
+build_site.py[AV8T]: F:将估值、美股日报和标普偏离三个独立入口打包为完整静态站 | R:code:web/render.py,code:web/us_market.py,code:web/sp500.py,code:web/navigation.py | A:build(out)；CLI --out默认docs | S:调用者负责刷新输入；仅完整站点给估值页加导航，单文件估值导出保留离线行为
+compare.py[XQ4T]: F:将作者指定指数原图与本项目截图纵向合成核对图 | R:code:web/screenshot.sh | A:--shots-dir/--article-dir/--out-dir | S:文章序号固定对应2026年9月27日配图；缺任一图跳过，不补造对照
+macro.css[FU5T]: F:定义恒生宏观图表、贡献表与来源轮次区域的版式 | R:code:web/macro.html,code:web/template.html | A:.macro-section及响应式媒体规则 | S:复用估值页颜色变量；来源表可横向滚动避免裁掉日期说明
+macro.html[EU6T]: F:声明恒生领先指标的图表、范围、导出和来源明细挂载点 | R:code:web/macro.js,code:web/macro.css,code:web/render.py | A:#hsi-macro；#macro-chart；#macro-range；#macro-export | S:页面明示缺失月连线仅作历史连接，不是实时月度信号
+macro.js[AU7T]: F:显示月频领先指标、四项贡献、发布轮次和下载状态 | R:code:web/macro.html,code:web/render.py,code:macro/hsi/release_watch.py | A:window.HSI_MACRO；gaps/select/csv/mainOption/roundTable | S:不填补缺失值；虚线仅连接有效端点；下载成功与目标轮次取得分开显示，未知公布日期不推测
+navigation.py[CU6T]: F:生成完整站点共享的三个入口按钮及财经版面样式 | R:code:web/build_site.py,code:web/us_market.py,code:web/sp500.py | A:navigation(current)；CSS | S:估值入口使用当前目录，其他入口回到父级；aria-current标识当前页面
+render.py[AV8S]: F:将估值与恒生宏观本地数据装配为可离线打开的单文件看板 | R:code:web/template.html,code:web/app.js,code:web/macro.js,code:compute/build_dataset.py | A:build(out_path)；slim；CLI --out | S:渲染前重读口径结果避免晚一天；轮次展示按当前日期重评但不联网或改监测状态；JSON转义闭合标签
+screenshot.sh[XQ3T]: F:以独立临时 Chrome 配置截取本地 HTML 高分辨率图片 | R:code:web/compare.py | A:HTML路径/输出PNG/可选宽高 | S:会覆盖输出并永久删临时配置；固定macOS Chrome路径
+sp500.css[FU6T]: F:定义标普偏离看板原版几何、控件和图表的财经配色 | R:code:web/sp500/DashboardContent.jsx,code:web/sp500/ui.jsx,code:web/sp500/visuals.jsx | A:sp-*及data-*类；580/850/1200像素断点 | S:布局与字形沿用原看板，仅调色板适配站点；概率柱移动端允许横向滚动
+sp500.html[EU6T]: F:提供独立标普均线偏离页的导航、状态和 React 挂载容器 | R:code:web/sp500.py,code:web/sp500/main.jsx | A:#status；#sp500-app；snapshot.json下载入口 | S:快照与脚本为同目录外部文件，交互依赖JavaScript
+sp500.js[EV7T]: F:装载打包后的 React 看板并读取同目录标普统计快照 | R:code:web/sp500/build.mjs,code:web/sp500/main.jsx,code:web/sp500.py | A:浏览器IIFE入口；fetch snapshot.json | S:这是生成产物；应改JSX再重建，首行源摘要用于核对；读取或身份检查失败显示不可使用概率
+sp500.py[AV8T]: F:验证标普统计快照并构建独立偏离度静态页面 | R:code:web/sp500.html,code:web/sp500.css,code:web/sp500.js,code:web/navigation.py | A:validate(value)；build(source,out) | S:来源缺失才使用bootstrap；要求^GSPC、schema 1、1950起升序日期及有限数字；快照另存JSON，不内联执行
+template.html[EU7M]: F:声明估值日报财经版面、控件和宏观扩展的内联模板 | R:code:web/render.py,code:web/app.js,code:web/macro.html | A:ECHARTS/DATA/APPJS及MACRO*替换标记 | S:固定1440视口并提供窄布局规则；单文件导出内联依赖，不要求外部服务
+us_market.css[FU5T]: F:定义美股日期存档、新闻预警与观察列表的统一财经样式 | R:code:web/us_market.html,code:web/us_market.js | A:banner/grid/watchlist-editor及移动断点 | S:表格独立横向滚动；窄屏切单列并保留长来源链接换行
+us_market.html[EU6T]: F:提供独立美股日报的存档日期与批次选择器和内容容器 | R:code:web/us_market.py,code:web/us_market.js | A:#date/#run/#report；window.US_MARKET_BOOTSTRAP | S:只含筛选后的公开产物；采集时间与新闻行情时间分别展示，浏览不需要凭据
+us_market.js[AU8S]: F:展示美股日期存档、日报预警批次、行情来源与关注清单提交入口 | R:code:web/us_market.html,code:web/us_market.py,code:US_MARKET.md | A:window.US_MARKET_BOOTSTRAP；date查询参数；configURL/parseSymbols/report | S:异步日期请求按序号抑制旧响应且先清旧内容；行情状态按采集时点解释；关注清单必须带云端revision并由用户在GitHub确认，页面不直接保存
+us_market.py[AV8S]: F:验证公开存档并生成美股页面、日期JSON和可下载Markdown | R:code:web/us_market.html,code:web/us_market.js,code:web/navigation.py | A:build(source,out)；markdown(run) | S:先验证全部日期及运行身份再输出；日期唯一倒序且北京时间；内联JSON转义小于号，新闻链接只允许无凭据HTTP(S)；不读取私有采集仓库
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/web/sp500/===
+DashboardContent.jsx[AU8T]: F:组合标普价格、两种均线偏离、四段统计和情景模拟交互 | R:code:web/sp500/visuals.jsx,code:web/sp500/ui.jsx,code:web/sp500/model.mjs | A:DashboardContent；daily/state_stats/event_stats/events/baselines查询 | S:均线筛选同步隐藏价格与偏离曲线；事件与重叠观察日分开；模拟固定当前均线并查历史分箱，不插值或推断首次穿越
+build.mjs[OV6T]: F:用 esbuild 将 React 源码编译为带源摘要的发布脚本 | R:code:web/sp500/main.jsx,code:web/sp500/package.json,code:web/sp500.js | A:npm run build；输出../sp500.js | S:源摘要按五个源码固定顺序计算；IIFE目标ES2020，内嵌生产React并保留许可说明
+main.jsx[EU7T]: F:读取标普快照、显示检查状态并挂载 React 看板 | R:code:web/sp500/DashboardContent.jsx,code:web/sp500/ui.jsx,code:web/sp500.html | A:fetch snapshot.json no-cache；createRoot | S:校验schema和指数身份；生成时间与收盘日期分别展示，失败时提示暂不使用概率
+model.mjs[KA7T]: F:提供历史分位、分箱、区间摘要与五年滚动分位计算 | R:code:web/sp500/DashboardContent.jsx,code:web/sp500/visuals.jsx | A:STARTS/WINDOWS/LEVELS；summary/rollingBand/inBin/rank | S:滚动窗口为过去五个自然年且至少1000日才出分位；排名含等于项；标准差使用总体分母
+package-lock.json[FV5L]: F:锁定标普 React 构建依赖树与下载完整性摘要 | R:code:web/sp500/package.json,code:web/sp500/build.mjs | A:npm ci；lockfileVersion 3 | S:esbuild带平台专属可选二进制；修改依赖需同步package清单与锁文件
+package.json[FV6T]: F:定义独立标普前端的 React 与 esbuild 版本及构建入口 | R:code:web/sp500/package-lock.json,code:web/sp500/build.mjs | A:npm run build；private=true；type=module | S:React和React DOM均锁19.2.3，esbuild锁0.25.10；不发布npm包
+ui.jsx[CU7T]: F:提供离线快照上下文、筛选控件、数据导出及可搜索排序分页表 | R:code:web/sp500/main.jsx,code:web/sp500/DashboardContent.jsx | A:DataProvider/useDataApp；DataComponent/DataTable及四种控件 | S:查询直接读快照rows；CSV字段取行键并转义；Sortable组件只是布局包装，不提供拖拽
+visuals.jsx[KU8T]: F:绘制真实日期线图、分位标记、位置尺与四段阈值概率柱 | R:code:web/sp500/model.mjs,code:web/sp500/DashboardContent.jsx | A:Gauge/LinePlot/ThresholdBars | S:采样保留分段极值，悬停与键盘查完整日频；价格对数轴仅按可见曲线定范围；淡柱标小样本，无样本显示空值
