@@ -6,7 +6,7 @@
 AGENTS.md[SC7S]: F:规定AOCI认知加载、语义作者化、维护和恢复边界 | R:code:aoci.txt,code:aoci.meta.txt | A:项目级Codex自动加载；实时Rules与Guide优先 | S:压缩后不能用摘要代替完整Overview；只按机器批次提交，禁止模板生成语义
 README.md[SG6S]: F:说明五指数估值口径、数据可信度、视觉选择与云端操作入口 | R:code:compute/config.py,code:US_MARKET.md | A:离线验收和每日估值发布使用说明 | S:部分阶段进度文字是历史状态，需以实际代码及Actions核实
 RELEASE_CALENDAR_REPORT.md[SW5T]: F:记录官方实际发布日期统计及窗口追踪规则 | R:code:macro/hsi/release_statistics.py,code:macro/hsi/release_policy.json | A:五类宏观输入窗口、覆盖率与公告链接 | S:信用脉冲没有独立发布日期；社零合并月缺值不算异常
-US_MARKET.md[SG6T]: F:说明独立美股页、公开交接与跨仓云端关注清单流程 | R:code:tools/load_us_market.py,code:web/us_market.py | A:manifest协议、发布链路、GitHub配置提交 | S:网页草稿不代表保存；公开页面不存令牌，清空清单不删历史数据
+US_MARKET.md[SG6T]: F:说明美股独立行情、公开协议和云端自选配置流程 | R:code:tools/load_us_market.py,code:web/us_market.py | A:协议v1可选quotes数组、交易日历、GitHub配置确认 | S:页面发布不等于估值源更新；仅日期报价不作盘中预警；草稿不代表保存，清空清单不删历史
 requirements.txt[FC6T]: F:声明估值抓取、宏观计算和本地验收的 Python 依赖 | R:code:.github/workflows/daily.yml,code:.github/workflows/macro.yml | A:pip install -r requirements.txt | S:pandas与numpy锁定精确版本，其他包多为有界或最低版本要求
 HANDOFF.md[SG7M]: F:记录五指数估值看板、恒生宏观接入的交接入口和历史运维经验 | R:code:README.md,code:macro/hsi/README.md,code:RELEASE_CALENDAR_REPORT.md | A:运行机制、已知限制、交接清单与历史命令 | S:旧环境路径和历史进度需要现场核实；推导股息率不是当时可得数据；示例命令不构成抓取或发布授权
 
@@ -45,7 +45,7 @@ release_day_counts.csv[PD3T]: F:记录五类宏观输入在每个日历日公布
 verified_release_dates.csv[PD6L]: F:保存经官方公告验证的宏观观察期与发布日期证据 | R:code:macro/hsi/release_statistics.py | A:dataset、observation_period、release_date、release_source_url | S:合并社零期单独标记；公告日不能用下载或URL迁移日替代
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/data/watch/===
-rule_check.json[PD5L]: F:保存作者文章配图OCR口径核对、逐指数判定及历史有效结果 | R:code:tools/watch_rule.py,code:compute/build_dataset.py | A:checked_at、rows、match、previous_result | S:未识别口径的match=null不能当作匹配通过
+rule_check.json[PD5L]: F:保存作者配图OCR口径核对、逐指数判定及上次结果 | R:code:tools/watch_rule.py,code:compute/build_dataset.py | A:checked_at、rows、match、coverage、previous_result | S:未识别口径的match=null不算通过；部分匹配不能证明五指数全部一致
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/design/design-demos/===
 C-data-humanism.html[EU4M]: F:以叙事注释、估值分布尺和价格线展示五指数的C方向离线演示 | R:code:design/design-demos/_src/C-data-humanism.html | A:内嵌数据、手写SVG、renderAll | S:演示稿不用于生产发布
@@ -137,7 +137,7 @@ verify_local.py[XQ6T]: F:串行重建本地输入、报告、宏观指标与页�
 watch_rule.py[KA7M]: F:从作者文章配图识别指数与估值按钮，检查本项目口径是否一致 | R:code:compute/config.py,code:fetch/common.py,code:compute/build_dataset.py | A:--url/--images-dir/--keep-images；data/watch/rule_check.json | S:蓝色按钮按固定截图坐标标定；五个唯一指数均识别才算完整；失败保留上次结论，口径一致不等于数值验证
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/web/===
-app.js[AU8L]: F:呈现五指数估值主图、读数、独立指标序列和周频明细 | R:code:web/template.html,code:web/render.py,code:compute/build_dataset.py | A:window.DASHBOARD；index/window/metric/view/tab查询参数；CSV导出 | S:真实对照与推导历史不拼接；图中历史排名为整个窗口事后排名；自定义阈值只改本页显示；口径检查过期不得显示一致
+app.js[AU8L]: F:呈现五指数估值图表、统计、明细并提示美股估值日期滞后 | R:code:web/template.html,code:web/render.py,code:compute/build_dataset.py | A:window.DASHBOARD、查询参数、CSV导出、阈值显示 | S:真实对照与推导不拼接；历史排名按整个窗口事后计算；美股估值与涨跌日期不同则提示，不以价格推算PE；过期口径核对不能称一致
 build_drafts.py[XV4T]: F:将三个设计方向模板打包成内联数据的离线 HTML 样稿 | R:code:web/render.py,code:compute/config.py | A:CLI；design/design-demos下三份HTML | S:C方向不内联ECharts；缺失模板会跳过，不生成替代设计
 build_site.py[AV8T]: F:将估值、美股日报和标普偏离三个独立入口打包为完整静态站 | R:code:web/render.py,code:web/us_market.py,code:web/sp500.py,code:web/navigation.py | A:build(out)；CLI --out默认docs | S:调用者负责刷新输入；仅完整站点给估值页加导航，单文件估值导出保留离线行为
 compare.py[XQ4T]: F:将作者指定指数原图与本项目截图纵向合成核对图 | R:code:web/screenshot.sh | A:--shots-dir/--article-dir/--out-dir | S:文章序号固定对应2026年9月27日配图；缺任一图跳过，不补造对照
@@ -154,8 +154,8 @@ sp500.py[AV8T]: F:验证标普统计快照并构建独立偏离度静态页面 |
 template.html[EU7M]: F:声明估值日报财经版面、控件和宏观扩展的内联模板 | R:code:web/render.py,code:web/app.js,code:web/macro.html | A:ECHARTS/DATA/APPJS及MACRO*替换标记 | S:固定1440视口并提供窄布局规则；单文件导出内联依赖，不要求外部服务
 us_market.css[FU5T]: F:定义美股日期存档、新闻预警与观察列表的统一财经样式 | R:code:web/us_market.html,code:web/us_market.js | A:banner/grid/watchlist-editor及移动断点 | S:表格独立横向滚动；窄屏切单列并保留长来源链接换行
 us_market.html[EU6T]: F:提供独立美股日报的存档日期与批次选择器和内容容器 | R:code:web/us_market.py,code:web/us_market.js | A:#date/#run/#report；window.US_MARKET_BOOTSTRAP | S:只含筛选后的公开产物；采集时间与新闻行情时间分别展示，浏览不需要凭据
-us_market.js[AU8S]: F:展示美股日期存档、日报预警批次、行情来源与关注清单提交入口 | R:code:web/us_market.html,code:web/us_market.py,code:US_MARKET.md | A:window.US_MARKET_BOOTSTRAP；date查询参数；configURL/parseSymbols/report | S:异步日期请求按序号抑制旧响应且先清旧内容；行情状态按采集时点解释；关注清单必须带云端revision并由用户在GitHub确认，页面不直接保存
-us_market.py[AV8S]: F:验证公开存档并生成美股页面、日期JSON和可下载Markdown | R:code:web/us_market.html,code:web/us_market.js,code:web/navigation.py | A:build(source,out)；markdown(run) | S:先验证全部日期及运行身份再输出；日期唯一倒序且北京时间；内联JSON转义小于号，新闻链接只允许无凭据HTTP(S)；不读取私有采集仓库
+us_market.js[AU8M]: F:呈现美股行情新闻存档、自选云端配置与交易日漏更提示 | R:code:web/us_market.html,code:web/us_market.py,code:US_MARKET.md | A:bootstrap、date参数、freshness、report、configURL | S:默认最新批次；独立行情新闻取最近日报并标时；最新日期核对已完成交易日，历史不套用当前日；异步切日防旧响应；配置需revision及GitHub确认
+us_market.py[AV8S]: F:校验公开行情存档与交易日历并构建美股页面、JSON和Markdown | R:code:web/us_market.html,code:web/us_market.js,code:web/navigation.py | A:build(source,out)、markdown(run)、published_at | S:全部日期身份验证后才输出；旧存档可无quotes；日历升序且开收盘带时区；内联JSON转义小于号，新闻链接仅无凭据HTTP(S)；不读私仓
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/web/sp500/===
 DashboardContent.jsx[AU8T]: F:组合标普价格、两种均线偏离、四段统计和情景模拟交互 | R:code:web/sp500/visuals.jsx,code:web/sp500/ui.jsx,code:web/sp500/model.mjs | A:DashboardContent；daily/state_stats/event_stats/events/baselines查询 | S:均线筛选同步隐藏价格与偏离曲线；事件与重叠观察日分开；模拟固定当前均线并查历史分箱，不插值或推断首次穿越
