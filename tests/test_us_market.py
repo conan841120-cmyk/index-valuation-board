@@ -49,6 +49,21 @@ class USMarketTests(unittest.TestCase):
         self.fixture(); (self.source / '2026-10-02.json').unlink()
         with self.assertRaises(FileNotFoundError): us_market.build(self.source, self.out)
 
+    def test_new_quote_archive_and_bad_calendar(self):
+        self.fixture()
+        day_path = self.source / '2026-10-02.json'
+        day = json.loads(day_path.read_text())
+        day['quotes'] = [{**self.run, 'run_id': 'quotes-20261002T110000-1234abcd', 'mode': 'quotes'}]
+        day_path.write_text(json.dumps(day))
+        page = us_market.build(self.source, self.out).read_text()
+        self.assertIn('published_at', page)
+        self.assertTrue((self.out / 'reports/quotes-20261002T110000-1234abcd.md').exists())
+        path = self.source / 'manifest.json'
+        manifest = json.loads(path.read_text())
+        manifest['market_schedule'] = [{'date': '2026-10-02', 'open': '2026-10-02T16:00:00Z', 'close': '2026-10-02T09:30:00Z'}]
+        path.write_text(json.dumps(manifest))
+        with self.assertRaises(ValueError): us_market.build(self.source, self.out)
+
     def test_cloud_config_is_embedded_and_invalid_config_aborts(self):
         self.fixture()
         manifest_path = self.source / 'manifest.json'

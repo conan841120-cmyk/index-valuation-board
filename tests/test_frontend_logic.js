@@ -53,5 +53,7 @@ assert.match(nodes.colophonRight.innerHTML,/最新涨跌日期 2026-09-30/);
 assert.match(nodes.colophonLeft.innerHTML,/估值来源：中证指数官方/);
 assert.match(nodes.multiples.children.at(-1).innerHTML,/默认阈值/);assert.match(nodes.notes.innerHTML,/独立真实对照/);assert.match(nodes.notes.innerHTML,/不与主股息率的推导历史拼接/);assert.doesNotMatch(nodes.readTable.innerHTML,/推导估算/);
 const good={state:'consistent',checked_at:'2026-09-30 09:00:00',article_date:'2026-09-30',matched:5,missing:[]};dashboard.rule_watch=good;assert.equal(t.watchStatus().ok,true);
+main.code='SPX.GI';t.renderAll();assert.match(nodes.alert.innerHTML,/估值与最新行情日期不同/);
+main.code='X';
 for(const patch of [{matched:4},{missing:['x']},{state:'incomplete'},{state:'failed'},{checked_at:'2026-09-28T10:00:00+08:00'},{checked_at:null}]){dashboard.rule_watch={...good,...patch};assert.equal(t.watchStatus().ok,false);}
 console.log('Frontend regression checks passed: threshold direction, custom zones, dates, alternate selection, CSV and watch state.');

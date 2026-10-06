@@ -478,6 +478,10 @@
     var ws=watchStatus(), data=metricData();
     document.getElementById('alert').innerHTML = ws.ok?'':'<div class="alarm">⚠ '+ws.label+
       '（文章 '+(ws.watch.article_date||'—')+'，检测 '+(ws.watch.checked_at||'—')+'）。</div>';
+    if(['NDX.GI','SPX.GI'].includes(i.code) && data.data_date && i.change_date && data.data_date<i.change_date){
+      document.getElementById('alert').innerHTML += '<div class="alarm">估值与最新行情日期不同：估值截止 '+
+        data.data_date+'，涨跌行情截止 '+i.change_date+'。页面更新不代表估值源已更新；不使用价格推算新市盈率。</div>';
+    }
     document.getElementById('mastMeta').innerHTML =
       '估值截止 <b>'+(data.data_date||'—')+'</b><br>周频 · '+D.indices.length+' 个指数 · 页面生成 <b>'+D.generated_at+'</b>';
     var rail = document.getElementById('rail'); rail.innerHTML='';

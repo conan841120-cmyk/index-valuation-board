@@ -8,7 +8,7 @@ from web.navigation import CSS as NAV_STYLE, navigation
 
 WEB = Path(__file__).resolve().parent
 DATE = re.compile(r'\d{4}-\d{2}-\d{2}\Z')
-RUN_ID = re.compile(r'(digest|alerts)-\d{8}T\d{6}-[0-9a-f]{8}\Z')
+RUN_ID = re.compile(r'(digest|alerts|quotes)-\d{8}T\d{6}-[0-9a-f]{8}\Z')
 
 
 def md_text(value):
@@ -63,6 +63,18 @@ def build(source, out):
         'schema_version': 1, 'date_timezone': 'Asia/Shanghai', 'dates': []}
     if manifest.get('schema_version') != 1 or manifest.get('date_timezone') != 'Asia/Shanghai':
         raise ValueError('Unsupported manifest')
+    if 'market_schedule' in manifest:
+        sessions = manifest['market_schedule']
+        if not isinstance(sessions, list):
+            raise ValueError('Invalid market schedule')
+        previous = ''
+        for session in sessions:
+            day = session['date']
+            opened, closed = (dt.datetime.fromisoformat(session[field]) for field in ('open', 'close'))
+            if not DATE.fullmatch(day) or day <= previous or not opened.tzinfo or not closed.tzinfo or opened >= closed:
+                raise ValueError('Invalid market session')
+            dt.date.fromisoformat(day)
+            previous = day
     if 'watchlist' in manifest:
         cloud = manifest['watchlist']
         if (not isinstance(cloud, dict) or not isinstance(cloud.get('symbols'), list)
@@ -83,7 +95,9 @@ def build(source, out):
         day = json.loads((source / (date + '.json')).read_text(encoding='utf-8'))
         if day.get('schema_version') != 1 or day.get('date') != date:
             raise ValueError('Invalid day payload')
-        for mode in ('digest', 'alerts'):
+        for mode in ('digest', 'alerts', 'quotes'):
+            if mode == 'quotes' and mode not in day:
+                continue
             if not isinstance(day.get(mode), list):
                 raise ValueError('Invalid run list')
             for run in day[mode]:
@@ -91,7 +105,8 @@ def build(source, out):
                     raise ValueError('Invalid run identity')
         days[date] = day
     # 先验证全部日期；损坏数据不会被当作空内容发布。
-    bootstrap = {'manifest': manifest, 'day': days.get(dates[0]) if dates else None}
+    bootstrap = {'manifest': manifest, 'day': days.get(dates[0]) if dates else None,
+                 'published_at': dt.datetime.now(dt.timezone.utc).isoformat()}
     embedded = json.dumps(bootstrap, ensure_ascii=False, allow_nan=False).replace('<', '\\u003c')
     template = (WEB / 'us_market.html').read_text(encoding='utf-8')
     html = template.replace('<!--NAV-->', navigation('us')).replace('<!--NAV_STYLE-->', NAV_STYLE).replace('<!--DATA-->', embedded).replace('<!--STYLE-->',
@@ -101,7 +116,7 @@ def build(source, out):
     (out / 'reports').mkdir(exist_ok=True)
     for date, day in days.items():
         (out / 'data' / (date + '.json')).write_text(json.dumps(day, ensure_ascii=False, allow_nan=False), encoding='utf-8')
-        for run in day['digest'] + day['alerts']:
+        for run in day['digest'] + day['alerts'] + day.get('quotes', []):
             (out / 'reports' / (run['run_id'] + '.md')).write_text(markdown(run), encoding='utf-8')
     (out / 'index.html').write_text(html, encoding='utf-8')
     print('美股页面：%d 个存档日期 → %s' % (len(dates), out))
