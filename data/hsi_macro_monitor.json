@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "monitoring_start_month": "2026-07",
-  "evaluated_date": "2026-10-02",
+  "evaluated_date": "2026-10-08",
   "policy": {
     "timezone": "Asia/Shanghai",
     "check_time": "18:30",
@@ -47,7 +47,23 @@
       "dataset": "retail",
       "label": "社零同比",
       "window": "14—20日",
-      "target_observation": "2026-09",
+      "target_observation": "2026-08",
+      "current_round": {
+        "release_month": "2026-09",
+        "observation_period": "2026-08",
+        "window_start": "2026-09-14",
+        "window_end": "2026-09-20",
+        "next_window_start": "2026-10-14",
+        "status": "acquired"
+      },
+      "next_round": {
+        "release_month": "2026-10",
+        "observation_period": "2026-09",
+        "window_start": "2026-10-14",
+        "window_end": "2026-10-20",
+        "next_window_start": "2026-11-14"
+      },
+      "backlog_rounds": [],
       "phase": "idle",
       "missing_periods": [],
       "last_checked_at": null,
@@ -58,9 +74,27 @@
       "label": "PPI同比",
       "window": "8—14日",
       "target_observation": "2026-09",
-      "phase": "idle",
-      "missing_periods": [],
-      "last_checked_at": null,
+      "current_round": {
+        "release_month": "2026-10",
+        "observation_period": "2026-09",
+        "window_start": "2026-10-08",
+        "window_end": "2026-10-14",
+        "next_window_start": "2026-11-08",
+        "status": "awaiting"
+      },
+      "next_round": {
+        "release_month": "2026-11",
+        "observation_period": "2026-10",
+        "window_start": "2026-11-08",
+        "window_end": "2026-11-14",
+        "next_window_start": "2026-12-08"
+      },
+      "backlog_rounds": [],
+      "phase": "window",
+      "missing_periods": [
+        "2026-09"
+      ],
+      "last_checked_at": "2026-10-08T01:31:38+08:00",
       "last_probe_error": null
     },
     {
@@ -68,16 +102,50 @@
       "label": "社融增量（信用脉冲输入）",
       "window": "8—16日",
       "target_observation": "2026-09",
-      "phase": "idle",
-      "missing_periods": [],
-      "last_checked_at": null,
+      "current_round": {
+        "release_month": "2026-10",
+        "observation_period": "2026-09",
+        "window_start": "2026-10-08",
+        "window_end": "2026-10-16",
+        "next_window_start": "2026-11-08",
+        "status": "awaiting"
+      },
+      "next_round": {
+        "release_month": "2026-11",
+        "observation_period": "2026-10",
+        "window_start": "2026-11-08",
+        "window_end": "2026-11-16",
+        "next_window_start": "2026-12-08"
+      },
+      "backlog_rounds": [],
+      "phase": "window",
+      "missing_periods": [
+        "2026-09"
+      ],
+      "last_checked_at": "2026-10-08T01:31:40+08:00",
       "last_probe_error": null
     },
     {
       "dataset": "hk_m2",
       "label": "香港M2同比",
       "window": "26日至月底",
-      "target_observation": "2026-09",
+      "target_observation": "2026-08",
+      "current_round": {
+        "release_month": "2026-09",
+        "observation_period": "2026-08",
+        "window_start": "2026-09-26",
+        "window_end": "2026-09-30",
+        "next_window_start": "2026-10-26",
+        "status": "acquired"
+      },
+      "next_round": {
+        "release_month": "2026-10",
+        "observation_period": "2026-09",
+        "window_start": "2026-10-26",
+        "window_end": "2026-10-31",
+        "next_window_start": "2026-11-26"
+      },
+      "backlog_rounds": [],
       "phase": "idle",
       "missing_periods": [],
       "last_checked_at": null,
@@ -87,23 +155,35 @@
       "dataset": "gdp",
       "label": "名义GDP（信用脉冲输入）",
       "window": "16—21日",
-      "target_observation": "2026-Q3",
+      "target_observation": "2026-Q2",
+      "current_round": {
+        "release_month": "2026-07",
+        "observation_period": "2026-Q2",
+        "window_start": "2026-07-16",
+        "window_end": "2026-07-21",
+        "next_window_start": "2026-10-16",
+        "status": "acquired"
+      },
+      "next_round": {
+        "release_month": "2026-10",
+        "observation_period": "2026-Q3",
+        "window_start": "2026-10-16",
+        "window_end": "2026-10-21",
+        "next_window_start": "2027-01-16"
+      },
+      "backlog_rounds": [],
       "phase": "idle",
       "missing_periods": [],
       "last_checked_at": null,
       "last_probe_error": null
     }
   ],
-  "due_sources": [],
+  "due_sources": [
+    "ppi",
+    "social_financing"
+  ],
   "alerts": [],
   "new_alerts": [],
-  "refreshed_sources": [
-    "retail",
-    "ppi",
-    "social_financing",
-    "hk_m2",
-    "gdp",
-    "hsi"
-  ],
-  "last_run_at": "2026-10-02T18:21:22+08:00"
+  "refreshed_sources": [],
+  "last_run_at": "2026-10-08T01:31:43+08:00"
 }
