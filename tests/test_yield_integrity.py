@@ -13,6 +13,7 @@ from compute.build_dataset import build_index, rule_watch_payload
 from compute.config import INDEX_BY_KEY
 from compute.normalize import attach_level, to_weekly
 from compute.provenance import input_digest, code_digest
+from web.render import slim
 from fetch.derive_yield import calibrate, current_date, derive, full_return
 from fetch import fetch_csindex
 import pandas as pd
@@ -114,6 +115,38 @@ class TestYieldIntegrity(unittest.TestCase):
         self.assertEqual(joined[0]['level_date'], '2026-09-01')
         missing = attach_level([{'date':'2026-09-04','value':1}], {'2026-08-01':100,'2026-09-05':200})
         self.assertIsNone(missing[0]['level'])
+
+    def test_us_latest_price_and_freshness_do_not_extend_valuation(self):
+        for key in ('nasdaq100', 'sp500'):
+            raw = {'danjuan': {'pe': [['2026-09-28', 25], ['2026-09-30', 26]]},
+                   'tencent_week': [{'date': '2026-10-09', 'close': 999}],
+                   'tencent_day': [{'date': '2026-09-30', 'close': 100},
+                                   {'date': '2026-10-07', 'close': 110}],
+                   '_status': {'danjuan': {'ok': True, 'last_data_date': '2026-09-30'},
+                               'tencent': {'ok': True}}}
+            index = build_index(INDEX_BY_KEY[key], raw)
+            self.assertEqual(index['latest_level'], 110)
+            self.assertEqual(index['level_series'], [
+                {'date': '2026-09-30', 'value': 100}, {'date': '2026-10-07', 'value': 110}])
+            rendered = slim({'indices': [index], 'generated_at': '2026-10-08',
+                             'default_window': '10Y', 'windows': ['10Y']})
+            self.assertEqual(rendered['indices'][0]['level_series'], index['level_series'])
+            self.assertEqual(index['latest_level_date'], '2026-10-07')
+            self.assertEqual(index['data_date'], '2026-09-30')
+            self.assertEqual(index['level_date'], '2026-09-30')
+            self.assertEqual(index['level'], 100)
+            self.assertEqual(index['stats']['10Y']['current'], 26)
+            self.assertEqual(index['source_status']['danjuan']['freshness'], 'lagging')
+            self.assertTrue(index['source_status']['danjuan']['ok'])
+            self.assertNotIn('freshness', raw['_status']['danjuan'])
+            raw['tencent_day'] = raw['tencent_day'][:1]
+            aligned = build_index(INDEX_BY_KEY[key], raw)
+            self.assertEqual(aligned['source_status']['danjuan']['freshness'], 'aligned')
+            raw['tencent_day'] = []
+            unknown = build_index(INDEX_BY_KEY[key], raw)
+            self.assertIsNone(unknown['latest_level'])
+            self.assertEqual(unknown['level_series'], [])
+            self.assertEqual(unknown['source_status']['danjuan']['freshness'], 'unknown')
 
     def test_projection_recomputes_unique_match_count(self):
         rows = [{'index_key':'nasdaq100','author_metric':'市盈率TTM','match':True}] * 5

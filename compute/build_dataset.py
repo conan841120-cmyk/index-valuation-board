@@ -216,6 +216,19 @@ def build_index(cfg, raw, official_history=None):
 
     # ---- 涨跌幅（美股用日线，中证用官方字段）
     last_level = points[-1].get("level")
+    latest_price = (tencent_day if cfg["level_source"] == "tencent" else level_rows)
+    latest_price = latest_price[-1] if latest_price else {}
+    source_status = {k: dict(v) for k, v in (raw.get("_status") or {}).items()}
+    if cfg["level_source"] == "tencent":
+        reference_date = latest_price.get("date")
+        valuation_date = points[-1]["date"]
+        freshness = "unknown"
+        if reference_date and valuation_date < reference_date:
+            freshness = "lagging"
+        elif reference_date == valuation_date:
+            freshness = "aligned"
+        source_status.setdefault("danjuan", {}).update(
+            freshness=freshness, reference_date=reference_date)
 
     value_meta = {"source": "danjuan", "basis": "第三方（雪球/蛋卷）口径"}
     if metric == "dy":
@@ -259,9 +272,12 @@ def build_index(cfg, raw, official_history=None):
         "value_meta": value_meta,
         "data_date": points[-1]["date"],
         "source": value_meta["source"],
-        "source_status": raw.get("_status") or {},
+        "source_status": source_status,
         "level": last_level,
         "level_date": points[-1].get("level_date"),
+        "latest_level": latest_price.get("close", latest_price.get("value")),
+        "latest_level_date": latest_price.get("date"),
+        "level_series": [{"date": r["date"], "value": r["close"]} for r in tencent_day],
         "change_pct": change_pct,
         "change_date": change_date,
         "series": points,

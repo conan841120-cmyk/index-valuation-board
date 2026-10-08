@@ -18,7 +18,7 @@ us-market-data.yml[OW6T]: F:将公开数据分支更新转成发布完成信号 
 us-market.yml[OV8T]: F:消费公开数据并从main发布整个多入口站点 | R:code:tools/load_us_market.py,code:compute/run_all.py,code:web/build_site.py | A:成功ready信号或手动触发；Pages产物docs | S:估值只重算旧输入；三个模块共用pages锁与排队避免互相覆盖
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/compute/===
-build_dataset.py[AA8M]: F:将多源行情、估值及推导股息率装配成统一周频看板和统计视图 | R:code:compute/config.py,code:compute/normalize.py,code:compute/stats.py,code:fetch/derive_yield.py | A:build_index、main；dashboard和独立指数JSON | S:官方历史与蛋卷序列独立；A500估值不回溯；重渲染读取最新口径监控
+build_dataset.py[AA8M]: F:装配周频估值、统计视图和独立的最新行情及日线价格 | R:code:compute/config.py,code:compute/normalize.py,code:compute/stats.py,code:fetch/derive_yield.py | A:build_index、main；dashboard、指数JSON、latest_level/date和level_series | S:官方与蛋卷估值独立；A500估值不回溯；最新美股点位只取腾讯日线，估值新鲜度对比已取得行情日期；新增价格不延伸估值统计；重渲染读取最新口径监控
 config.py[FC8S]: F:定义指数、估值方向、统计窗口、源映射、容差及股息率校准规则 | R:code:compute/build_dataset.py,code:fetch/derive_yield.py | A:INDICES、QUALITY、METRICS、WINDOWS | S:红利低波按09-27股息率口径；推导容差仅用于同期截图，不是置信区间
 normalize.py[CD7T]: F:规范日期、聚合每周最后有效值并连接行情和窗口 | R:code:compute/build_dataset.py | A:to_weekly、attach_level、window_slice | S:行情仅精确或回看最多七日匹配，绝不采用未来日期
 provenance.py[CD6T]: F:对估值输入和计算展示代码建立内容指纹防止旧结果验收新数据 | R:code:compute/build_dataset.py,code:tools/verify_local.py | A:input_digest、code_digest | S:摘要同时绑定相对路径与原字节，按路径排序
@@ -137,7 +137,7 @@ verify_local.py[XQ6T]: F:串行重建本地输入、报告、宏观指标与页�
 watch_rule.py[KA7M]: F:从作者文章配图识别指数与估值按钮，检查本项目口径是否一致 | R:code:compute/config.py,code:fetch/common.py,code:compute/build_dataset.py | A:--url/--images-dir/--keep-images；data/watch/rule_check.json | S:蓝色按钮按固定截图坐标标定；五个唯一指数均识别才算完整；失败保留上次结论，口径一致不等于数值验证
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/web/===
-app.js[AU8L]: F:呈现五指数估值图表、统计、明细并提示美股估值日期滞后 | R:code:web/template.html,code:web/render.py,code:compute/build_dataset.py | A:window.DASHBOARD、查询参数、CSV导出、阈值显示 | S:真实对照与推导不拼接；历史排名按整个窗口事后计算；美股估值与涨跌日期不同则提示，不以价格推算PE；过期口径核对不能称一致
+app.js[AU8L]: F:展示五指数估值、最新行情与价格延伸，按真实时间比例绘图 | R:code:web/template.html,code:web/render.py,code:compute/build_dataset.py | A:window.DASHBOARD、查询参数、CSV、阈值缓冲区、主图与小图 | S:日期按UTC午夜定位；估值截止后的腾讯日线只延伸价格，估值留空不计统计；真实与推导不拼接，历史排名为事后计算；缓冲区是人为提醒；抓取成功不等于新鲜，旧口径检测不能称一致
 build_drafts.py[XV4T]: F:将三个设计方向模板打包成内联数据的离线 HTML 样稿 | R:code:web/render.py,code:compute/config.py | A:CLI；design/design-demos下三份HTML | S:C方向不内联ECharts；缺失模板会跳过，不生成替代设计
 build_site.py[AV8T]: F:将估值、美股日报和标普偏离三个独立入口打包为完整静态站 | R:code:web/render.py,code:web/us_market.py,code:web/sp500.py,code:web/navigation.py | A:build(out)；CLI --out默认docs | S:调用者负责刷新输入；仅完整站点给估值页加导航，单文件估值导出保留离线行为
 compare.py[XQ4T]: F:将作者指定指数原图与本项目截图纵向合成核对图 | R:code:web/screenshot.sh | A:--shots-dir/--article-dir/--out-dir | S:文章序号固定对应2026年9月27日配图；缺任一图跳过，不补造对照
@@ -145,7 +145,7 @@ macro.css[FU5T]: F:定义恒生宏观图表、贡献表与来源轮次区域的�
 macro.html[EU6T]: F:声明恒生领先指标的图表、范围、导出和来源明细挂载点 | R:code:web/macro.js,code:web/macro.css,code:web/render.py | A:#hsi-macro；#macro-chart；#macro-range；#macro-export | S:页面明示缺失月连线仅作历史连接，不是实时月度信号
 macro.js[AU7T]: F:显示月频领先指标、四项贡献、发布轮次和下载状态 | R:code:web/macro.html,code:web/render.py,code:macro/hsi/release_watch.py | A:window.HSI_MACRO；gaps/select/csv/mainOption/roundTable | S:不填补缺失值；虚线仅连接有效端点；下载成功与目标轮次取得分开显示，未知公布日期不推测
 navigation.py[CU6T]: F:生成完整站点共享的三个入口按钮及财经版面样式 | R:code:web/build_site.py,code:web/us_market.py,code:web/sp500.py | A:navigation(current)；CSS | S:估值入口使用当前目录，其他入口回到父级；aria-current标识当前页面
-render.py[AV8S]: F:将估值与恒生宏观本地数据装配为可离线打开的单文件看板 | R:code:web/template.html,code:web/app.js,code:web/macro.js,code:compute/build_dataset.py | A:build(out_path)；slim；CLI --out | S:渲染前重读口径结果避免晚一天；轮次展示按当前日期重评但不联网或改监测状态；JSON转义闭合标签
+render.py[AV8S]: F:将估值、独立日线价格和恒生宏观数据打包成离线单文件看板 | R:code:web/template.html,code:web/app.js,code:web/macro.js,code:compute/build_dataset.py | A:build(out_path)、slim、CLI --out；保留level_series | S:渲染重读口径核对；宏观轮次按当前日期重评但不联网或改状态；估值与日线分别保留；JSON转义闭合标签
 screenshot.sh[XQ3T]: F:以独立临时 Chrome 配置截取本地 HTML 高分辨率图片 | R:code:web/compare.py | A:HTML路径/输出PNG/可选宽高 | S:会覆盖输出并永久删临时配置；固定macOS Chrome路径
 sp500.css[FU6T]: F:定义标普偏离看板原版几何、控件和图表的财经配色 | R:code:web/sp500/DashboardContent.jsx,code:web/sp500/ui.jsx,code:web/sp500/visuals.jsx | A:sp-*及data-*类；580/850/1200像素断点 | S:布局与字形沿用原看板，仅调色板适配站点；概率柱移动端允许横向滚动
 sp500.html[EU6T]: F:提供独立标普均线偏离页的导航、状态和 React 挂载容器 | R:code:web/sp500.py,code:web/sp500/main.jsx | A:#status；#sp500-app；snapshot.json下载入口 | S:快照与脚本为同目录外部文件，交互依赖JavaScript

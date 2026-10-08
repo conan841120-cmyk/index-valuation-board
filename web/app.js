@@ -107,8 +107,9 @@
     document.getElementById('leadName').textContent = i.name;
     document.getElementById('leadCode').textContent = i.code+'　·　'+data.metric_label+
       (data.direction==='inverse'?'（越高越便宜）':'（越高越贵）')+(data.flag==='derived'?'　·　≈ 推导估算':(data.is_alternate?'　·　独立真实序列':''));
-    document.getElementById('leadPrice').textContent = '点位 '+grp(s.level)+'　'+
-      (i.change_pct===null||i.change_pct===undefined?'—':(i.change_pct>0?'▲ +':(i.change_pct<0?'▼ ':'　'))+fmt(Math.abs(i.change_pct))+'%')+'　该序列点位日期 '+levelDate(data,i)+' / 最新涨跌日期 '+(i.change_date||'—');
+    document.getElementById('leadPrice').textContent = '最新行情点位 '+grp(i.latest_level)+'（'+(i.latest_level_date||'—')+'）　'+
+      (i.change_pct===null||i.change_pct===undefined?'—':(i.change_pct>0?'▲ +':(i.change_pct<0?'▼ ':'　'))+fmt(Math.abs(i.change_pct))+'%')+'　最新涨跌日期 '+(i.change_date||'—')+
+      '　｜　估值图对应点位 '+grp(s.level)+'　该序列点位日期 '+levelDate(data,i);
     var inv = data.direction==='inverse';
     var nearDanger = inv ? (s.current-t.danger) : (t.danger-s.current);
     var toChance = inv ? (t.opportunity-s.current) : (s.current-t.opportunity);
@@ -197,6 +198,9 @@
     } else {
       notes.push('估值序列来自 '+sourceName(data.source)+' 的真实数据；不同平台的数据源、统计与采样口径可能有差异。');
     }
+    if((i.level_series||[]).some(function(q){return q.date>data.data_date;})){
+      notes.push('估值按周频展示；估值截止后的价格线按腾讯日线延伸。暂无估值的日期留空，不参与估值统计。');
+    }
     if(data.threshold_buffer && !data.is_alternate){
       notes.push('<b>阈值附近的观察缓冲区</b>：指标视图中的红、绿阴影分别围绕危险值、机会值，'+
         '上下各为对应阈值的 '+fmt(data.threshold_buffer*100,0)+'%。宽度为人为设定，只作接近阈值时的视觉提醒，'+
@@ -248,18 +252,19 @@
   }
 
   function baseOption(p, small){
-    var dates = p.pts.map(function(x){return x.date;});
-    var levels = p.pts.map(function(x){return x.level;});
-    /* 横轴：显示 YY-MM 日期标签；窗口 >4 年按半年标，短窗口按季度标；
-       一个月有 4~5 个周频点，只取该月第一个点，避免同名标签重复出现 */
-    var spanYears = (Date.parse(dates[dates.length-1]) - Date.parse(dates[0])) / 3.15576e10;
-    var monthSet = spanYears > 4 ? {'01':1,'07':1} : {'01':1,'04':1,'07':1,'10':1};
-    function labelInterval(k, v){
-      if(k<=0 || k>=dates.length-2) return false;
-      if(!monthSet[v.slice(5,7)]) return false;
-      return dates[k-1].slice(0,7) !== v.slice(0,7);
-    }
-    function fmtLabel(v){ return v.slice(2,4)+'-'+v.slice(5,7); }
+    var points = p.pts.slice(), main = p.main.slice();
+    var valuationEnd = points.length ? points[points.length-1].date : null;
+    (p.i.level_series || []).forEach(function(q){
+      if(valuationEnd && q.date>valuationEnd){
+        points.push({date:q.date, value:null, level:q.value}); main.push(null);
+      }
+    });
+    var dates = points.map(function(x){return x.date;});
+    var times = dates.map(function(d){return Date.parse(d+'T00:00:00Z');});
+    var levels = points.map(function(x){return x.level;});
+    /* 日期是交易日标签；统一用UTC午夜定位，周频与日频共享真实时间比例。 */
+    var spanYears = (times[times.length-1] - times[0]) / 3.15576e10;
+    function fmtLabel(v){ return new Date(v).toISOString().slice(2,7); }
     var mark = {silent:true, symbol:'none', label:{show:false}, data:[]};
     var add = function(y, color, dash){ if(y===null||y===undefined) return;
       mark.data.push({yAxis:y, lineStyle:{color:color,type:dash?'dashed':'solid',width:1.1}, label:{show:false}}); };
@@ -285,27 +290,30 @@
     (p.i.rebalance_dates||[]).forEach(function(d){
       if(d < dates[0]) { return; }
       for(var k=0;k<dates.length;k++){
-        if(dates[k] >= d){ reb.push([dates[k], ax.min]); break; }
+        if(dates[k] >= d){ reb.push([times[k], ax.min]); break; }
       }
     });
     return {
       animation:false,
+      useUTC:true,
       grid: small?{left:2,right:2,top:6,bottom:16}:{left:48,right:52,top:10,bottom:30},
       tooltip: small?{show:false}:{trigger:'axis',backgroundColor:'rgba(247,243,236,0.97)',borderColor:C.rule,
         textStyle:{color:C.ink,fontSize:12,fontFamily:'Menlo, monospace'},
-        formatter:function(ps){ if(!ps.length) return ''; var k=ps[0].dataIndex, q=p.pts[k];
+        formatter:function(ps){ if(!ps.length) return ''; var k=ps[0].dataIndex, q=points[k];
           var vw = p.data.views && p.data.views[state.win];
           var pct = vw && vw.pct ? vw.pct[k] : null;
-          return q.date+'<br>'+p.data.metric_label+(p.data.flag==='derived'?' ≈ 推导估算':'')+' '+fmt(q.value,p.data.digits)+
+          return q.date+'<br>'+p.data.metric_label+(p.data.flag==='derived'?' ≈ 推导估算':'')+' '+
+            (q.value===null?'暂无估值数据（估值截止 '+valuationEnd+'）':fmt(q.value,p.data.digits))+
             (pct!==null&&pct!==undefined?'<br>分位点 '+fmt(pct)+'%':'')+
             (q.level!==null&&q.level!==undefined?'<br>点位 '+grp(q.level):''); }},
-      xAxis:{type:'category',data:dates,boundaryGap:false,
+      xAxis:{type:'time',min:times[0],max:times[times.length-1],boundaryGap:[0,0],
+        splitNumber:small?2:Math.max(2,Math.ceil(spanYears*(spanYears>4?2:4))),
         axisLine:{lineStyle:{color: small?C.rule:C.dim}},
-        axisTick: small?{show:false}:{show:true, length:3, lineStyle:{color:C.faint}, interval:labelInterval},
+        axisTick: small?{show:false}:{show:true, length:3, lineStyle:{color:C.faint}},
         axisLabel: small
-          ? {show:true, interval:function(k){return k===0||k===dates.length-1;}, formatter:fmtLabel,
+          ? {show:true, formatter:fmtLabel, hideOverlap:true,
              color:C.faint, fontSize:9, fontFamily:'Menlo, monospace'}
-          : {show:true, interval:labelInterval, formatter:fmtLabel, color:C.dim, fontSize:10.5,
+          : {show:true, formatter:fmtLabel, color:C.dim, fontSize:10.5,
              fontFamily:'Menlo, monospace', hideOverlap:true}},
       yAxis:[
         {type:'value',scale:true,splitNumber: small?2:4,axisLine:{show:false},axisTick:{show:false},
@@ -320,9 +328,9 @@
          splitLine:{show:false}}
       ],
       series:[
-        {type:'line',data:p.main,symbol:'none',z:2,connectNulls:true,lineStyle:{color:C.areaEdge,width:1},
+        {type:'line',data:main.map(function(v,k){return [times[k],v];}),symbol:'none',z:2,connectNulls:false,lineStyle:{color:C.areaEdge,width:1},
          areaStyle:{color:C.area,origin:'start'},markLine:mark,markArea:area},
-        {type:'line',data:levels,symbol:'none',yAxisIndex:1,z:3,lineStyle:{color:C.indigo,width:1}},
+        {type:'line',data:levels.map(function(v,k){return [times[k],v];}),symbol:'none',yAxisIndex:1,z:3,lineStyle:{color:C.indigo,width:1}},
         {type:'scatter',data:reb,symbol:'triangle',symbolSize:6,yAxisIndex:1,symbolOffset:[0,-5],
          itemStyle:{color:C.red},silent:true,z:4}
       ]
@@ -452,6 +460,9 @@
     Object.keys(statuses).forEach(function(k){
       var status=statuses[k]; if(!status) return;
       statusLines.push(sourceName(k)+'：'+(status.ok===false?(status.fallback===false?'抓取失败，无有效旧缓存':'抓取失败，沿用旧数据'):status.fallback?'使用备用/缓存数据':status.ok===true?'抓取成功':'抓取状态未记录')+
+        (status.freshness==='lagging'?'，估值数据滞后（已取得行情截止 '+status.reference_date+'）'
+          :status.freshness==='aligned'?'；估值与已取得行情日期一致'
+          :status.freshness==='unknown'?'；估值新鲜度无法核验':'')+
         '；尝试 '+(status.at||'—')+'；上次成功 '+(status.last_success_at||'—')+'；数据日期 '+(status.last_data_date||'未记录'));
     });
     document.getElementById('colophonLeft').innerHTML =

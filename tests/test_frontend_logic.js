@@ -54,6 +54,60 @@ assert.match(nodes.colophonLeft.innerHTML,/估值来源：中证指数官方/);
 assert.match(nodes.multiples.children.at(-1).innerHTML,/默认阈值/);assert.match(nodes.notes.innerHTML,/独立真实对照/);assert.match(nodes.notes.innerHTML,/不与主股息率的推导历史拼接/);assert.doesNotMatch(nodes.readTable.innerHTML,/推导估算/);
 const good={state:'consistent',checked_at:'2026-09-30 09:00:00',article_date:'2026-09-30',matched:5,missing:[]};dashboard.rule_watch=good;assert.equal(t.watchStatus().ok,true);
 main.code='SPX.GI';t.renderAll();assert.match(nodes.alert.innerHTML,/估值与最新行情日期不同/);
+main.latest_level=7801.77;main.latest_level_date='2026-10-07';
+main.source_status.danjuan={ok:true,at:'2026-10-08',last_data_date:'2026-09-10',freshness:'lagging',reference_date:'2026-10-07'};
+t.renderAll();assert.match(nodes.leadPrice.textContent,/最新行情点位 7,801.77（2026-10-07）/);
+assert.match(nodes.leadPrice.textContent,/估值图对应点位/);
+assert.match(nodes.leadPrice.textContent,/该序列点位日期 2026-09-02/);
+assert.match(nodes.colophonLeft.innerHTML,/抓取成功，估值数据滞后/);
+main.source_status.danjuan.ok=false;t.renderAll();
+assert.match(nodes.colophonLeft.innerHTML,/抓取失败，沿用旧数据，估值数据滞后/);
+main.source_status.danjuan.freshness='aligned';t.renderAll();
+assert.match(nodes.colophonLeft.innerHTML,/估值与已取得行情日期一致/);
+assert.doesNotMatch(nodes.colophonLeft.innerHTML,/估值数据滞后/);
+main.source_status.danjuan.freshness='unknown';t.renderAll();
+assert.match(nodes.colophonLeft.innerHTML,/估值新鲜度无法核验/);
 main.code='X';
 for(const patch of [{matched:4},{missing:['x']},{state:'incomplete'},{state:'failed'},{checked_at:'2026-09-28T10:00:00+08:00'},{checked_at:null}]){dashboard.rule_watch={...good,...patch};assert.equal(t.watchStatus().ok,false);}
+const priceIndex={...main,level_series:[{date:'2026-09-30',value:100},{date:'2026-10-01',value:101},
+  {date:'2026-10-02',value:102},{date:'2026-10-05',value:105},{date:'2026-10-06',value:106},{date:'2026-10-07',value:107}]};
+const valuationPoints=[{date:'2026-09-28',value:25,level:98},{date:'2026-09-30',value:26,level:100}];
+const pricePayload={i:priceIndex,data:{...main,data_date:'2026-09-30',series:valuationPoints,views:{'3Y':{pct:[40,50]}}},
+  s:stats,t:thresholds,view:'metric',pts:valuationPoints,main:[25,26],label:'市盈率TTM'};
+for(const view of ['metric','percentile','std']){
+ const plot=t.baseOption({...pricePayload,view},false);
+ assert.equal(plot.xAxis.type,'time');assert.equal(plot.useUTC,true);
+ assert.deepEqual(Array.from(plot.series[0].data,x=>new Date(x[0]).toISOString().slice(0,10)),
+   ['2026-09-28','2026-09-30','2026-10-01','2026-10-02','2026-10-05','2026-10-06','2026-10-07']);
+ assert.deepEqual(Array.from(plot.series[0].data,x=>x[1]),[25,26,null,null,null,null,null]);
+ assert.deepEqual(Array.from(plot.series[1].data,x=>x[1]),[98,100,101,102,105,106,107]);
+ assert.equal(plot.series[0].connectNulls,false);
+ const tip=plot.tooltip.formatter([{dataIndex:6}]);
+ assert.match(tip,/2026-10-07/);assert.match(tip,/暂无估值数据（估值截止 2026-09-30）/);
+ assert.match(tip,/点位 107.00/);assert.doesNotMatch(tip,/分位点/);
+ assert.equal(plot.yAxis[1].max>=107,true);
+}
+assert.equal(valuationPoints.length,2);assert.deepEqual(pricePayload.main,[25,26]);
+assert.equal(t.baseOption(pricePayload,true).xAxis.max,Date.parse('2026-10-07T00:00:00Z'));
+const echarts=require('../web/vendor/echarts.min.js');
+const weeklyPoints=[{date:'2026-09-21',value:24,level:97},...valuationPoints];
+const weeklyPayload={...pricePayload,pts:weeklyPoints,main:[24,25,26],
+  i:{...priceIndex,rebalance_dates:['2026-09-29']}};
+for(const small of [false,true]){
+ const plot=t.baseOption(weeklyPayload,small);
+ const chart=echarts.init(null,null,{renderer:'svg',ssr:true,width:1000,height:300});
+ chart.setOption(plot);
+ const pixel=date=>chart.convertToPixel({xAxisIndex:0},Date.parse(date+'T00:00:00Z'));
+ const day=pixel('2026-10-02')-pixel('2026-10-01');
+ assert.ok(Math.abs((pixel('2026-09-28')-pixel('2026-09-21'))/day-7)<1e-8);
+ assert.ok(Math.abs((pixel('2026-10-05')-pixel('2026-10-02'))/day-3)<1e-8);
+ assert.equal(plot.xAxis.axisLabel.formatter(Date.parse('2026-10-01T00:00:00Z')),'26-10');
+ assert.equal(plot.series[2].data[0][0],Date.parse('2026-09-30T00:00:00Z'));
+ assert.equal(plot.series[2].data[0][1],plot.yAxis[1].min);
+ const tip=small?'':plot.tooltip.formatter([{dataIndex:1,seriesIndex:1}]);
+ if(!small){assert.match(tip,/2026-09-28/);assert.match(tip,/点位 98.00/);}
+ chart.dispose();
+}
+priceIndex.level_series=[{date:'2026-09-30',value:100}];
+assert.equal(t.baseOption(pricePayload,false).xAxis.max,Date.parse('2026-09-30T00:00:00Z'));
 console.log('Frontend regression checks passed: threshold direction, custom zones, dates, alternate selection, CSV and watch state.');

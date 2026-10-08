@@ -55,7 +55,7 @@ def slim(dashboard):
     if dashboard.get("rule_watch"):
         out["rule_watch"] = dashboard["rule_watch"]
     for idx in dashboard["indices"]:
-        item = {k: v for k, v in idx.items() if k != "level_series"}
+        item = dict(idx)
         item["series"] = [
             {**p, "value": round(p["value"], 4), "level": p.get("level")}
             for p in idx["series"]
