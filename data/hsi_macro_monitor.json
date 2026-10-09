@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "monitoring_start_month": "2026-07",
-  "evaluated_date": "2026-10-09",
+  "evaluated_date": "2026-10-10",
   "policy": {
     "timezone": "Asia/Shanghai",
     "check_time": "18:30",
@@ -94,7 +94,7 @@
       "missing_periods": [
         "2026-09"
       ],
-      "last_checked_at": "2026-10-09T01:33:17+08:00",
+      "last_checked_at": "2026-10-10T01:09:17+08:00",
       "last_probe_error": null
     },
     {
@@ -122,7 +122,7 @@
       "missing_periods": [
         "2026-09"
       ],
-      "last_checked_at": "2026-10-09T01:33:20+08:00",
+      "last_checked_at": "2026-10-10T01:09:18+08:00",
       "last_probe_error": null
     },
     {
@@ -185,5 +185,5 @@
   "alerts": [],
   "new_alerts": [],
   "refreshed_sources": [],
-  "last_run_at": "2026-10-09T01:33:24+08:00"
+  "last_run_at": "2026-10-10T01:09:24+08:00"
 }
