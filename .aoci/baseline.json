@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-10-05T13:56:57Z",
-  "updated_at": "2026-10-10T23:20:00Z",
+  "updated_at": "2026-10-10T23:32:00Z",
   "files": {
     ".gitattributes": {
       "role": "index",
@@ -143,9 +143,9 @@
     },
     "data/hsi_macro_monitor.json": {
       "role": "index",
-      "sha256": "1f2a9b54df38ece2528fe513998e2ca9bcc5d6b12059f75eb663654f77f53340",
+      "sha256": "64a24ff8c032d006a2ffcec8bad46bc73b9e862bf5e17d9bc30f2f0d4022c397",
       "size": 5077,
-      "normalized_sha256": "1f2a9b54df38ece2528fe513998e2ca9bcc5d6b12059f75eb663654f77f53340"
+      "normalized_sha256": "64a24ff8c032d006a2ffcec8bad46bc73b9e862bf5e17d9bc30f2f0d4022c397"
     },
     "data/official_snapshots/indicator_000300.csv": {
       "role": "index",
@@ -824,9 +824,9 @@
     },
     "outputs/口径与误差报告.md": {
       "role": "index",
-      "sha256": "437b67b66c5abe46079ce98004c22f17ddf48b4c418976f59321875f6e2d6850",
+      "sha256": "433bf57a6abb6fc3b426390a803e4a2ba7d63420fe6b99611164687b529cf0e0",
       "size": 12492,
-      "normalized_sha256": "437b67b66c5abe46079ce98004c22f17ddf48b4c418976f59321875f6e2d6850"
+      "normalized_sha256": "433bf57a6abb6fc3b426390a803e4a2ba7d63420fe6b99611164687b529cf0e0"
     },
     "requirements.txt": {
       "role": "index",
