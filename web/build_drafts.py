@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from compute.config import DASHBOARD_JSON  # noqa: E402
 from web.render import slim  # noqa: E402
+from web.inline_json import inline_json  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEMOS = os.path.join(ROOT, "design", "design-demos")
@@ -28,7 +29,7 @@ DRAFTS = [
 def main():
     with open(DASHBOARD_JSON, encoding="utf-8") as fh:
         payload = slim(json.load(fh))
-    data_js = "window.DASHBOARD = " + json.dumps(payload, ensure_ascii=False) + ";"
+    data_js = "window.DASHBOARD = " + inline_json(payload) + ";"
     with open(VENDOR, encoding="utf-8") as fh:
         echarts_js = fh.read()
 

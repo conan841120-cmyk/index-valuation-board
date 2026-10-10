@@ -30,7 +30,7 @@ class USMarketTests(unittest.TestCase):
     def test_script_payload_escape_and_markdown_link_safety(self):
         self.fixture(); page = us_market.build(self.source, self.out).read_text()
         self.assertNotIn('</script><script>alert(1)</script>', page)
-        self.assertIn('\\u003c/script>', page)
+        self.assertIn('\\u003c/script\\u003e', page)
         report = (self.out / 'reports' / (self.run['run_id'] + '.md')).read_text()
         self.assertNotIn('javascript:', report)
         self.assertIn('未取得核验正文', report)

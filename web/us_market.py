@@ -5,6 +5,7 @@ from pathlib import Path
 import re
 from urllib.parse import quote, urlsplit
 from web.navigation import CSS as NAV_STYLE, navigation
+from web.inline_json import inline_json
 
 WEB = Path(__file__).resolve().parent
 DATE = re.compile(r'\d{4}-\d{2}-\d{2}\Z')
@@ -107,7 +108,7 @@ def build(source, out):
     # 先验证全部日期；损坏数据不会被当作空内容发布。
     bootstrap = {'manifest': manifest, 'day': days.get(dates[0]) if dates else None,
                  'published_at': dt.datetime.now(dt.timezone.utc).isoformat()}
-    embedded = json.dumps(bootstrap, ensure_ascii=False, allow_nan=False).replace('<', '\\u003c')
+    embedded = inline_json(bootstrap)
     template = (WEB / 'us_market.html').read_text(encoding='utf-8')
     html = template.replace('<!--NAV-->', navigation('us')).replace('<!--NAV_STYLE-->', NAV_STYLE).replace('<!--DATA-->', embedded).replace('<!--STYLE-->',
             (WEB / 'us_market.css').read_text(encoding='utf-8')).replace('<!--APP-->',
