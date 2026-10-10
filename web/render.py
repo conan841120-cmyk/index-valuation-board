@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from compute.build_dataset import rule_watch_payload  # noqa: E402
 from compute.config import DASHBOARD_JSON, OUTPUTS  # noqa: E402
+from web.inline_json import inline_json  # noqa: E402
 
 WEB = os.path.dirname(os.path.abspath(__file__))
 
@@ -95,7 +96,7 @@ def build(out_path):
         app_js = fh.read()
 
     html = html.replace("<!--ECHARTS-->", echarts_js)
-    html = html.replace("<!--DATA-->", "window.DASHBOARD = " + json.dumps(payload, ensure_ascii=False) + ";")
+    html = html.replace("<!--DATA-->", "window.DASHBOARD = " + inline_json(payload) + ";")
     html = html.replace("<!--APPJS-->", app_js)
     macro_path = os.path.join(os.path.dirname(WEB), "data", "hsi_macro.json")
     macro = None
@@ -109,7 +110,7 @@ def build(out_path):
     for marker, name in [("MACROCSS", "macro.css"), ("MACROHTML", "macro.html"), ("MACROJS", "macro.js")]:
         with open(os.path.join(WEB, name), encoding="utf-8") as fh:
             html = html.replace("<!--" + marker + "-->", fh.read() if macro else "")
-    macro_json = json.dumps(macro, ensure_ascii=False, allow_nan=False).replace("</", "<\\/")
+    macro_json = inline_json(macro)
     html = html.replace("<!--MACRODATA-->", "window.HSI_MACRO = " + macro_json + ";")
 
     os.makedirs(os.path.dirname(out_path), exist_ok=True)

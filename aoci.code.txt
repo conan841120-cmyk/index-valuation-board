@@ -94,10 +94,10 @@ social_financing.csv[PD7M]: F:存社融月度增量金额、修订版本和公�
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/macro/hsi/src/data/===
 common.py[ID7T]: F:缓存原始HTTP字节和请求摘要，并校验处理后数据重复期 | R:code:macro/hsi/update.py | A:fetch、profile、ROOT、RAW | S:缓存与元数据同时存在才复用；HTTP失败不替换成功缓存，refresh才重下载
-decode_sina.js[ID6T]: F:在隔离VM执行数学解码器，将压缩新浪日线转JSON | R:code:macro/hsi/src/data/download_hsi.py | A:CLI输入压缩文件、解码器、输出文件 | S:VM不供网络或文件系统，执行限10秒
+decode_sina.js[IS7T]: F:核验本地固定解码器摘要并将新浪压缩行情转为JSON | R:code:macro/hsi/src/data/download_hsi.py | A:CLI输入行情文件、输出JSON文件 | S:执行字节绑定SHA256，禁止外部解码器参数；VM仅限时10秒，不是可信边界
 discover_nbs.py[XD4T]: F:遍历国家数据公开指标树以调查官方字段身份 | R:code:macro/hsi/src/data/common.py | A:tree、explore | S:调查脚本不参与正式指标重算
 download_hkma.py[ID8T]: F:从金管局逐月新闻附件提取M2 Total直接同比和公告证据 | R:code:macro/hsi/src/data/common.py | A:download；PDF/XLS/XLSX解析 | S:刷新保留较早原始月值，仅重取近3月；严格三增长列取同比，不从余额推算
-download_hsi.py[ID7T]: F:合并HKEX官方月末与新浪日线对照价格，写恒指月度序列 | R:code:macro/hsi/src/data/common.py,code:macro/hsi/src/data/decode_sina.js | A:download、factbook、monthly_official | S:只取下载Python中的数学字面量，不执行Python；官方与新浪差超0.01点则拒绝；排除未结束月份
+download_hsi.py[ID7T]: F:合并HKEX官方月末与新浪日线对照价格，写恒指月度序列 | R:code:macro/hsi/src/data/common.py,code:macro/hsi/src/data/decode_sina.js | A:download、factbook、monthly_official | S:刷新仅下载行情和官方数据，不下载执行代码；价差超0.01点拒绝；排除未结束月份
 download_nbs.py[ID8T]: F:从官方目录唯一匹配社零PPI和名义GDP字段并查询完整历史 | R:code:macro/hsi/src/data/common.py | A:download(name,refresh)、CATALOGUES | S:社零选独立同比；PPI上年同月100减100；空字段保留NaN，修订历史不冒充初值
 download_pboc.py[ID8T]: F:读取人民银行年度增量金额表和早期PDF，合并月度社融历史 | R:code:macro/hsi/src/data/common.py | A:download；亿元流量序列与重叠审计 | S:排除百分比附录；重叠优先较新官方文件；有效负增量保留，未来空槽剔除
 download_release_dates.py[ID7T]: F:核验统计局和人民银行公告日并回填处理后输入的证据列 | R:code:macro/hsi/src/data/common.py,code:macro/hsi/update.py | A:nbs、pboc；公告CSV与逐来源日期合并 | S:用列表或原正文日期，不猜URL迁移日；2025-01社融另验迁移原公告
@@ -138,14 +138,14 @@ watch_rule.py[KA7M]: F:从作者文章配图识别指数与估值按钮，检查
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/web/===
 app.js[AU8L]: F:展示五指数估值、最新行情与价格延伸，按真实时间比例绘图 | R:code:web/template.html,code:web/render.py,code:compute/build_dataset.py | A:window.DASHBOARD、查询参数、CSV、阈值缓冲区、主图与小图 | S:日期按UTC午夜定位；估值截止后的腾讯日线只延伸价格，估值留空不计统计；真实与推导不拼接，历史排名为事后计算；缓冲区是人为提醒；抓取成功不等于新鲜，旧口径检测不能称一致
-build_drafts.py[XV4T]: F:将三个设计方向模板打包成内联数据的离线 HTML 样稿 | R:code:web/render.py,code:compute/config.py | A:CLI；design/design-demos下三份HTML | S:C方向不内联ECharts；缺失模板会跳过，不生成替代设计
+build_drafts.py[XV4T]: F:将三个设计方向模板打包成内联数据的离线HTML样稿 | R:code:web/render.py,code:web/inline_json.py,code:compute/config.py | A:CLI；design/design-demos下三份HTML | S:C方向不内联ECharts；缺失模板会跳过，不生成替代设计
 build_site.py[AV8T]: F:将估值、美股日报和标普偏离三个独立入口打包为完整静态站 | R:code:web/render.py,code:web/us_market.py,code:web/sp500.py,code:web/navigation.py | A:build(out)；CLI --out默认docs | S:调用者负责刷新输入；仅完整站点给估值页加导航，单文件估值导出保留离线行为
 compare.py[XQ4T]: F:将作者指定指数原图与本项目截图纵向合成核对图 | R:code:web/screenshot.sh | A:--shots-dir/--article-dir/--out-dir | S:文章序号固定对应2026年9月27日配图；缺任一图跳过，不补造对照
 macro.css[FU5T]: F:定义恒生宏观图表、贡献表与来源轮次区域的版式 | R:code:web/macro.html,code:web/template.html | A:.macro-section及响应式媒体规则 | S:复用估值页颜色变量；来源表可横向滚动避免裁掉日期说明
 macro.html[EU6T]: F:声明恒生领先指标的图表、范围、导出和来源明细挂载点 | R:code:web/macro.js,code:web/macro.css,code:web/render.py | A:#hsi-macro；#macro-chart；#macro-range；#macro-export | S:页面明示缺失月连线仅作历史连接，不是实时月度信号
 macro.js[AU7T]: F:显示月频领先指标、四项贡献、发布轮次和下载状态 | R:code:web/macro.html,code:web/render.py,code:macro/hsi/release_watch.py | A:window.HSI_MACRO；gaps/select/csv/mainOption/roundTable | S:不填补缺失值；虚线仅连接有效端点；下载成功与目标轮次取得分开显示，未知公布日期不推测
 navigation.py[CU6T]: F:生成完整站点共享的三个入口按钮及财经版面样式 | R:code:web/build_site.py,code:web/us_market.py,code:web/sp500.py | A:navigation(current)；CSS | S:估值入口使用当前目录，其他入口回到父级；aria-current标识当前页面
-render.py[AV8S]: F:将估值、独立日线价格和恒生宏观数据打包成离线单文件看板 | R:code:web/template.html,code:web/app.js,code:web/macro.js,code:compute/build_dataset.py | A:build(out_path)、slim、CLI --out；保留level_series | S:渲染重读口径核对；宏观轮次按当前日期重评但不联网或改状态；估值与日线分别保留；JSON转义闭合标签
+render.py[AV8S]: F:将估值、独立日线价格和恒生宏观数据打包成离线单文件看板 | R:code:web/template.html,code:web/app.js,code:web/macro.js,code:compute/build_dataset.py,code:web/inline_json.py | A:build(out_path)、slim、CLI --out；保留level_series | S:渲染重读口径核对；宏观轮次只读重评；两处内联JSON共用安全编码，非有限数拒绝发布
 screenshot.sh[XQ3T]: F:以独立临时 Chrome 配置截取本地 HTML 高分辨率图片 | R:code:web/compare.py | A:HTML路径/输出PNG/可选宽高 | S:会覆盖输出并永久删临时配置；固定macOS Chrome路径
 sp500.css[FU6T]: F:定义标普偏离看板原版几何、控件和图表的财经配色 | R:code:web/sp500/DashboardContent.jsx,code:web/sp500/ui.jsx,code:web/sp500/visuals.jsx | A:sp-*及data-*类；580/850/1200像素断点 | S:布局与字形沿用原看板，仅调色板适配站点；概率柱移动端允许横向滚动
 sp500.html[EU6T]: F:提供独立标普均线偏离页的导航、状态和 React 挂载容器 | R:code:web/sp500.py,code:web/sp500/main.jsx | A:#status；#sp500-app；snapshot.json下载入口 | S:快照与脚本为同目录外部文件，交互依赖JavaScript
@@ -155,7 +155,8 @@ template.html[EU7M]: F:声明估值日报财经版面、控件和宏观扩展的
 us_market.css[FU5T]: F:定义美股日期存档、新闻预警与观察列表的统一财经样式 | R:code:web/us_market.html,code:web/us_market.js | A:banner/grid/watchlist-editor及移动断点 | S:表格独立横向滚动；窄屏切单列并保留长来源链接换行
 us_market.html[EU6T]: F:提供独立美股日报的存档日期与批次选择器和内容容器 | R:code:web/us_market.py,code:web/us_market.js | A:#date/#run/#report；window.US_MARKET_BOOTSTRAP | S:只含筛选后的公开产物；采集时间与新闻行情时间分别展示，浏览不需要凭据
 us_market.js[AU8M]: F:呈现美股行情新闻存档、自选云端配置与交易日漏更提示 | R:code:web/us_market.html,code:web/us_market.py,code:US_MARKET.md | A:bootstrap、date参数、freshness、report、configURL | S:默认最新批次；独立行情新闻取最近日报并标时；最新日期核对已完成交易日，历史不套用当前日；异步切日防旧响应；配置需revision及GitHub确认
-us_market.py[AV8S]: F:校验公开行情存档与交易日历并构建美股页面、JSON和Markdown | R:code:web/us_market.html,code:web/us_market.js,code:web/navigation.py | A:build(source,out)、markdown(run)、published_at | S:全部日期身份验证后才输出；旧存档可无quotes；日历升序且开收盘带时区；内联JSON转义小于号，新闻链接仅无凭据HTTP(S)；不读私仓
+us_market.py[AV8S]: F:校验公开行情存档与交易日历并构建美股页面、JSON和Markdown | R:code:web/us_market.html,code:web/us_market.js,code:web/navigation.py,code:web/inline_json.py | A:build(source,out)、markdown(run)、published_at | S:全部日期身份验证后输出；旧存档可无quotes；日历有序带时区；内联JSON安全编码；新闻仅无凭据HTTP(S)；不读私仓
+inline_json.py[CS7T]: F:编码HTML脚本中的JSON值以保持数据与标记边界 | R:code:web/render.py,code:web/us_market.py,code:web/build_drafts.py | A:inline_json(value)返回JSON文本 | S:禁止NaN与无穷；Unicode转义HTML边界字符及行段分隔符，保留中文可读和JSON还原
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/web/sp500/===
 DashboardContent.jsx[AU8T]: F:组合标普价格、两种均线偏离、四段统计和情景模拟交互 | R:code:web/sp500/visuals.jsx,code:web/sp500/ui.jsx,code:web/sp500/model.mjs | A:DashboardContent；daily/state_stats/event_stats/events/baselines查询 | S:均线筛选同步隐藏价格与偏离曲线；事件与重叠观察日分开；模拟固定当前均线并查历史分箱，不插值或推断首次穿越

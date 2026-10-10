@@ -1,5 +1,4 @@
 """HSI comparison data: official HKEX where available, Sina in between."""
-import ast
 import json
 import re
 import subprocess
@@ -7,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 import pandas as pd
 import pdfplumber
 from bs4 import BeautifulSoup
-from .common import fetch,profile,ROOT,RAW
+from .common import fetch,profile,ROOT
 
 URL='https://finance.sina.com.cn/stock/hkstock/HSI/klc_kl.js'
 HIGHLIGHTS='https://www.hkex.com.hk/Market-Data/Statistics/Consolidated-Reports/HKEX-Monthly-Market-Highlights'
@@ -49,13 +48,8 @@ def monthly_official(refresh=False):
 
 def download(refresh=False):
  p=fetch(URL,'sina_hsi_encoded.js',refresh)
- source=fetch('https://raw.githubusercontent.com/akfamily/akshare/master/akshare/stock/cons.py','akshare_stock_constants.py',refresh)
- # Extract a literal math decoder only; never execute the downloaded Python.
- tree=ast.parse(source.read_text())
- code=next(ast.literal_eval(n.value) for n in tree.body if isinstance(n,ast.Assign) and any(isinstance(t,ast.Name) and t.id=='hk_js_decode' for t in n.targets))
- if any(token in code for token in ['require','fetch(','XMLHttpRequest','process','window','document','eval(']):raise ValueError('Decoder is not a pure math function')
- decoder=RAW/'sina_decoder.js';decoder.write_text(code);out=ROOT/'data/interim/sina_hsi_daily.json'
- subprocess.run(['node',str(ROOT/'src/data/decode_sina.js'),str(p),str(decoder),str(out)],check=True)
+ out=ROOT/'data/interim/sina_hsi_daily.json'
+ subprocess.run(['node',str(ROOT/'src/data/decode_sina.js'),str(p),str(out)],check=True)
  d=pd.DataFrame(json.loads(out.read_text()));print('decoded daily rows',len(d),flush=True)
  f=pd.DataFrame({'timestamp':pd.to_datetime(d.date,utc=True),'value':pd.to_numeric(d.close)})
  f=f[f.timestamp>=pd.Timestamp('2012-07-01',tz='UTC')].dropna()
