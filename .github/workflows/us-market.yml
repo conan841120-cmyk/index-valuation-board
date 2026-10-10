@@ -9,8 +9,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -18,13 +16,56 @@ concurrency:
   queue: max
 
 jobs:
-  build:
+  resolve:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    outputs:
+      code_ref: ${{ steps.code.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.ref || 'main' }}
+          persist-credentials: false
+      - id: code
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  collect:
+    needs: resolve
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.code_ref }}
+          persist-credentials: false
+      - name: 读取公开美股数据（不执行数据分支代码）
+        run: |
+          python3 tools/load_us_market.py
+          python3 tools/workflow_data.py pack us-market "$RUNNER_TEMP/collected.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: us-market-collected-data
+          path: ${{ runner.temp }}/collected.json
+          if-no-files-found: error
+          retention-days: 1
+
+  build:
+    needs: [resolve, collect]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.code_ref }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: us-market-collected-data
+          path: ${{ runner.temp }}/collected
+      - name: 校验白名单并导入美股数据
+        run: python3 tools/workflow_data.py unpack us-market "$RUNNER_TEMP/collected/collected.json"
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -35,7 +76,6 @@ jobs:
           node-version: '22'
       - name: 读取公开美股数据，使用既有估值和宏观输入
         run: |
-          python tools/load_us_market.py
           python compute/run_all.py --rebuild
           python web/build_site.py
       - name: 发布前校验
@@ -50,7 +90,11 @@ jobs:
           path: docs
   deploy:
     needs: build
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}

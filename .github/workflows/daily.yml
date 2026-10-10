@@ -11,9 +11,7 @@ on:
   workflow_dispatch:        # 也可在 Actions 页面 / 外部定时器触发
 
 permissions:
-  contents: write           # 回写快照（官方估值窗口累积、口径核对结论）
-  pages: write              # 发布 Pages
-  id-token: write
+  contents: read
 
 concurrency:
   group: pages
@@ -21,12 +19,28 @@ concurrency:
   queue: max
 
 jobs:
-  build:
+  resolve:
     runs-on: ubuntu-latest
+    outputs:
+      code_ref: ${{ steps.code.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.ref || 'main' }}
+          persist-credentials: false
+      - id: code
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  collect:
+    needs: resolve
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.code_ref }}
+          persist-credentials: false
 
       - uses: actions/setup-python@v5
         with:
@@ -52,8 +66,43 @@ jobs:
         continue-on-error: true
         run: python tools/watch_rule.py
 
-      - name: 生成口径报告
-        run: python compute/report.py
+      - name: 导出限定数据（不含代码或页面）
+        run: python tools/workflow_data.py pack daily "$RUNNER_TEMP/collected.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: daily-collected-data
+          path: ${{ runner.temp }}/collected.json
+          if-no-files-found: error
+          retention-days: 1
+
+  build:
+    needs: [resolve, collect]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.code_ref }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: daily-collected-data
+          path: ${{ runner.temp }}/collected
+      - name: 校验白名单并导入数据
+        run: python3 tools/workflow_data.py unpack daily "$RUNNER_TEMP/collected/collected.json"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 从固定代码离线重算并生成口径报告
+        run: |
+          python compute/run_all.py --rebuild
+          python compute/report.py
 
       - name: 读取美股公开快照并生成完整站点
         run: |
@@ -68,26 +117,59 @@ jobs:
           node tests/test_us_market.js
           node tests/test_sp500.js
 
-      - name: 回写快照
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if git diff --cached --quiet; then
-            echo "无快照变化"
-          else
-            git commit -m "chore(snapshot): $(date -u +%F) 数据快照与口径核对"
-            git push
-          fi
+      - name: 导出通过校验的数据快照
+        run: python tools/workflow_data.py pack daily "$RUNNER_TEMP/validated.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: daily-validated-data
+          path: ${{ runner.temp }}/validated.json
+          if-no-files-found: error
+          retention-days: 1
 
       - name: 上传 Pages 产物
         uses: actions/upload-pages-artifact@v3
         with:
           path: docs
 
-  deploy:
-    needs: build
+  commit:
+    needs: [resolve, build]
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.code_ref }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: daily-validated-data
+          path: ${{ runner.temp }}/validated
+      - name: 仅导入并暂存白名单数据
+        run: python3 tools/workflow_data.py unpack daily "$RUNNER_TEMP/validated/validated.json" --stage
+      - name: 回写快照（代码漂移或推送失败时不部署）
+        env:
+          PUBLISH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$(git rev-parse HEAD)"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --cached --quiet; then
+            echo "无快照变化"
+          else
+            git commit -m "chore(snapshot): $(date -u +%F) 数据快照与口径核对"
+            header=$(printf 'x-access-token:%s' "$PUBLISH_TOKEN" | base64 -w0)
+            git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $header" push origin HEAD:main
+          fi
+
+  deploy:
+    needs: [build, commit]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}

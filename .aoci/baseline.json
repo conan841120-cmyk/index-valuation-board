@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-10-05T13:56:57Z",
-  "updated_at": "2026-10-10T23:32:00Z",
+  "updated_at": "2026-10-10T23:52:01Z",
   "files": {
     ".gitattributes": {
       "role": "index",
@@ -11,21 +11,21 @@
     },
     ".github/workflows/daily.yml": {
       "role": "index",
-      "sha256": "9b978f6b5ddb2f4aea5a243ac98d1fb3d3a28f4756253c8761ed2901113b3eb5",
-      "size": 2801,
-      "normalized_sha256": "9b978f6b5ddb2f4aea5a243ac98d1fb3d3a28f4756253c8761ed2901113b3eb5"
+      "sha256": "75aa873455dfaff4b54aa37552eaf933885ea16e57890fc752a267db0907cc30",
+      "size": 5731,
+      "normalized_sha256": "75aa873455dfaff4b54aa37552eaf933885ea16e57890fc752a267db0907cc30"
     },
     ".github/workflows/macro.yml": {
       "role": "index",
-      "sha256": "1bcc2a9108a2b0f82c826ee563cc198ca4eecc963b7c7d9e5436443252f331f9",
-      "size": 4430,
-      "normalized_sha256": "1bcc2a9108a2b0f82c826ee563cc198ca4eecc963b7c7d9e5436443252f331f9"
+      "sha256": "7664d03a256f4c95d0a913682ebb7169d7cff2492c3013832206cfb203e15884",
+      "size": 7430,
+      "normalized_sha256": "7664d03a256f4c95d0a913682ebb7169d7cff2492c3013832206cfb203e15884"
     },
     ".github/workflows/tests.yml": {
       "role": "index",
-      "sha256": "4c8939cc92ec6ae590f4091e61a442a70a98aa8414b547b5dc933187c25f1fbf",
-      "size": 1302,
-      "normalized_sha256": "4c8939cc92ec6ae590f4091e61a442a70a98aa8414b547b5dc933187c25f1fbf"
+      "sha256": "3e0136296176066cb5ca5cd40a1022c01fdfd93c4dcb015054b21eee17d07bca",
+      "size": 1353,
+      "normalized_sha256": "3e0136296176066cb5ca5cd40a1022c01fdfd93c4dcb015054b21eee17d07bca"
     },
     ".github/workflows/us-market-data.yml": {
       "role": "index",
@@ -35,9 +35,9 @@
     },
     ".github/workflows/us-market.yml": {
       "role": "index",
-      "sha256": "dbe236334de23d702a407b98037b3b2461c6536faf4a8a4116c1a0a567b9181d",
-      "size": 1507,
-      "normalized_sha256": "dbe236334de23d702a407b98037b3b2461c6536faf4a8a4116c1a0a567b9181d"
+      "sha256": "09eb3113a9332fdf6d4b7943da61eafb3150d1d4371eeb4cd5efba95d6a48836",
+      "size": 2997,
+      "normalized_sha256": "09eb3113a9332fdf6d4b7943da61eafb3150d1d4371eeb4cd5efba95d6a48836"
     },
     ".gitignore": {
       "role": "index",
@@ -77,9 +77,9 @@
     },
     "aoci.code.txt": {
       "role": "index",
-      "sha256": "4a58d0b99448a4630bf8122c631dd62a2bf3f124dd39b454985c2bc31037cd42",
-      "size": 36323,
-      "normalized_sha256": "4a58d0b99448a4630bf8122c631dd62a2bf3f124dd39b454985c2bc31037cd42"
+      "sha256": "59c8e3ab2eeac9e0244676e27970391bf084bebc9a17bc919375cc2c9c0161fc",
+      "size": 37182,
+      "normalized_sha256": "59c8e3ab2eeac9e0244676e27970391bf084bebc9a17bc919375cc2c9c0161fc"
     },
     "aoci.meta.txt": {
       "role": "index",
@@ -918,11 +918,17 @@
       "size": 3871,
       "normalized_sha256": "aad2314cae5c9f1a914526c09e5bc4850443d0fbded79390756b00e05449d992"
     },
+    "tests/test_workflow_data.py": {
+      "role": "observe",
+      "sha256": "e6443ab4a4b1bef11bcb46340c3c723b02dde1d37280cd7ebe13f69f82e2d9d0",
+      "size": 5113,
+      "normalized_sha256": "e6443ab4a4b1bef11bcb46340c3c723b02dde1d37280cd7ebe13f69f82e2d9d0"
+    },
     "tests/test_workflow_separation.py": {
       "role": "observe",
-      "sha256": "759fc1def586f6c6d7a041476f54f6e4bc9b2122a6ea93dc762e978f6a39df15",
-      "size": 3901,
-      "normalized_sha256": "759fc1def586f6c6d7a041476f54f6e4bc9b2122a6ea93dc762e978f6a39df15"
+      "sha256": "b51eda58fcd41d6e55b763a56111336e9b101aeadd0d4485abdcf26c91e92625",
+      "size": 7718,
+      "normalized_sha256": "b51eda58fcd41d6e55b763a56111336e9b101aeadd0d4485abdcf26c91e92625"
     },
     "tests/test_yield_integrity.py": {
       "role": "observe",
@@ -959,6 +965,12 @@
       "sha256": "a960044f18770aa76bd38b7e46c1b4e89ca197ed9cbda8f6077ff86d2a8f948a",
       "size": 13566,
       "normalized_sha256": "a960044f18770aa76bd38b7e46c1b4e89ca197ed9cbda8f6077ff86d2a8f948a"
+    },
+    "tools/workflow_data.py": {
+      "role": "index",
+      "sha256": "76330730048a33f2b4c9681306df6e44bfaa54c2efbd6cf6e5f46329096327ac",
+      "size": 5036,
+      "normalized_sha256": "76330730048a33f2b4c9681306df6e44bfaa54c2efbd6cf6e5f46329096327ac"
     },
     "web/app.js": {
       "role": "index",

@@ -11,11 +11,11 @@ requirements.txt[FC6T]: F:声明估值抓取、宏观计算和本地验收的 Py
 HANDOFF.md[SG7M]: F:记录五指数估值看板、恒生宏观接入的交接入口和历史运维经验 | R:code:README.md,code:macro/hsi/README.md,code:RELEASE_CALENDAR_REPORT.md | A:运行机制、已知限制、交接清单与历史命令 | S:旧环境路径和历史进度需要现场核实；推导股息率不是当时可得数据；示例命令不构成抓取或发布授权
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/.github/workflows/===
-daily.yml[OV8T]: F:每天08:30抓取估值、校验并发布完整站点 | R:code:compute/run_all.py,code:tools/watch_rule.py,code:web/build_site.py | A:schedule、workflow_dispatch；回写main快照与Pages | S:口径监控失败不阻塞发布；与其他发布共用pages锁，测试失败则不部署
-macro.yml[OW8S]: F:18:30按发布日历检查宏观输入，有变化时更新完整页面 | R:code:macro/hsi/release_watch.py,code:macro/hsi/release_statistics.py,code:web/build_site.py | A:force_refresh手动绕过日历；条件构建与部署 | S:新逾期报警在网页和状态保存后使任务失败；不重新抓估值
-tests.yml[TQ7T]: F:验证完整站点及标普打包可复现，上传预览 | R:code:web/sp500/build.mjs,code:web/build_site.py,code:tests/test_sp500.js | A:PR与业务路径push触发；contents只读 | S:us-market-data分支排除push测试；不部署站点
+daily.yml[OV8S]: F:每天08:30隔离采集估值、验证快照并发布完整站点 | R:code:compute/run_all.py,code:tools/watch_rule.py,code:tools/workflow_data.py,code:web/build_site.py | A:resolve固定代码；collect/build只读；commit回写数据；deploy发布Pages | S:共用pages排队锁；口径监控失败仍可沿用；分支手动校验不提交或部署；main漂移或校验失败阻止发布
+macro.yml[OW8M]: F:18:30隔离检查宏观发布轮次并验证、保存和发布更新 | R:code:macro/hsi/release_watch.py,code:macro/hsi/release_statistics.py,code:tools/workflow_data.py,code:web/build_site.py | A:force_refresh绕过日历；resolve固定代码；只读collect/build及独立commit/deploy | S:空闲不联网安装或发布；不重抓估值；共用pages锁；分支仅校验；新逾期报警在状态保存和成功部署后使任务失败
+tests.yml[TQ7T]: F:验证完整站点及标普打包可复现，上传预览 | R:code:web/sp500/build.mjs,code:web/build_site.py,code:tests/test_sp500.js | A:PR与业务路径push触发；contents只读且checkout不持久化凭据 | S:us-market-data分支排除push测试；不部署站点
 us-market-data.yml[OW6T]: F:将公开数据分支更新转成发布完成信号 | R:code:.github/workflows/us-market.yml | A:us-market-data分支push；只读ready任务 | S:发布由main工作流承接，不直接从数据分支部署
-us-market.yml[OV8T]: F:消费公开数据并从main发布整个多入口站点 | R:code:tools/load_us_market.py,code:compute/run_all.py,code:web/build_site.py | A:成功ready信号或手动触发；Pages产物docs | S:估值只重算旧输入；三个模块共用pages锁与排队避免互相覆盖
+us-market.yml[OV8S]: F:隔离读取公开美股数据并构建和发布完整站点 | R:code:tools/load_us_market.py,code:tools/workflow_data.py,code:compute/run_all.py,code:web/build_site.py | A:成功ready信号或手动触发；resolve固定代码；collect/build只读；deploy仅Pages/OIDC写 | S:只重算既有估值和宏观输入；共用pages排队锁；分支手动运行不部署；数据只按限定JSON交接
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/compute/===
 build_dataset.py[AA8M]: F:装配周频估值、统计视图和独立的最新行情及日线价格 | R:code:compute/config.py,code:compute/normalize.py,code:compute/stats.py,code:fetch/derive_yield.py | A:build_index、main；dashboard、指数JSON、latest_level/date和level_series | S:官方与蛋卷估值独立；A500估值不回溯；最新美股点位只取腾讯日线，估值新鲜度对比已取得行情日期；新增价格不延伸估值统计；重渲染读取最新口径监控
@@ -135,6 +135,7 @@ load_us_market.py[ID8T]: F:从公开数据分支提取美股日期存档与标�
 trigger_dispatch.sh[OW4T]: F:使用已登录 gh 手动触发云端估值工作流 | R:code:.github/workflows/daily.yml,code:tools/TRIGGER.md | A:gh workflow run daily.yml | S:本机睡眠或关机时不能触发；提交请求后仍需检查运行结果
 verify_local.py[XQ6T]: F:串行重建本地输入、报告、宏观指标与页面并运行验收测试 | R:code:compute/run_all.py,code:web/render.py,code:macro/hsi/update.py | A:CLI --out | S:使用离线重建参数；任一步非零退出即停止，不代表完整站点与云端部署已验收
 watch_rule.py[KA7M]: F:从作者文章配图识别指数与估值按钮，检查本项目口径是否一致 | R:code:compute/config.py,code:fetch/common.py,code:compute/build_dataset.py | A:--url/--images-dir/--keep-images；data/watch/rule_check.json | S:蓝色按钮按固定截图坐标标定；五个唯一指数均识别才算完整；失败保留上次结论，口径一致不等于数值验证
+workflow_data.py[CS8S]: F:在隔离Actions作业间传递白名单数据并按显式文件列表暂存 | R:code:.github/workflows/daily.yml,code:.github/workflows/macro.yml,code:.github/workflows/us-market.yml | A:pack/unpack daily、macro、us-market；JSON/base64单文件协议；unpack可--stage | S:全部路径、必需文件、重复项和编码验证后才写入；拒绝路径链接；美股空交接允许等待首次数据；不接受代码或页面产物
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/web/===
 app.js[AU8L]: F:展示五指数估值、最新行情与价格延伸，按真实时间比例绘图 | R:code:web/template.html,code:web/render.py,code:compute/build_dataset.py | A:window.DASHBOARD、查询参数、CSV、阈值缓冲区、主图与小图 | S:日期按UTC午夜定位；估值截止后的腾讯日线只延伸价格，估值留空不计统计；真实与推导不拼接，历史排名为事后计算；缓冲区是人为提醒；抓取成功不等于新鲜，旧口径检测不能称一致
