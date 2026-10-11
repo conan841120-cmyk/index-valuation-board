@@ -11,9 +11,7 @@ on:
         default: false
 
 permissions:
-  contents: write
-  pages: write
-  id-token: write
+  contents: read
 
 # 与估值工作流共用发布锁，串行运行；启动时读取最新main快照。
 concurrency:
@@ -22,15 +20,32 @@ concurrency:
   queue: max
 
 jobs:
-  build:
+  resolve:
     runs-on: ubuntu-latest
     outputs:
-      publish: ${{ steps.plan.outputs.needs_check }}
-      new_alarm: ${{ steps.monitor.outputs.new_alarm }}
+      code_ref: ${{ steps.code.outputs.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.ref || 'main' }}
+          persist-credentials: false
+      - id: code
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  collect:
+    needs: resolve
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      publish: ${{ steps.plan.outputs.needs_check }}
+      new_alarm: ${{ steps.monitor.outputs.new_alarm }}
+      refreshed: ${{ steps.monitor.outputs.refreshed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.code_ref }}
+          persist-credentials: false
 
       - name: 判断发布窗口和未完成轮次（不联网、不安装依赖）
         id: plan
@@ -78,8 +93,43 @@ jobs:
             python macro/hsi/release_watch.py
           fi
 
-      - name: 复用估值快照并生成合并页面（不抓取估值）
+      - name: 导出限定宏观数据（不含代码或页面）
         if: steps.plan.outputs.needs_check == 'true'
+        run: python tools/workflow_data.py pack macro "$RUNNER_TEMP/collected.json"
+      - uses: actions/upload-artifact@v4
+        if: steps.plan.outputs.needs_check == 'true'
+        with:
+          name: macro-collected-data
+          path: ${{ runner.temp }}/collected.json
+          if-no-files-found: error
+          retention-days: 1
+
+  build:
+    needs: [resolve, collect]
+    if: needs.collect.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.code_ref }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: macro-collected-data
+          path: ${{ runner.temp }}/collected
+      - name: 校验白名单并导入宏观数据
+        run: python3 tools/workflow_data.py unpack macro "$RUNNER_TEMP/collected/collected.json"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 复用估值快照并生成合并页面（不抓取估值）
         run: |
           python compute/run_all.py --rebuild
           python compute/report.py
@@ -88,7 +138,6 @@ jobs:
           python web/build_site.py
 
       - name: 校验监测、页面及估值快照
-        if: steps.plan.outputs.needs_check == 'true'
         run: |
           python -m unittest discover -s tests -v
           node tests/test_frontend_logic.js
@@ -99,30 +148,59 @@ jobs:
           python -m pytest tests/test_release_watch.py tests/test_release_probe.py -q
 
       - name: 更新数据后的完整宏观回归
-        if: steps.monitor.outputs.refreshed == 'true'
+        if: needs.collect.outputs.refreshed == 'true'
         working-directory: macro/hsi
         run: python -m pytest -q
 
-      - name: 保存数据与报警状态
-        if: steps.plan.outputs.needs_check == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          if ! git diff --cached --quiet; then
-            git commit -m "chore(macro): release monitoring $(date -u +%F)"
-            git push
-          fi
-
+      - name: 导出通过校验的宏观快照
+        run: python tools/workflow_data.py pack macro "$RUNNER_TEMP/validated.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macro-validated-data
+          path: ${{ runner.temp }}/validated.json
+          if-no-files-found: error
+          retention-days: 1
       - uses: actions/upload-pages-artifact@v3
-        if: steps.plan.outputs.needs_check == 'true'
         with:
           path: docs
 
-  deploy:
-    needs: build
-    if: needs.build.outputs.publish == 'true'
+  commit:
+    needs: [resolve, collect, build]
+    if: github.ref == 'refs/heads/main' && needs.collect.outputs.publish == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.code_ref }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: macro-validated-data
+          path: ${{ runner.temp }}/validated
+      - name: 仅导入并暂存白名单数据
+        run: python3 tools/workflow_data.py unpack macro "$RUNNER_TEMP/validated/validated.json" --stage
+      - name: 保存数据与报警状态（推送失败时不部署）
+        env:
+          PUBLISH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$(git rev-parse HEAD)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(macro): release monitoring $(date -u +%F)"
+            header=$(printf 'x-access-token:%s' "$PUBLISH_TOKEN" | base64 -w0)
+            git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $header" push origin HEAD:main
+          fi
+
+  deploy:
+    needs: [collect, build, commit]
+    if: github.ref == 'refs/heads/main' && needs.collect.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
@@ -130,7 +208,7 @@ jobs:
       - id: deploy
         uses: actions/deploy-pages@v4
       - name: 新逾期报警（网页和状态已保存，再触发任务失败提示）
-        if: needs.build.outputs.new_alarm == 'true'
+        if: needs.collect.outputs.new_alarm == 'true'
         run: |
           echo "::error::上一轮宏观数据仍未取得，已进入下一轮发布窗口。请查看网页宏观监测区和build任务摘要。"
           exit 1
