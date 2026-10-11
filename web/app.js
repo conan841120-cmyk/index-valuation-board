@@ -201,6 +201,9 @@
     if((i.level_series||[]).some(function(q){return q.date>data.data_date;})){
       notes.push('估值按周频展示；估值截止后的价格线按腾讯日线延伸。暂无估值的日期留空，不参与估值统计。');
     }
+    if((i.rebalance_dates||[]).length){
+      notes.push('三角显示定期调样生效后的首个可用图表点；不含临时调样。历史日期按已有行情推定，行情缺口不能认证实际生效日。');
+    }
     if(data.threshold_buffer && !data.is_alternate){
       notes.push('<b>阈值附近的观察缓冲区</b>：指标视图中的红、绿阴影分别围绕危险值、机会值，'+
         '上下各为对应阈值的 '+fmt(data.threshold_buffer*100,0)+'%。宽度为人为设定，只作接近阈值时的视觉提醒，'+
@@ -285,7 +288,7 @@
       area.data.push([{yAxis:p.t.opportunity*(1-band), itemStyle:{color:C.bandC}},{yAxis:p.t.opportunity*(1+band)}]);
     }
     var ax = levelAxis(levels);
-    /* 调仓标志：落在真实存在的周频点上，贴住图表底边（y = 点位轴最小值，符号上移半个高度） */
+    /* 定期调样：生效日及之后首个图表点，贴住图表底边；不能映射到生效前的周五。 */
     var reb = [];
     (p.i.rebalance_dates||[]).forEach(function(d){
       if(d < dates[0]) { return; }
@@ -354,7 +357,7 @@
            : (state.view==='percentile'? '分位点' : 'z 分数')});
     if(data.flag==='derived') items[0].label+=' ≈ 推导估算';
     items.push({t:'bar', c:C.indigo, label:'指数点位'});
-    if(i.rebalance_dates && i.rebalance_dates.length){ items.push({t:'tri', label:'调仓标志'}); }
+    if(i.rebalance_dates && i.rebalance_dates.length){ items.push({t:'tri', label:'定期调样生效后'}); }
     if(state.view==='metric'){
       items.push({t:'dash', c:C.red, label:'危险值 '+fmt(t.danger,data.digits)});
       items.push({t:'dash', c:C.dim, label:'中位数 '+fmt(t.median,data.digits)});
