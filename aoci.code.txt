@@ -23,8 +23,9 @@ config.py[FC8S]: F:定义指数、估值方向、统计窗口、源映射、容�
 normalize.py[CD7T]: F:规范日期、聚合每周最后有效值并连接行情和窗口 | R:code:compute/build_dataset.py | A:to_weekly、attach_level、window_slice | S:行情仅精确或回看最多七日匹配，绝不采用未来日期
 provenance.py[CD6T]: F:对估值输入和计算展示代码建立内容指纹防止旧结果验收新数据 | R:code:compute/build_dataset.py,code:tools/verify_local.py | A:input_digest、code_digest | S:摘要同时绑定相对路径与原字节，按路径排序
 report.py[AA7M]: F:比较当前估值与同期作者截图并生成口径误差报告 | R:code:compute/config.py,code:compute/stats.py,code:data/reference/screenshots.json | A:comparison_summary、judge、main；Markdown报告 | S:过期、废弃或不同口径截图只记录，不参与通过数；推导分位不设硬容差
-run_all.py[EW8S]: F:抓取各源并验证候选，原子缓存成功结果，再构建估值数据 | R:code:compute/build_dataset.py,code:fetch/fetch_danjuan.py,code:fetch/fetch_csindex.py,code:fetch/fetch_tencent.py | A:main --rebuild、fetch_all、validate_snapshot | S:空或损坏候选不能覆盖旧缓存；腾讯周线日线全有效才共同替换
+run_all.py[EW8M]: F:校验候选及历史覆盖，统一提交有效缓存并构建估值数据 | R:code:compute/cache_commit.py,code:compute/build_dataset.py,code:fetch/fetch_csindex.py,code:fetch/fetch_danjuan.py,code:fetch/fetch_tencent.py | A:main --rebuild、fetch_all、validate_snapshot、validate_transition | S:先恢复再读缓存；日期不得回退；全历史不丢日期，滚动窗口只移出前部；同日数值修订可接受；腾讯两频共同验收
 stats.py[KA8S]: F:计算估值12项统计、分位区间与历史排名视图 | R:code:compute/config.py,code:compute/build_dataset.py | A:compute、quantile、views、zone_of | S:分位值取floor(p*n)，排名严格小于当前；z用样本标准差，历史视图为当前窗口事后回顾
+cache_commit.py[PR8T]: F:以本机意图日志恢复raw输入与官方CSV的部分提交 | R:code:compute/run_all.py | A:commit、recover、atomic_write；逐文件原子替换 | S:只支持单写者；未完成提交恢复精确旧字节，未知路径或第三方修改阻止恢复；不保证跨文件原子或断电耐久
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/data/===
 hsi_macro.json[PD7T]: F:保存恒生领先指标序列、四项贡献、来源质量和方法说明 | R:code:macro/hsi/update.py,code:web/macro.js | A:schema_version、series、latest、sources | S:历史含修订，vintage_certified=false；缺失月份不补作有效信号
@@ -32,9 +33,9 @@ hsi_macro_monitor.json[PD6S]: F:持久化宏观发布窗口、来源检查状态
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/data/official_snapshots/===
 indicator_000300.csv[PD4T]: F:保存沪深300官方市盈率与股息率双口径历史快照 | R:code:fetch/fetch_csindex.py | A:date、pe1、pe2、dy1、dy2、fetched_at | S:-
-indicator_000510.csv[PD5T]: F:累计中证A500官方估值窗口以保留每日快照 | R:code:fetch/fetch_csindex.py,code:compute/build_dataset.py | A:date、pe1、pe2、dy1、dy2、fetched_at | S:抓取日期不替代估值日期
-indicator_000922.csv[PD5T]: F:累计中证红利官方PE与股息率作独立真实对照 | R:code:fetch/fetch_csindex.py,code:compute/build_dataset.py | A:双口径估值字段及抓取时间 | S:不与推导股息率拼成同一真实序列
-indicator_H30269.csv[PD5T]: F:累计红利低波官方估值用于当前锚和真实历史对照 | R:code:fetch/fetch_csindex.py,code:fetch/derive_yield.py | A:双口径PE、股息率及抓取时间 | S:官方dy1与dy2不能混作同一口径
+indicator_000510.csv[PD5T]: F:累计中证A500官方估值窗口以保留每日快照 | R:code:fetch/fetch_csindex.py,code:compute/run_all.py,code:compute/build_dataset.py | A:date、pe1、pe2、dy1、dy2、fetched_at | S:抓取日期不替代估值日期；同日期通过校验后可修订
+indicator_000922.csv[PD5T]: F:累计中证红利官方PE与股息率作独立真实对照 | R:code:fetch/fetch_csindex.py,code:compute/run_all.py,code:compute/build_dataset.py | A:双口径估值字段及抓取时间 | S:不与推导股息率拼成同一真实序列
+indicator_H30269.csv[PD5T]: F:累计红利低波官方估值用于当前锚和真实历史对照 | R:code:fetch/fetch_csindex.py,code:compute/run_all.py,code:fetch/derive_yield.py | A:双口径PE、股息率及抓取时间 | S:官方dy1与dy2不能混作同一口径
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/data/reference/===
 screenshots.json[FD6S]: F:存人工读图基准、数据日期与废弃口径标识用于回归 | R:code:compute/report.py | A:articles、observations、stats、obsolete | S:只有同数据日同指标且未废弃的基准参与判定
@@ -63,7 +64,7 @@ sp500-integration.md[SV7T]: F:规定标普独立入口、私仓07:00计算与公
 ===/Users/sherlock/Documents/DSH/index-valuation-board/fetch/===
 common.py[IN6T]: F:提供有界HTTP重试、原始响应保存和北京时间转换 | R:code:compute/config.py | A:fetch、get_json、save_raw、ts_to_date | S:蛋卷毫秒时间戳按UTC+8取日期而非UTC日
 derive_yield.py[KA8S]: F:用全收益分红、PE当前锚及几何混合估算历史股息率 | R:code:compute/config.py,code:compute/build_dataset.py | A:derive、full_return、pe_anchored、calibrate | S:锚与末点同日才校准；当前锚会重写历史，不能作为当时择时信号；官方单独对照
-fetch_csindex.py[ID8S]: F:适配官方行情PE字段和20日估值xls，累积独立CSV历史 | R:code:fetch/common.py,code:compute/config.py | A:fetch_perf、fetch_indicator、load_indicator_csv | S:perf的peg表示官方PE；新窗口验证后才写CSV，同日保留最新抓取
+fetch_csindex.py[ID8S]: F:读取官方日频行情与20日估值候选，构造累积CSV字节 | R:code:fetch/common.py,code:compute/config.py,code:compute/run_all.py | A:fetch_perf、fetch_indicator、indicator_csv_bytes、load_indicator_csv | S:原始xls可保存，候选函数不提交长期CSV；perf的peg表示官方PE；同日合并保留新值，接受与落盘由编排层决定
 fetch_danjuan.py[ID7T]: F:读取蛋卷长期PE/PB及当前估值并保存原始响应 | R:code:fetch/common.py,code:compute/config.py | A:fetch_index返回current、pe、pb、fetched_at | S:源字段yeild乘100转百分数；A500无该源不能补造覆盖
 fetch_tencent.py[ID6T]: F:获取腾讯美股指数日线或周线收盘序列 | R:code:fetch/common.py,code:compute/run_all.py | A:fetch_kline(code,period,count) | S:同时兼容period与qfqperiod字段，非法行忽略后由编排层验证
 
@@ -127,7 +128,7 @@ turning_points.py[TA6T]: F:识别相邻月局部峰谷并评分与原图转折�
 plot_indicator.py[EU5T]: F:导出宏观原值、z、贡献、候选和恒指对照研究图 | R:code:macro/hsi/src/indicators/leading_indicator.py | A:generate、historical_comparison、finish | S:缺月连接画虚线但值仍空；对照图不认证当时数据版本
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/outputs/===
-口径与误差报告.md[SA5S]: F:保存五指数本期来源、截图偏差、股息率候选及验证限制 | R:code:compute/report.py | A:统计窗口、同期判定与当前值性质说明 | S:过期基准只记录，不可把自洽性通过宣称同期截图一致
+口径与误差报告.md[SA5S]: F:保存五指数本期来源、截图偏差、股息率候选及验证限制 | R:code:compute/report.py | A:统计窗口、同期判定与当前值性质说明 | S:过期基准只记录；自洽性通过不能宣称同期截图一致
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/tools/===
 TRIGGER.md[SW4T]: F:说明外部触发云端估值任务的备选方案与验收方法 | R:code:tools/trigger_dispatch.sh,code:.github/workflows/daily.yml | A:workflow_dispatch请求示例 | S:方案尚未启用；HTTP 204仅表示接受请求，不能证明部署成功

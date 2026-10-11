@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-10-05T13:56:57Z",
-  "updated_at": "2026-10-11T00:12:58Z",
+  "updated_at": "2026-10-11T07:46:19Z",
   "files": {
     ".gitattributes": {
       "role": "index",
@@ -77,9 +77,9 @@
     },
     "aoci.code.txt": {
       "role": "index",
-      "sha256": "59c8e3ab2eeac9e0244676e27970391bf084bebc9a17bc919375cc2c9c0161fc",
-      "size": 37182,
-      "normalized_sha256": "59c8e3ab2eeac9e0244676e27970391bf084bebc9a17bc919375cc2c9c0161fc"
+      "sha256": "98ac8d7502f5fe8ad619a5fe48ad17d4b81c0dd68c45a6ac7f60e870d66ce969",
+      "size": 37837,
+      "normalized_sha256": "98ac8d7502f5fe8ad619a5fe48ad17d4b81c0dd68c45a6ac7f60e870d66ce969"
     },
     "aoci.meta.txt": {
       "role": "index",
@@ -98,6 +98,12 @@
       "sha256": "7cd694126f677da34caa2c8acf9dede4bfbbdf4d6b7cd06f845965dff7d3381b",
       "size": 16257,
       "normalized_sha256": "7cd694126f677da34caa2c8acf9dede4bfbbdf4d6b7cd06f845965dff7d3381b"
+    },
+    "compute/cache_commit.py": {
+      "role": "index",
+      "sha256": "21398ea0c2af457ddf8320c5e8a01390754cc906f9a56edc4809c89b0e518a2a",
+      "size": 3557,
+      "normalized_sha256": "21398ea0c2af457ddf8320c5e8a01390754cc906f9a56edc4809c89b0e518a2a"
     },
     "compute/config.py": {
       "role": "index",
@@ -125,9 +131,9 @@
     },
     "compute/run_all.py": {
       "role": "index",
-      "sha256": "57871978e2f9ac1adba7947eb7ae7ead4f99e49086fb838e6eec3ee94c668e9b",
-      "size": 7647,
-      "normalized_sha256": "57871978e2f9ac1adba7947eb7ae7ead4f99e49086fb838e6eec3ee94c668e9b"
+      "sha256": "6479df71176c14feac814ff0c1ff46232149b48f7d05617db8ea6b33a37a454f",
+      "size": 11069,
+      "normalized_sha256": "6479df71176c14feac814ff0c1ff46232149b48f7d05617db8ea6b33a37a454f"
     },
     "compute/stats.py": {
       "role": "index",
@@ -160,9 +166,9 @@
     },
     "data/official_snapshots/indicator_000510.csv": {
       "role": "index",
-      "sha256": "3719e2aa8c8468c8f01167f99637e3a9ca93b4ea7e95c32939d94497b81d9e73",
+      "sha256": "c5ad309cadc153b3411fd9651c573462698a44d2ad18237b6bae7b9adb09c3ee",
       "size": 1666,
-      "normalized_sha256": "3719e2aa8c8468c8f01167f99637e3a9ca93b4ea7e95c32939d94497b81d9e73"
+      "normalized_sha256": "c5ad309cadc153b3411fd9651c573462698a44d2ad18237b6bae7b9adb09c3ee"
     },
     "data/official_snapshots/indicator_000510_2026-09-27.xls": {
       "role": "index",
@@ -211,9 +217,9 @@
     },
     "data/official_snapshots/indicator_000922.csv": {
       "role": "index",
-      "sha256": "36ada2b5373524296e22b8e7b54f0af0b1e2a44339f5ed55ad1abdc5fe87b1b0",
+      "sha256": "42500467b4ef130fff32c6cbabe72c4dd29f275de6614af1b525a21ddd9d18de",
       "size": 1637,
-      "normalized_sha256": "36ada2b5373524296e22b8e7b54f0af0b1e2a44339f5ed55ad1abdc5fe87b1b0"
+      "normalized_sha256": "42500467b4ef130fff32c6cbabe72c4dd29f275de6614af1b525a21ddd9d18de"
     },
     "data/official_snapshots/indicator_000922_2026-09-27.xls": {
       "role": "index",
@@ -262,9 +268,9 @@
     },
     "data/official_snapshots/indicator_H30269.csv": {
       "role": "index",
-      "sha256": "fadf6e3fc4b1247f92aed09d34783ccd416cb04dccd1fe03c2c1af7c41ddc1ec",
+      "sha256": "eca4d665d99e67d4e8daf28c68228f2c2ae1373dae766a42ae3189d58b6428f2",
       "size": 1611,
-      "normalized_sha256": "fadf6e3fc4b1247f92aed09d34783ccd416cb04dccd1fe03c2c1af7c41ddc1ec"
+      "normalized_sha256": "eca4d665d99e67d4e8daf28c68228f2c2ae1373dae766a42ae3189d58b6428f2"
     },
     "data/official_snapshots/indicator_H30269_2026-09-27.xls": {
       "role": "index",
@@ -349,9 +355,9 @@
     },
     "data/watch/rule_check.json": {
       "role": "index",
-      "sha256": "a31c4caf0cd9717cb23cdaa782887270ee6d310737bdcdea4e971ede43a63585",
+      "sha256": "824b696d2722e27ad400c00812fa8cb25c918f8a683b19f084d7248405cd6973",
       "size": 13881,
-      "normalized_sha256": "a31c4caf0cd9717cb23cdaa782887270ee6d310737bdcdea4e971ede43a63585"
+      "normalized_sha256": "824b696d2722e27ad400c00812fa8cb25c918f8a683b19f084d7248405cd6973"
     },
     "design/design-demos/A-gallery-dark.html": {
       "role": "index",
@@ -441,9 +447,9 @@
     },
     "fetch/fetch_csindex.py": {
       "role": "index",
-      "sha256": "9a1c3e16128ada0ff66090d7262d7c54aa6d3b793b9a8c641770416376314ef0",
-      "size": 4992,
-      "normalized_sha256": "9a1c3e16128ada0ff66090d7262d7c54aa6d3b793b9a8c641770416376314ef0"
+      "sha256": "39d1cff624918a2a91c439b142f628d96177bb1bf89c10f6f425fd4f52407921",
+      "size": 5054,
+      "normalized_sha256": "39d1cff624918a2a91c439b142f628d96177bb1bf89c10f6f425fd4f52407921"
     },
     "fetch/fetch_danjuan.py": {
       "role": "index",
@@ -824,9 +830,9 @@
     },
     "outputs/口径与误差报告.md": {
       "role": "index",
-      "sha256": "655c3ca33ec47022625daaf640a490c69af25c5022abb09d60680926c2c8fc76",
+      "sha256": "d591cd42cd8bc0b5d562cdc2e05df3f0d8445ae6ec773ec821491da824e6b6ce",
       "size": 12492,
-      "normalized_sha256": "655c3ca33ec47022625daaf640a490c69af25c5022abb09d60680926c2c8fc76"
+      "normalized_sha256": "d591cd42cd8bc0b5d562cdc2e05df3f0d8445ae6ec773ec821491da824e6b6ce"
     },
     "requirements.txt": {
       "role": "index",
@@ -834,11 +840,17 @@
       "size": 180,
       "normalized_sha256": "89decaa1ef56e0c84607679127936080ac5eaf4653fd14e51a361a1e9c055800"
     },
+    "tests/test_candidate_acceptance.py": {
+      "role": "observe",
+      "sha256": "c818c8eec43ef8dc122dd52743e5f6b4ab61015724d9b111ae4e6cbbb7357cda",
+      "size": 18859,
+      "normalized_sha256": "c818c8eec43ef8dc122dd52743e5f6b4ab61015724d9b111ae4e6cbbb7357cda"
+    },
     "tests/test_fetch_fallback.py": {
       "role": "observe",
-      "sha256": "54dbc85dc561fd8a012ec6f943e2b42a761f4a89873c1a961b2521699e8017bc",
-      "size": 6110,
-      "normalized_sha256": "54dbc85dc561fd8a012ec6f943e2b42a761f4a89873c1a961b2521699e8017bc"
+      "sha256": "683e6afd568dbd6bbfef0e39edb9f49f82d3236f87f5c4a4590d96b132227ae6",
+      "size": 6230,
+      "normalized_sha256": "683e6afd568dbd6bbfef0e39edb9f49f82d3236f87f5c4a4590d96b132227ae6"
     },
     "tests/test_frontend_logic.js": {
       "role": "observe",
