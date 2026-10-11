@@ -43,7 +43,7 @@ def second_friday(year, month):
 
 
 def rebalance_dates(rule, first_date, last_date):
-    """按中证规则生成调仓日（第二个星期五之后的第一个交易日）。"""
+    """生成定期调样的第二个星期五锚点；生效交易日由日频行情定位。"""
     if not rule or not first_date or not last_date:
         return []
     months = [12] if rule == "annual_dec" else [6, 12]
@@ -59,13 +59,16 @@ def rebalance_dates(rule, first_date, last_date):
 
 
 def snap_rebalance_to_trading(dates, trading_days):
-    """把调仓日吸附到之后的第一个交易日（与作者图上三角位置一致）。"""
+    """按已取得日频行情定位锚点之后的首个交易日；缺覆盖不造标记。"""
     if not trading_days:
-        return dates
+        return []
     out = []
     for d in dates:
-        forward = [t for t in trading_days if t >= d]
-        out.append(forward[0] if forward else d)
+        if d < min(trading_days):
+            continue
+        forward = [t for t in trading_days if t > d]
+        if forward:
+            out.append(min(forward))
     return sorted(set(out))
 
 
@@ -157,6 +160,8 @@ def build_index(cfg, raw, official_history=None):
     reb = snap_rebalance_to_trading(
         rebalance_dates(cfg.get("rebalance"), points[0]["date"], points[-1]["date"]), trading_days
     )
+    if cfg.get("rebalance"):
+        notes.append("三角按定期调样规则和已有日频行情定位生效日，映射到该日及之后首个图表点；不含临时调样，历史缺口不认证实际生效日")
 
     # ---- 各时间范围统计量 + 「分位点 / 标准差」视图序列
     stats = {}

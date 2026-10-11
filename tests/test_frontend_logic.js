@@ -110,4 +110,17 @@ for(const small of [false,true]){
 }
 priceIndex.level_series=[{date:'2026-09-30',value:100}];
 assert.equal(t.baseOption(pricePayload,false).xAxis.max,Date.parse('2026-09-30T00:00:00Z'));
+const rebalancePayload={...pricePayload,pts:[{date:'2026-06-12',value:20,level:100},
+  {date:'2026-06-19',value:21,level:101}],main:[20,21],
+  i:{...main,level_series:[],rebalance_dates:['2026-06-15']},
+  data:{...main,data_date:'2026-06-19'}};
+t.renderReadout({...ctx,i:rebalancePayload.i});
+assert.match(nodes.notes.innerHTML,/定期调样生效后的首个可用图表点/);
+assert.match(nodes.notes.innerHTML,/行情缺口不能认证实际生效日/);
+for(const small of [false,true]){
+ const plot=t.baseOption(rebalancePayload,small);
+ assert.equal(plot.series[2].data[0][0],Date.parse('2026-06-19T00:00:00Z'));
+ const ended=t.baseOption({...rebalancePayload,pts:rebalancePayload.pts.slice(0,1),main:[20]},small);
+ assert.equal(ended.series[2].data.length,0);
+}
 console.log('Frontend regression checks passed: threshold direction, custom zones, dates, alternate selection, CSV and watch state.');

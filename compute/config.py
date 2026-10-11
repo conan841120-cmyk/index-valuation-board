@@ -120,7 +120,7 @@ INDICES = [
             "csindex": "000510",         # 官方 perf 自带每日 PE（自 2024-09-03 起）
         },
         "level_source": "csindex",
-        "rebalance": "semiannual",       # 每年 6 月 / 12 月第二个星期五
+        "rebalance": "semiannual",       # 每年 6 月 / 12 月第二个星期五的下一交易日
         "note": "真实 PE 仅自 2024-09-03 起（499 个交易日）；更早无公开真实数据",
     },
     {
@@ -135,7 +135,7 @@ INDICES = [
             "csindex_tr": "H20269",      # 中证红利低波动全收益指数（用于股息率推导）
         },
         "level_source": "csindex",
-        "rebalance": "annual_dec",       # 每年 12 月第二个星期五
+        "rebalance": "annual_dec",       # 每年 12 月第二个星期五的下一交易日
         "note": "作者 09-27 口径：股息率（09-23 那张的市净率LF 系作者选错，已作废）",
     },
     {

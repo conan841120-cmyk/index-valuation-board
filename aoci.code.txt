@@ -8,7 +8,7 @@ README.md[SG6S]: F:说明五指数估值口径、数据可信度、视觉选择�
 RELEASE_CALENDAR_REPORT.md[SW5T]: F:记录官方实际发布日期统计及窗口追踪规则 | R:code:macro/hsi/release_statistics.py,code:macro/hsi/release_policy.json | A:五类宏观输入窗口、覆盖率与公告链接 | S:信用脉冲没有独立发布日期；社零合并月缺值不算异常
 US_MARKET.md[SG6T]: F:说明美股独立行情、公开协议和云端自选配置流程 | R:code:tools/load_us_market.py,code:web/us_market.py | A:协议v1可选quotes数组、交易日历、GitHub配置确认 | S:页面发布不等于估值源更新；仅日期报价不作盘中预警；草稿不代表保存，清空清单不删历史
 requirements.txt[FC6T]: F:声明估值抓取、宏观计算和本地验收的 Python 依赖 | R:code:.github/workflows/daily.yml,code:.github/workflows/macro.yml | A:pip install -r requirements.txt | S:pandas与numpy锁定精确版本，其他包多为有界或最低版本要求
-HANDOFF.md[SG7M]: F:记录五指数估值看板、恒生宏观接入的交接入口和历史运维经验 | R:code:README.md,code:macro/hsi/README.md,code:RELEASE_CALENDAR_REPORT.md | A:运行机制、已知限制、交接清单与历史命令 | S:旧环境路径和历史进度需要现场核实；推导股息率不是当时可得数据；示例命令不构成抓取或发布授权
+HANDOFF.md[SG7M]: F:记录五指数看板、恒生宏观运维和官方定期调样标记定义 | R:code:README.md,code:macro/hsi/README.md,code:RELEASE_CALENDAR_REPORT.md | A:运行机制、交接清单、官方编制方案链接与版本 | S:旧路径与进度需现场核实；调样按已有行情推定生效后首点，不含临时调整和逐年规则重建；推导历史不是当时可得数据
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/.github/workflows/===
 daily.yml[OV8S]: F:每天08:30隔离采集估值、验证快照并发布完整站点 | R:code:compute/run_all.py,code:tools/watch_rule.py,code:tools/workflow_data.py,code:web/build_site.py | A:resolve固定代码；collect/build只读；commit回写数据；deploy发布Pages | S:共用pages排队锁；口径监控失败仍可沿用；分支手动校验不提交或部署；main漂移或校验失败阻止发布
@@ -18,8 +18,8 @@ us-market-data.yml[OW6T]: F:将公开数据分支更新转成发布完成信号 
 us-market.yml[OV8S]: F:隔离读取公开美股数据并构建和发布完整站点 | R:code:tools/load_us_market.py,code:tools/workflow_data.py,code:compute/run_all.py,code:web/build_site.py | A:成功ready信号或手动触发；resolve固定代码；collect/build只读；deploy仅Pages/OIDC写 | S:只重算既有估值和宏观输入；共用pages排队锁；分支手动运行不部署；数据只按限定JSON交接
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/compute/===
-build_dataset.py[AA8M]: F:装配周频估值、统计视图和独立的最新行情及日线价格 | R:code:compute/config.py,code:compute/normalize.py,code:compute/stats.py,code:fetch/derive_yield.py | A:build_index、main；dashboard、指数JSON、latest_level/date和level_series | S:官方与蛋卷估值独立；A500估值不回溯；最新美股点位只取腾讯日线，估值新鲜度对比已取得行情日期；新增价格不延伸估值统计；重渲染读取最新口径监控
-config.py[FC8S]: F:定义指数、估值方向、统计窗口、源映射、容差及股息率校准规则 | R:code:compute/build_dataset.py,code:fetch/derive_yield.py | A:INDICES、QUALITY、METRICS、WINDOWS | S:红利低波按09-27股息率口径；推导容差仅用于同期截图，不是置信区间
+build_dataset.py[AA8M]: F:装配周频估值、统计视图、独立行情日线及定期调样生效日期 | R:code:compute/config.py,code:compute/normalize.py,code:compute/stats.py,code:fetch/derive_yield.py | A:build_index、main；dashboard、指数JSON、level_series、rebalance_dates | S:调样取第二周五之后首个已有日频日期，无向前覆盖或锚点早于行情起点则省略；缺口不认证真实生效日；官方与蛋卷估值独立；A500估值不回溯；美股日线不延伸估值统计；渲染重读口径监控
+config.py[FC8S]: F:定义指数、估值方向、统计窗口、源映射、容差及股息率校准规则 | R:code:compute/build_dataset.py,code:fetch/derive_yield.py | A:INDICES、QUALITY、METRICS、WINDOWS | S:A500为6月及12月、两红利指数为12月第二周五下一交易日调样；海外指数无中证标记；红利低波按09-27股息率口径；推导容差仅用于同期截图
 normalize.py[CD7T]: F:规范日期、聚合每周最后有效值并连接行情和窗口 | R:code:compute/build_dataset.py | A:to_weekly、attach_level、window_slice | S:行情仅精确或回看最多七日匹配，绝不采用未来日期
 provenance.py[CD6T]: F:对估值输入和计算展示代码建立内容指纹防止旧结果验收新数据 | R:code:compute/build_dataset.py,code:tools/verify_local.py | A:input_digest、code_digest | S:摘要同时绑定相对路径与原字节，按路径排序
 report.py[AA7M]: F:比较当前估值与同期作者截图并生成口径误差报告 | R:code:compute/config.py,code:compute/stats.py,code:data/reference/screenshots.json | A:comparison_summary、judge、main；Markdown报告 | S:过期、废弃或不同口径截图只记录，不参与通过数；推导分位不设硬容差
@@ -139,7 +139,7 @@ watch_rule.py[KA7M]: F:从作者文章配图识别指数与估值按钮，检查
 workflow_data.py[CS8S]: F:在隔离Actions作业间传递白名单数据并按显式文件列表暂存 | R:code:.github/workflows/daily.yml,code:.github/workflows/macro.yml,code:.github/workflows/us-market.yml | A:pack/unpack daily、macro、us-market；JSON/base64单文件协议；unpack可--stage | S:全部路径、必需文件、重复项和编码验证后才写入；拒绝路径链接；美股空交接允许等待首次数据；不接受代码或页面产物
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/web/===
-app.js[AU8L]: F:展示五指数估值、最新行情与价格延伸，按真实时间比例绘图 | R:code:web/template.html,code:web/render.py,code:compute/build_dataset.py | A:window.DASHBOARD、查询参数、CSV、阈值缓冲区、主图与小图 | S:日期按UTC午夜定位；估值截止后的腾讯日线只延伸价格，估值留空不计统计；真实与推导不拼接，历史排名为事后计算；缓冲区是人为提醒；抓取成功不等于新鲜，旧口径检测不能称一致
+app.js[AU8L]: F:展示五指数估值、行情价格延伸及生效后调样标记，按真实日期绘图 | R:code:web/template.html,code:web/render.py,code:compute/build_dataset.py | A:window.DASHBOARD、查询参数、CSV、阈值缓冲区、主图与小图 | S:调样映射到生效日及之后首个图表点，缺点省略；说明不含临时调整且行情缺口未认证；UTC午夜定位；估值截止后仅延伸日线价格；真实与推导不拼接；历史排名为事后计算；缓冲区为人为提醒；旧口径核对不能称一致
 build_drafts.py[XV4T]: F:将三个设计方向模板打包成内联数据的离线HTML样稿 | R:code:web/render.py,code:web/inline_json.py,code:compute/config.py | A:CLI；design/design-demos下三份HTML | S:C方向不内联ECharts；缺失模板会跳过，不生成替代设计
 build_site.py[AV8T]: F:将估值、美股日报和标普偏离三个独立入口打包为完整静态站 | R:code:web/render.py,code:web/us_market.py,code:web/sp500.py,code:web/navigation.py | A:build(out)；CLI --out默认docs | S:调用者负责刷新输入；仅完整站点给估值页加导航，单文件估值导出保留离线行为
 compare.py[XQ4T]: F:将作者指定指数原图与本项目截图纵向合成核对图 | R:code:web/screenshot.sh | A:--shots-dir/--article-dir/--out-dir | S:文章序号固定对应2026年9月27日配图；缺任一图跳过，不补造对照
