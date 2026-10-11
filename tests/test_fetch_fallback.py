@@ -26,6 +26,7 @@ class TestFetchFallback(unittest.TestCase):
         with mock.patch.object(run_all, 'INDICES', [self.cfg]), \
              mock.patch.object(run_all, 'SERIES', self.tmp.name), \
              mock.patch.object(run_all, 'RAW_INPUTS', self.path), \
+             mock.patch.object(run_all.fetch_csindex, 'SNAPSHOTS', self.tmp.name), \
              mock.patch.object(run_all.fetch_csindex, 'fetch_perf', return_value=perf), \
              mock.patch.object(run_all.fetch_csindex, 'fetch_indicator', return_value=official or self.good_official):
             return run_all.fetch_all(previous)
@@ -51,7 +52,7 @@ class TestFetchFallback(unittest.TestCase):
         self.assertEqual(self.old, original)
 
     def test_valid_result_replaces_cache_and_records_success(self):
-        perf = [{'date': '2026-09-29', 'close': 101, 'pe_official': 13}]
+        perf = self.old['test']['csindex_perf'] + [{'date': '2026-09-29', 'close': 101, 'pe_official': 13}]
         out = self.fetch(self.old, perf)
         self.assertEqual(out['test']['csindex_perf'], perf)
         status = out['test']['_status']['csindex_perf']

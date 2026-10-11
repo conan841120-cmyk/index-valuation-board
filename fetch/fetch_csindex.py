@@ -58,7 +58,7 @@ def _iso(d):
 
 
 def fetch_indicator(code):
-    """下载官方 20 日估值窗口 → 落盘 xls + 追加到累积 CSV。返回本次窗口行列表。"""
+    """下载并保留原始 xls，只返回候选；长期 CSV 由编排层统一接受后提交。"""
     url = INDICATOR.format(code=code)
     resp = fetch(url, referer="https://www.csindex.com.cn/")
     os.makedirs(SNAPSHOTS, exist_ok=True)
@@ -90,7 +90,6 @@ def fetch_indicator(code):
         datetime.date.fromisoformat(row["date"])
         if row["dy1"] is None or not math.isfinite(row["dy1"]) or row["dy1"] < 0:
             raise ValueError("官方估值文件股息率1无效")
-    _append_csv(code, rows)
     return sorted(rows, key=lambda r: r["date"])   # 统一升序（xls 原始顺序是最新在前）
 
 
@@ -103,14 +102,14 @@ def _num(v):
         return None
 
 
-def _append_csv(code, rows):
+def indicator_csv_bytes(code, rows):
+    """构造累积历史候选字节；完整校验前后均不修改业务文件。"""
     path = os.path.join(SNAPSHOTS, "indicator_%s.csv" % code)
     old = pd.read_csv(path, dtype=str) if os.path.exists(path) else pd.DataFrame(columns=INDICATOR_COLS + ["fetched_at"])
     merged = pd.concat([old, pd.DataFrame(rows)], ignore_index=True)
     merged = merged.drop_duplicates(subset=["date"], keep="last")
     merged = merged.sort_values("date")
-    merged.to_csv(path, index=False)
-    return path
+    return merged.to_csv(index=False).encode("utf-8")
 
 
 def load_indicator_csv(code):

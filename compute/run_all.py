@@ -13,12 +13,12 @@ import json
 import math
 import os
 import sys
-import tempfile
 import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from compute import build_dataset  # noqa: E402
+from compute import cache_commit  # noqa: E402
 from compute.config import INDICES, SERIES  # noqa: E402
 from fetch import fetch_csindex, fetch_danjuan, fetch_tencent  # noqa: E402
 
@@ -34,7 +34,26 @@ def _number(value):
 
 
 def _date(value):
-    return datetime.date.fromisoformat(value).isoformat()
+    normalized = datetime.date.fromisoformat(value).isoformat()
+    if value != normalized:
+        raise ValueError('日期必须为 YYYY-MM-DD')
+    return normalized
+
+
+def _current_date(data):
+    day = data['current']['date']
+    if len(day) != 5:
+        return _date(day)
+    anchor = datetime.date.fromisoformat(max(row[0] for field in ('pe', 'pb') for row in data[field]))
+    choices = []
+    for year in (anchor.year - 1, anchor.year, anchor.year + 1):
+        try:
+            choices.append(datetime.date.fromisoformat('%d-%s' % (year, day)))
+        except ValueError:
+            continue
+    if not choices:
+        raise ValueError('蛋卷当前日期非法')
+    return min(choices, key=lambda value: abs((value - anchor).days)).isoformat()
 
 
 def validate_snapshot(part, data, cfg):
@@ -62,9 +81,9 @@ def validate_snapshot(part, data, cfg):
         if not isinstance(day, str):
             raise ValueError("蛋卷当前日期缺失")
         if len(day) == 5:
-            _date(max(dates)[:4] + "-" + day)
+            dates.append(_current_date(data))
         else:
-            _date(day)
+            dates.append(_date(day))
     else:
         if not isinstance(data, list) or not data:
             raise ValueError("%s 数据为空或格式非法" % part)
@@ -81,9 +100,57 @@ def validate_snapshot(part, data, cfg):
     return max(dates)
 
 
+def validate_transition(part, previous, candidate):
+    """Full-history sources retain all dates; bounded windows may roll their prefix.
+
+Same-date numeric revisions are accepted after business validation. Removing
+historical dates is not a revision. No calendar-based missing dates are invented.
+"""
+    if part == 'danjuan':
+        if _current_date(candidate) < _current_date(previous):
+            raise ValueError('蛋卷当前日期回退')
+        pairs = [(previous[field], candidate[field]) for field in ('pe', 'pb')]
+        pairs = [([row[0] for row in old], [row[0] for row in new]) for old, new in pairs]
+    else:
+        pairs = [([row['date'] for row in previous], [row['date'] for row in candidate])]
+    for old, new in pairs:
+        if new[-1] < old[-1]:
+            raise ValueError('%s 候选日期回退' % part)
+        if part == 'tencent_week':
+            # The unfinished weekly bar may change its date within the same week.
+            identity = lambda day: datetime.date.fromisoformat(day).isocalendar()[:2]
+        else:
+            identity = lambda day: day
+        old_ids, new_ids = set(map(identity, old)), set(map(identity, new))
+        missing = old_ids - new_ids
+        if not missing:
+            continue
+        if part not in {'official', 'tencent_week', 'tencent_day'}:
+            raise ValueError('%s 长历史日期缺失' % part)
+        if (new[-1] <= old[-1] or len(new_ids) < len(old_ids)
+                or any(day >= identity(new[0]) for day in missing)):
+            raise ValueError('%s 窗口历史缺失' % part)
+
+
+def _official_path(code):
+    return os.path.join(fetch_csindex.SNAPSHOTS, 'indicator_%s.csv' % code)
+
+
+def recover_cache():
+    paths = [RAW_INPUTS] + [_official_path(cfg['sources']['csindex'])
+                          for cfg in INDICES if cfg.get('sources', {}).get('csindex')]
+    return cache_commit.recover(RAW_INPUTS, paths)
+
+
 def fetch_all(previous=None):
     """每路先验证候选数据，再替换缓存；失败保留上次成功快照。"""
+    if recover_cache():
+        previous = None
+        if os.path.exists(RAW_INPUTS):
+            with open(RAW_INPUTS, encoding='utf-8') as fh:
+                previous = json.load(fh)
     raw_all = {k: dict(v) for k, v in (previous or {}).items()}
+    csv_updates = {}
     for cfg in INDICES:
         key = cfg["key"]
         src = cfg.get("sources") or {}
@@ -106,7 +173,21 @@ def fetch_all(previous=None):
             try:
                 candidate = loader()
                 values = candidate if part == "tencent" else (candidate,)
+                if len(values) != len(fields):
+                    raise ValueError('候选字段不完整')
                 dates = [validate_snapshot(f, value, cfg) for f, value in zip(fields, values)]
+                for field, value in zip(fields, values):
+                    try:
+                        validate_snapshot(field, raw.get(field), cfg)
+                    except (TypeError, ValueError, KeyError):
+                        continue
+                    validate_transition(field, raw[field], value)
+                if part == 'official':
+                    history = fetch_csindex.load_indicator_csv(src['csindex'])
+                    if history:
+                        validate_snapshot('official', history, cfg)
+                        validate_transition('official', history[-20:], candidate)
+                    csv_updates[_official_path(src['csindex'])] = fetch_csindex.indicator_csv_bytes(src['csindex'], candidate)
                 # 腾讯周线、日线全部有效后才一起替换。
                 raw.update(dict(zip(fields, values)))
                 status[part] = {"ok": True, "at": at, "last_success_at": at,
@@ -133,16 +214,8 @@ def fetch_all(previous=None):
         raw_all[key] = raw
 
     os.makedirs(SERIES, exist_ok=True)
-    temporary = None
-    try:
-        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=SERIES,
-                                         prefix="raw_inputs_", suffix=".json", delete=False) as fh:
-            temporary = fh.name
-            json.dump(raw_all, fh, ensure_ascii=False, allow_nan=False)
-        os.replace(temporary, RAW_INPUTS)
-    finally:
-        if temporary and os.path.exists(temporary):
-            os.remove(temporary)
+    content = json.dumps(raw_all, ensure_ascii=False, allow_nan=False).encode('utf-8')
+    cache_commit.commit(RAW_INPUTS, content, csv_updates)
     return raw_all
 
 
@@ -150,6 +223,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--rebuild", action="store_true", help="跳过抓取，用现有 raw_inputs.json 重算")
     args = parser.parse_args()
+    recover_cache()
 
     if args.rebuild:
         print("[重算] 复用 %s" % RAW_INPUTS)
