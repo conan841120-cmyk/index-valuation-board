@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-10-05T13:56:57Z",
-  "updated_at": "2026-10-10T23:52:01Z",
+  "updated_at": "2026-10-11T00:12:58Z",
   "files": {
     ".gitattributes": {
       "role": "index",
@@ -65,9 +65,9 @@
     },
     "RELEASE_CALENDAR_REPORT.md": {
       "role": "index",
-      "sha256": "336a8037f0fea0161cb9b219adcd8ea299a9e59708ef2dea1b9959f90191f61b",
+      "sha256": "67e2c68675067d92633477df2c731231dc06ae4cf182691b777d20aed1521dd5",
       "size": 3151,
-      "normalized_sha256": "336a8037f0fea0161cb9b219adcd8ea299a9e59708ef2dea1b9959f90191f61b"
+      "normalized_sha256": "67e2c68675067d92633477df2c731231dc06ae4cf182691b777d20aed1521dd5"
     },
     "US_MARKET.md": {
       "role": "index",
@@ -143,9 +143,9 @@
     },
     "data/hsi_macro_monitor.json": {
       "role": "index",
-      "sha256": "64a24ff8c032d006a2ffcec8bad46bc73b9e862bf5e17d9bc30f2f0d4022c397",
+      "sha256": "52cec62c5d11ae8b7626065bbd54ea9c7b24c7b14daf9589a250b34fc28d4d79",
       "size": 5077,
-      "normalized_sha256": "64a24ff8c032d006a2ffcec8bad46bc73b9e862bf5e17d9bc30f2f0d4022c397"
+      "normalized_sha256": "52cec62c5d11ae8b7626065bbd54ea9c7b24c7b14daf9589a250b34fc28d4d79"
     },
     "data/official_snapshots/indicator_000300.csv": {
       "role": "index",
@@ -160,9 +160,9 @@
     },
     "data/official_snapshots/indicator_000510.csv": {
       "role": "index",
-      "sha256": "3c6f06b380d7bf84339747f86fd97e2a42f6ef81767e3ff2fc9c688b37284250",
+      "sha256": "3719e2aa8c8468c8f01167f99637e3a9ca93b4ea7e95c32939d94497b81d9e73",
       "size": 1666,
-      "normalized_sha256": "3c6f06b380d7bf84339747f86fd97e2a42f6ef81767e3ff2fc9c688b37284250"
+      "normalized_sha256": "3719e2aa8c8468c8f01167f99637e3a9ca93b4ea7e95c32939d94497b81d9e73"
     },
     "data/official_snapshots/indicator_000510_2026-09-27.xls": {
       "role": "index",
@@ -211,9 +211,9 @@
     },
     "data/official_snapshots/indicator_000922.csv": {
       "role": "index",
-      "sha256": "ff97a22caa26b8eafbac9b7a378c6968c147c331f1983291b93840032b5ff7e2",
+      "sha256": "36ada2b5373524296e22b8e7b54f0af0b1e2a44339f5ed55ad1abdc5fe87b1b0",
       "size": 1637,
-      "normalized_sha256": "ff97a22caa26b8eafbac9b7a378c6968c147c331f1983291b93840032b5ff7e2"
+      "normalized_sha256": "36ada2b5373524296e22b8e7b54f0af0b1e2a44339f5ed55ad1abdc5fe87b1b0"
     },
     "data/official_snapshots/indicator_000922_2026-09-27.xls": {
       "role": "index",
@@ -262,9 +262,9 @@
     },
     "data/official_snapshots/indicator_H30269.csv": {
       "role": "index",
-      "sha256": "88e4b5c522cba901bb3444af5087454299e5c94ddd9959a1e545cd8285475dec",
+      "sha256": "fadf6e3fc4b1247f92aed09d34783ccd416cb04dccd1fe03c2c1af7c41ddc1ec",
       "size": 1611,
-      "normalized_sha256": "88e4b5c522cba901bb3444af5087454299e5c94ddd9959a1e545cd8285475dec"
+      "normalized_sha256": "fadf6e3fc4b1247f92aed09d34783ccd416cb04dccd1fe03c2c1af7c41ddc1ec"
     },
     "data/official_snapshots/indicator_H30269_2026-09-27.xls": {
       "role": "index",
@@ -349,9 +349,9 @@
     },
     "data/watch/rule_check.json": {
       "role": "index",
-      "sha256": "fe95667c10a22501336822c3f64555dca2d0ab6d48a446ee23a1e39f78aeea50",
+      "sha256": "a31c4caf0cd9717cb23cdaa782887270ee6d310737bdcdea4e971ede43a63585",
       "size": 13881,
-      "normalized_sha256": "fe95667c10a22501336822c3f64555dca2d0ab6d48a446ee23a1e39f78aeea50"
+      "normalized_sha256": "a31c4caf0cd9717cb23cdaa782887270ee6d310737bdcdea4e971ede43a63585"
     },
     "design/design-demos/A-gallery-dark.html": {
       "role": "index",
@@ -824,9 +824,9 @@
     },
     "outputs/口径与误差报告.md": {
       "role": "index",
-      "sha256": "433bf57a6abb6fc3b426390a803e4a2ba7d63420fe6b99611164687b529cf0e0",
+      "sha256": "655c3ca33ec47022625daaf640a490c69af25c5022abb09d60680926c2c8fc76",
       "size": 12492,
-      "normalized_sha256": "433bf57a6abb6fc3b426390a803e4a2ba7d63420fe6b99611164687b529cf0e0"
+      "normalized_sha256": "655c3ca33ec47022625daaf640a490c69af25c5022abb09d60680926c2c8fc76"
     },
     "requirements.txt": {
       "role": "index",
