@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-10-05T13:56:57Z",
-  "updated_at": "2026-10-11T07:46:19Z",
+  "updated_at": "2026-10-11T08:06:31Z",
   "files": {
     ".gitattributes": {
       "role": "index",
@@ -166,9 +166,9 @@
     },
     "data/official_snapshots/indicator_000510.csv": {
       "role": "index",
-      "sha256": "c5ad309cadc153b3411fd9651c573462698a44d2ad18237b6bae7b9adb09c3ee",
+      "sha256": "0bbfaba3d77002b8b354e3a2e672e90a52706f7c6007ac7e2d9012fecf6c8eb8",
       "size": 1666,
-      "normalized_sha256": "c5ad309cadc153b3411fd9651c573462698a44d2ad18237b6bae7b9adb09c3ee"
+      "normalized_sha256": "0bbfaba3d77002b8b354e3a2e672e90a52706f7c6007ac7e2d9012fecf6c8eb8"
     },
     "data/official_snapshots/indicator_000510_2026-09-27.xls": {
       "role": "index",
@@ -217,9 +217,9 @@
     },
     "data/official_snapshots/indicator_000922.csv": {
       "role": "index",
-      "sha256": "42500467b4ef130fff32c6cbabe72c4dd29f275de6614af1b525a21ddd9d18de",
+      "sha256": "722fd38b80a13d7b3a5bf8d34504bca52a20af835701075a79ffbc0fca7fc67b",
       "size": 1637,
-      "normalized_sha256": "42500467b4ef130fff32c6cbabe72c4dd29f275de6614af1b525a21ddd9d18de"
+      "normalized_sha256": "722fd38b80a13d7b3a5bf8d34504bca52a20af835701075a79ffbc0fca7fc67b"
     },
     "data/official_snapshots/indicator_000922_2026-09-27.xls": {
       "role": "index",
@@ -268,9 +268,9 @@
     },
     "data/official_snapshots/indicator_H30269.csv": {
       "role": "index",
-      "sha256": "eca4d665d99e67d4e8daf28c68228f2c2ae1373dae766a42ae3189d58b6428f2",
+      "sha256": "1bf3ed869c9b2b381c2c84e3e2582fd139ad311cd3cc2c8a2f960b7f65eee7b5",
       "size": 1611,
-      "normalized_sha256": "eca4d665d99e67d4e8daf28c68228f2c2ae1373dae766a42ae3189d58b6428f2"
+      "normalized_sha256": "1bf3ed869c9b2b381c2c84e3e2582fd139ad311cd3cc2c8a2f960b7f65eee7b5"
     },
     "data/official_snapshots/indicator_H30269_2026-09-27.xls": {
       "role": "index",
@@ -355,9 +355,9 @@
     },
     "data/watch/rule_check.json": {
       "role": "index",
-      "sha256": "824b696d2722e27ad400c00812fa8cb25c918f8a683b19f084d7248405cd6973",
+      "sha256": "3076de158856b059e04d45b69734a4f3d7df183d9caf53facc7ed8e179709a0a",
       "size": 13881,
-      "normalized_sha256": "824b696d2722e27ad400c00812fa8cb25c918f8a683b19f084d7248405cd6973"
+      "normalized_sha256": "3076de158856b059e04d45b69734a4f3d7df183d9caf53facc7ed8e179709a0a"
     },
     "design/design-demos/A-gallery-dark.html": {
       "role": "index",
@@ -830,9 +830,9 @@
     },
     "outputs/口径与误差报告.md": {
       "role": "index",
-      "sha256": "d591cd42cd8bc0b5d562cdc2e05df3f0d8445ae6ec773ec821491da824e6b6ce",
+      "sha256": "bd33d9988211b6006228fc9906c71241848596299ddf501b5622b30fbb737afd",
       "size": 12492,
-      "normalized_sha256": "d591cd42cd8bc0b5d562cdc2e05df3f0d8445ae6ec773ec821491da824e6b6ce"
+      "normalized_sha256": "bd33d9988211b6006228fc9906c71241848596299ddf501b5622b30fbb737afd"
     },
     "requirements.txt": {
       "role": "index",
