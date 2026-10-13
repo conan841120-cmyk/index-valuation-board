@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "monitoring_start_month": "2026-07",
-  "evaluated_date": "2026-10-13",
+  "evaluated_date": "2026-10-14",
   "policy": {
     "timezone": "Asia/Shanghai",
     "check_time": "18:30",
@@ -47,26 +47,28 @@
       "dataset": "retail",
       "label": "社零同比",
       "window": "14—20日",
-      "target_observation": "2026-08",
+      "target_observation": "2026-09",
       "current_round": {
-        "release_month": "2026-09",
-        "observation_period": "2026-08",
-        "window_start": "2026-09-14",
-        "window_end": "2026-09-20",
-        "next_window_start": "2026-10-14",
-        "status": "acquired"
-      },
-      "next_round": {
         "release_month": "2026-10",
         "observation_period": "2026-09",
         "window_start": "2026-10-14",
         "window_end": "2026-10-20",
-        "next_window_start": "2026-11-14"
+        "next_window_start": "2026-11-14",
+        "status": "awaiting"
+      },
+      "next_round": {
+        "release_month": "2026-11",
+        "observation_period": "2026-10",
+        "window_start": "2026-11-14",
+        "window_end": "2026-11-20",
+        "next_window_start": "2026-12-14"
       },
       "backlog_rounds": [],
-      "phase": "idle",
-      "missing_periods": [],
-      "last_checked_at": null,
+      "phase": "window",
+      "missing_periods": [
+        "2026-09"
+      ],
+      "last_checked_at": "2026-10-14T01:46:08+08:00",
       "last_probe_error": null
     },
     {
@@ -94,7 +96,7 @@
       "missing_periods": [
         "2026-09"
       ],
-      "last_checked_at": "2026-10-13T03:58:42+08:00",
+      "last_checked_at": "2026-10-14T01:46:11+08:00",
       "last_probe_error": null
     },
     {
@@ -122,7 +124,7 @@
       "missing_periods": [
         "2026-09"
       ],
-      "last_checked_at": "2026-10-13T03:58:45+08:00",
+      "last_checked_at": "2026-10-14T01:46:12+08:00",
       "last_probe_error": null
     },
     {
@@ -179,11 +181,12 @@
     }
   ],
   "due_sources": [
+    "retail",
     "ppi",
     "social_financing"
   ],
   "alerts": [],
   "new_alerts": [],
   "refreshed_sources": [],
-  "last_run_at": "2026-10-13T03:58:48+08:00"
+  "last_run_at": "2026-10-14T01:46:15+08:00"
 }
