@@ -156,7 +156,7 @@ observation_period,value,last_trading_date,release_date,unit,source_url,source_t
 2025-05,23289.77,2025-05-30,2025-05-30,index_points,https://finance.sina.com.cn/stock/hkstock/HSI/klc_kl.js,secondary_Sina_daily
 2025-06,24072.279,2025-06-30,2025-06-30,index_points,https://finance.sina.com.cn/stock/hkstock/HSI/klc_kl.js,secondary_Sina_daily
 2025-07,24773.33,2025-07-31,2025-07-31,index_points,https://finance.sina.com.cn/stock/hkstock/HSI/klc_kl.js,secondary_Sina_daily
-2025-08,25077.62,2025-08-29,2025-08-29,index_points,https://www.hkex.com.hk/Market-Data/Statistics/Consolidated-Reports/HKEX-Monthly-Market-Highlights?sc_lang=en&select={0313FF24-82C0-4802-A7D5-5E90470EC17D},official_HKEX_monthly_highlights
+2025-08,25077.619,2025-08-29,2025-08-29,index_points,https://finance.sina.com.cn/stock/hkstock/HSI/klc_kl.js,secondary_Sina_daily
 2025-09,26855.56,2025-09-30,2025-09-30,index_points,https://www.hkex.com.hk/Market-Data/Statistics/Consolidated-Reports/HKEX-Monthly-Market-Highlights?sc_lang=en&select={42F1D2CF-355D-45C9-BACE-FBD72EAEA7AC},official_HKEX_monthly_highlights
 2025-10,25906.65,2025-10-31,2025-10-31,index_points,https://www.hkex.com.hk/Market-Data/Statistics/Consolidated-Reports/HKEX-Monthly-Market-Highlights?sc_lang=en&select={A6DAF5DC-8335-46E6-8D38-EBFB8BBEF0E0},official_HKEX_monthly_highlights
 2025-11,25858.89,2025-11-28,2025-11-28,index_points,https://www.hkex.com.hk/Market-Data/Statistics/Consolidated-Reports/HKEX-Monthly-Market-Highlights?sc_lang=en&select={33903E7B-868A-4E03-9DEC-7C41C107E72B},official_HKEX_monthly_highlights
@@ -169,4 +169,4 @@ observation_period,value,last_trading_date,release_date,unit,source_url,source_t
 2026-06,22881.02,2026-06-30,2026-06-30,index_points,https://www.hkex.com.hk/Market-Data/Statistics/Consolidated-Reports/HKEX-Monthly-Market-Highlights?sc_lang=en&select={5B984B00-9551-4A5B-B3A4-4AFD16B70E88},official_HKEX_monthly_highlights
 2026-07,25884.43,2026-07-31,2026-07-31,index_points,https://www.hkex.com.hk/Market-Data/Statistics/Consolidated-Reports/HKEX-Monthly-Market-Highlights?sc_lang=en&select={99B25159-DF7E-46A8-840D-9F8E07F49AEE},official_HKEX_monthly_highlights
 2026-08,25566.99,2026-08-31,2026-08-31,index_points,https://www.hkex.com.hk/Market-Data/Statistics/Consolidated-Reports/HKEX-Monthly-Market-Highlights?sc_lang=en&select={DCE954BC-D1B6-4EF7-AB2F-591E3AD165E8},official_HKEX_monthly_highlights
-2026-09,24613.27,2026-09-30,2026-09-30,index_points,https://finance.sina.com.cn/stock/hkstock/HSI/klc_kl.js,secondary_Sina_daily
+2026-09,24613.27,2026-09-30,2026-09-30,index_points,https://www.hkex.com.hk/Market-Data/Statistics/Consolidated-Reports/HKEX-Monthly-Market-Highlights?sc_lang=en&select={0313FF24-82C0-4802-A7D5-5E90470EC17D},official_HKEX_monthly_highlights
