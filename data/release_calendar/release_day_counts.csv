@@ -3,7 +3,7 @@ gdp,16,4
 gdp,17,3
 gdp,18,5
 gdp,19,5
-gdp,20,1
+gdp,20,2
 gdp,21,1
 gdp,24,1
 hk_m2,26,1
@@ -18,7 +18,7 @@ ppi,10,12
 ppi,11,8
 ppi,12,4
 ppi,13,2
-ppi,14,1
+ppi,14,2
 ppi,15,1
 ppi,16,1
 retail,14,2
@@ -26,7 +26,7 @@ retail,15,23
 retail,16,10
 retail,17,7
 retail,18,5
-retail,19,2
+retail,19,3
 retail,20,1
 retail,24,1
 social_financing,8,1
