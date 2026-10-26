@@ -355,3 +355,37 @@ class TestCacheCommitRecovery(CandidateFixture):
 
 if __name__ == '__main__':
     unittest.main()
+
+class TestDanjuanRollingHistory(CandidateFixture):
+    def setUp(self):
+        super().setUp()
+        self.cfg['sources'] = {'danjuan': 'test'}
+        self.dates = ['2016-10-10', '2016-10-17', '2026-09-28', '2026-10-08', '2026-10-09']
+        self.old['test']['danjuan'] = self.snapshot(self.dates)
+
+    def snapshot(self, dates):
+        return {'current': {'pe': 12, 'pb': 2, 'dy': 1, 'date': dates[-1]},
+                'pe': [[d, 12] for d in dates], 'pb': [[d, 2] for d in dates]}
+
+    def fetch_candidate(self, old, candidate):
+        with mock.patch.object(run_all.fetch_danjuan, 'fetch_index', return_value=candidate):
+            return run_all.fetch_all(old)
+
+    def test_rolling_prefix_and_provisional_last_point_preserve_history(self):
+        fresh_dates = ['2016-10-24', '2026-09-28', '2026-10-08', '2026-10-13', '2026-10-23']
+        fresh = self.snapshot(fresh_dates)
+        first = self.fetch_candidate(self.old, fresh)
+        self.assertTrue(first['test']['_status']['danjuan']['ok'])
+        for field in ('pe', 'pb'):
+            self.assertEqual([r[0] for r in first['test']['danjuan'][field]], sorted(set(self.dates + fresh_dates)))
+        second_dates = fresh_dates[:-1] + ['2026-10-26']
+        second = self.fetch_candidate(first, self.snapshot(second_dates))
+        self.assertTrue(second['test']['_status']['danjuan']['ok'])
+        self.assertEqual(second['test']['_status']['danjuan']['last_data_date'], '2026-10-26')
+        self.assertEqual(dict(second['test']['danjuan']['pe'])['2026-10-23'], 12)
+
+    def test_interior_loss_and_truncated_response_still_rejected(self):
+        for dates in [self.dates[:2] + ['2026-10-08', '2026-10-13', '2026-10-23'],
+                      ['2026-10-08', '2026-10-23']]:
+            with self.subTest(dates=dates):
+                self.rejected(self.fetch_candidate(self.old, self.snapshot(dates)), 'danjuan')
