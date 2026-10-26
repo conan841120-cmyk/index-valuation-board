@@ -4,7 +4,7 @@
 .gitattributes[FC4T]: F:统一文本检出行尾以稳定源码指纹 | R:- | A:text=auto eol=lf | S:二进制保持原始字节
 .gitignore[FC5T]: F:隔离可重建数据、发布产物、版权图片及本机配置 | R:code:web/build_site.py | A:保留raw_inputs、口径报告；忽略docs和本机MCP | S:-
 AGENTS.md[SC7S]: F:规定AOCI认知加载、语义作者化、维护和恢复边界 | R:code:aoci.txt,code:aoci.meta.txt | A:项目级Codex自动加载；实时Rules与Guide优先 | S:压缩后不能用摘要代替完整Overview；只按机器批次提交，禁止模板生成语义
-README.md[SG6S]: F:说明五指数估值口径、数据可信度、视觉选择与云端操作入口 | R:code:compute/config.py,code:US_MARKET.md | A:离线验收和每日估值发布使用说明 | S:部分阶段进度文字是历史状态，需以实际代码及Actions核实
+README.md[SG6S]: F:说明五指数估值来源、滚动历史更新及云端操作入口 | R:code:compute/config.py,code:compute/run_all.py,code:US_MARKET.md | A:离线验收、每日发布及数据限制说明 | S:阶段进度文字含历史状态；蛋卷原窗口与累积观测分开保存，抓取日不代替数据日
 RELEASE_CALENDAR_REPORT.md[SW5T]: F:记录官方实际发布日期统计及窗口追踪规则 | R:code:macro/hsi/release_statistics.py,code:macro/hsi/release_policy.json | A:五类宏观输入窗口、覆盖率与公告链接 | S:信用脉冲没有独立发布日期；社零合并月缺值不算异常
 US_MARKET.md[SG6T]: F:说明美股独立行情、公开协议和云端自选配置流程 | R:code:tools/load_us_market.py,code:web/us_market.py | A:协议v1可选quotes数组、交易日历、GitHub配置确认 | S:页面发布不等于估值源更新；仅日期报价不作盘中预警；草稿不代表保存，清空清单不删历史
 requirements.txt[FC6T]: F:声明估值抓取、宏观计算和本地验收的 Python 依赖 | R:code:.github/workflows/daily.yml,code:.github/workflows/macro.yml | A:pip install -r requirements.txt | S:pandas与numpy锁定精确版本，其他包多为有界或最低版本要求
@@ -23,7 +23,7 @@ config.py[FC8S]: F:定义指数、估值方向、统计窗口、源映射、容�
 normalize.py[CD7T]: F:规范日期、聚合每周最后有效值并连接行情和窗口 | R:code:compute/build_dataset.py | A:to_weekly、attach_level、window_slice | S:行情仅精确或回看最多七日匹配，绝不采用未来日期
 provenance.py[CD6T]: F:对估值输入和计算展示代码建立内容指纹防止旧结果验收新数据 | R:code:compute/build_dataset.py,code:tools/verify_local.py | A:input_digest、code_digest | S:摘要同时绑定相对路径与原字节，按路径排序
 report.py[AA7M]: F:比较当前估值与同期作者截图并生成口径误差报告 | R:code:compute/config.py,code:compute/stats.py,code:data/reference/screenshots.json | A:comparison_summary、judge、main；Markdown报告 | S:过期、废弃或不同口径截图只记录，不参与通过数；推导分位不设硬容差
-run_all.py[EW8M]: F:校验候选及历史覆盖，统一提交有效缓存并构建估值数据 | R:code:compute/cache_commit.py,code:compute/build_dataset.py,code:fetch/fetch_csindex.py,code:fetch/fetch_danjuan.py,code:fetch/fetch_tencent.py | A:main --rebuild、fetch_all、validate_snapshot、validate_transition | S:先恢复再读缓存；日期不得回退；全历史不丢日期，滚动窗口只移出前部；同日数值修订可接受；腾讯两频共同验收
+run_all.py[EW8M]: F:校验来源候选与历史覆盖，事务提交缓存并构建估值数据 | R:code:compute/cache_commit.py,code:compute/build_dataset.py,code:fetch/fetch_csindex.py,code:fetch/fetch_danjuan.py,code:fetch/fetch_tencent.py | A:main --rebuild、fetch_all、validate_snapshot、validate_transition | S:先恢复再读；日期不倒退；蛋卷按上次source_history校验滚动前缀和移动末点，PE/PB累积保留；中间缺口及异常截短拒收；同日修订可接受；腾讯两频共同验收
 stats.py[KA8S]: F:计算估值12项统计、分位区间与历史排名视图 | R:code:compute/config.py,code:compute/build_dataset.py | A:compute、quantile、views、zone_of | S:分位值取floor(p*n)，排名严格小于当前；z用样本标准差，历史视图为当前窗口事后回顾
 cache_commit.py[PR8T]: F:以本机意图日志恢复raw输入与官方CSV的部分提交 | R:code:compute/run_all.py | A:commit、recover、atomic_write；逐文件原子替换 | S:只支持单写者；未完成提交恢复精确旧字节，未知路径或第三方修改阻止恢复；不保证跨文件原子或断电耐久
 
@@ -35,7 +35,7 @@ hsi_macro_monitor.json[PD6S]: F:持久化宏观发布窗口、来源检查状态
 indicator_000300.csv[PD4T]: F:保存沪深300官方市盈率与股息率双口径历史快照 | R:code:fetch/fetch_csindex.py | A:date、pe1、pe2、dy1、dy2、fetched_at | S:-
 indicator_000510.csv[PD5T]: F:累计中证A500官方估值窗口以保留每日快照 | R:code:fetch/fetch_csindex.py,code:compute/run_all.py,code:compute/build_dataset.py | A:date、pe1、pe2、dy1、dy2、fetched_at | S:抓取日期不替代估值日期；同日期通过校验后可修订
 indicator_000922.csv[PD5T]: F:累计中证红利官方PE与股息率作独立真实对照 | R:code:fetch/fetch_csindex.py,code:compute/run_all.py,code:compute/build_dataset.py | A:双口径估值字段及抓取时间 | S:不与推导股息率拼成同一真实序列
-indicator_H30269.csv[PD5T]: F:累计红利低波官方估值用于当前锚和真实历史对照 | R:code:fetch/fetch_csindex.py,code:compute/run_all.py,code:fetch/derive_yield.py | A:双口径PE、股息率及抓取时间 | S:官方dy1与dy2不能混作同一口径
+indicator_H30269.csv[PD5T]: F:累计红利低波官方估值用于独立真实历史对照 | R:code:fetch/fetch_csindex.py,code:compute/run_all.py,code:fetch/derive_yield.py | A:双口径PE、股息率及抓取时间 | S:官方dy1与dy2不能混作同一口径
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/data/reference/===
 screenshots.json[FD6S]: F:存人工读图基准、数据日期与废弃口径标识用于回归 | R:code:compute/report.py | A:articles、observations、stats、obsolete | S:只有同数据日同指标且未废弃的基准参与判定

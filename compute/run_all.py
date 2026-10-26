@@ -109,7 +109,8 @@ historical dates is not a revision. No calendar-based missing dates are invented
     if part == 'danjuan':
         if _current_date(candidate) < _current_date(previous):
             raise ValueError('蛋卷当前日期回退')
-        pairs = [(previous[field], candidate[field]) for field in ('pe', 'pb')]
+        window = previous.get('source_history') or previous
+        pairs = [(window[field], candidate[field]) for field in ('pe', 'pb')]
         pairs = [([row[0] for row in old], [row[0] for row in new]) for old, new in pairs]
     else:
         pairs = [([row['date'] for row in previous], [row['date'] for row in candidate])]
@@ -125,6 +126,15 @@ historical dates is not a revision. No calendar-based missing dates are invented
         missing = old_ids - new_ids
         if not missing:
             continue
+        if part == 'danjuan':
+            # day=all is a rolling ten-year weekly sample plus a moving latest
+            # observation, not an immutable full daily history. Check the last
+            # provider window, while retaining every accepted observation below.
+            if (new[-1] > old[-1] and len(new) >= len(old) - 1
+                    and old_ids & new_ids
+                    and all(day < new[0] or day == old[-1] for day in missing)):
+                continue
+            raise ValueError('danjuan 历史区间缺失或窗口异常')
         if part not in {'official', 'tencent_week', 'tencent_day'}:
             raise ValueError('%s 长历史日期缺失' % part)
         if (new[-1] <= old[-1] or len(new_ids) < len(old_ids)
@@ -182,6 +192,14 @@ def fetch_all(previous=None):
                     except (TypeError, ValueError, KeyError):
                         continue
                     validate_transition(field, raw[field], value)
+                if part == 'danjuan':
+                    candidate = dict(candidate)
+                    candidate['source_history'] = {f: candidate[f] for f in ('pe', 'pb')}
+                    for field in ('pe', 'pb'):
+                        merged = dict(raw['danjuan'][field]) if fallback else {}
+                        merged.update(candidate[field])
+                        candidate[field] = sorted(merged.items())
+                    values = (candidate,)
                 if part == 'official':
                     history = fetch_csindex.load_indicator_csv(src['csindex'])
                     if history:

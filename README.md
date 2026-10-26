@@ -163,3 +163,7 @@ index-valuation-board/
 手动更新估值：`gh workflow run daily.yml`；按日历检查宏观：`gh workflow run macro.yml`；忽略日历强制刷新宏观：`gh workflow run macro.yml -f force_refresh=true`。每个来源下载或校验失败时保留有效历史，并显示失败；不会把检查时间或生成时间当作最新数据月份。
 
 本地：`python macro/hsi/update.py` 离线计算；在 `macro/hsi` 目录运行 `python update.py --refresh` 实际抓取。`python tools/verify_local.py` 重建两个模块并检查估值与前端；宏观公式/无未来月份测试另在 `macro/hsi` 运行 `python -m pytest -q`。
+
+### 蛋卷滚动历史的更新
+
+蛋卷 `day=all` 返回约十年的周频采样和会移动的最新观测点，并非不可变的完整日线。采集时校验相邻供应商窗口，只允许前缀滚动及末点随新日期前移；区间缺口、异常截短或日期倒退仍拒收。已接受的 PE/PB 观测按日期累积，同日允许有效修订，`source_history` 保留上一份供应商窗口用于下一次检查。抓取日不替代数据日期。
