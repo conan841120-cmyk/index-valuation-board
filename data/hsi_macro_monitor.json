@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "monitoring_start_month": "2026-07",
-  "evaluated_date": "2026-10-30",
+  "evaluated_date": "2026-10-31",
   "policy": {
     "timezone": "Asia/Shanghai",
     "check_time": "18:30",
@@ -146,8 +146,8 @@
       "missing_periods": [
         "2026-09"
       ],
-      "last_checked_at": "2026-10-30T01:03:28+08:00",
-      "last_probe_error": null
+      "last_checked_at": "2026-10-31T00:48:20+08:00",
+      "last_probe_error": "金管局发布目录结构变化"
     },
     {
       "dataset": "gdp",
@@ -182,5 +182,5 @@
   "alerts": [],
   "new_alerts": [],
   "refreshed_sources": [],
-  "last_run_at": "2026-10-30T01:03:34+08:00"
+  "last_run_at": "2026-10-31T00:48:28+08:00"
 }
