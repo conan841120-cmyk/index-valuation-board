@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "monitoring_start_month": "2026-07",
-  "evaluated_date": "2026-10-31",
+  "evaluated_date": "2026-11-02",
   "policy": {
     "timezone": "Asia/Shanghai",
     "check_time": "18:30",
@@ -132,7 +132,7 @@
         "window_start": "2026-10-26",
         "window_end": "2026-10-31",
         "next_window_start": "2026-11-26",
-        "status": "awaiting"
+        "status": "catch_up"
       },
       "next_round": {
         "release_month": "2026-11",
@@ -142,11 +142,11 @@
         "next_window_start": "2026-12-26"
       },
       "backlog_rounds": [],
-      "phase": "window",
+      "phase": "catch_up",
       "missing_periods": [
         "2026-09"
       ],
-      "last_checked_at": "2026-10-31T23:50:30+08:00",
+      "last_checked_at": "2026-11-02T00:54:12+08:00",
       "last_probe_error": "金管局发布目录结构变化"
     },
     {
@@ -182,5 +182,5 @@
   "alerts": [],
   "new_alerts": [],
   "refreshed_sources": [],
-  "last_run_at": "2026-10-31T23:50:33+08:00"
+  "last_run_at": "2026-11-02T00:54:18+08:00"
 }
