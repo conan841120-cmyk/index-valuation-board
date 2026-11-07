@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "monitoring_start_month": "2026-07",
-  "evaluated_date": "2026-11-07",
+  "evaluated_date": "2026-11-08",
   "policy": {
     "timezone": "Asia/Shanghai",
     "check_time": "18:30",
@@ -73,52 +73,56 @@
       "dataset": "ppi",
       "label": "PPI同比",
       "window": "8—14日",
-      "target_observation": "2026-09",
+      "target_observation": "2026-10",
       "current_round": {
-        "release_month": "2026-10",
-        "observation_period": "2026-09",
-        "window_start": "2026-10-08",
-        "window_end": "2026-10-14",
-        "next_window_start": "2026-11-08",
-        "status": "acquired"
-      },
-      "next_round": {
         "release_month": "2026-11",
         "observation_period": "2026-10",
         "window_start": "2026-11-08",
         "window_end": "2026-11-14",
-        "next_window_start": "2026-12-08"
+        "next_window_start": "2026-12-08",
+        "status": "awaiting"
+      },
+      "next_round": {
+        "release_month": "2026-12",
+        "observation_period": "2026-11",
+        "window_start": "2026-12-08",
+        "window_end": "2026-12-14",
+        "next_window_start": "2027-01-08"
       },
       "backlog_rounds": [],
-      "phase": "idle",
-      "missing_periods": [],
-      "last_checked_at": "2026-10-26T15:46:55+08:00",
+      "phase": "window",
+      "missing_periods": [
+        "2026-10"
+      ],
+      "last_checked_at": "2026-11-08T00:36:19+08:00",
       "last_probe_error": null
     },
     {
       "dataset": "social_financing",
       "label": "社融增量（信用脉冲输入）",
       "window": "8—16日",
-      "target_observation": "2026-09",
+      "target_observation": "2026-10",
       "current_round": {
-        "release_month": "2026-10",
-        "observation_period": "2026-09",
-        "window_start": "2026-10-08",
-        "window_end": "2026-10-16",
-        "next_window_start": "2026-11-08",
-        "status": "acquired"
-      },
-      "next_round": {
         "release_month": "2026-11",
         "observation_period": "2026-10",
         "window_start": "2026-11-08",
         "window_end": "2026-11-16",
-        "next_window_start": "2026-12-08"
+        "next_window_start": "2026-12-08",
+        "status": "awaiting"
+      },
+      "next_round": {
+        "release_month": "2026-12",
+        "observation_period": "2026-11",
+        "window_start": "2026-12-08",
+        "window_end": "2026-12-16",
+        "next_window_start": "2027-01-08"
       },
       "backlog_rounds": [],
-      "phase": "idle",
-      "missing_periods": [],
-      "last_checked_at": "2026-10-15T23:17:58+08:00",
+      "phase": "window",
+      "missing_periods": [
+        "2026-10"
+      ],
+      "last_checked_at": "2026-11-08T00:36:22+08:00",
       "last_probe_error": null
     },
     {
@@ -146,7 +150,7 @@
       "missing_periods": [
         "2026-09"
       ],
-      "last_checked_at": "2026-11-07T01:39:29+08:00",
+      "last_checked_at": "2026-11-08T00:36:27+08:00",
       "last_probe_error": "金管局发布目录结构变化"
     },
     {
@@ -177,10 +181,12 @@
     }
   ],
   "due_sources": [
+    "ppi",
+    "social_financing",
     "hk_m2"
   ],
   "alerts": [],
   "new_alerts": [],
   "refreshed_sources": [],
-  "last_run_at": "2026-11-07T01:39:35+08:00"
+  "last_run_at": "2026-11-08T00:36:33+08:00"
 }
