@@ -70,7 +70,7 @@
   document.getElementById('macro-methods').innerHTML=D.methods.map(function(s){return '<p>'+escape(s)+'</p>';}).join('')+'<p>发布窗口：'+windows.join('；')+'。窗口结束仍未取得数据则每天继续检查，进入下一轮仍缺上一轮时报警，补齐后解除。社零1—2月合并公告不填补独立月度值。</p><p>成功检查不等于重新抓取，也不表示出现新月份；生成时间不等于数据月份。仅检查近期数据与新公告，历史静默修订可手动强制刷新核对。</p>';
   document.getElementById('macro-methods').innerHTML+='<p>本次指最近已开启的发布轮次；下一轮窗口开始时自动切换，本轮成功后仍保留结果。旧轮次缺口单独保留，不因切换消失。区间是计划检查窗口，目标数据是经济观察期；日期安排按北京时间在每次页面生成时更新。恒指仅随宏观更新作为对照，不设独立发布轮次。</p>';
   document.getElementById('macro-round-table').innerHTML=roundTable(monitor.sources);
-  var states={fresh:'最近下载成功',cached:'最近下载失败，沿用缓存',retained:'本次未下载，沿用已有数据',snapshot:'历史快照（未联网刷新）'};
+  var states={fresh:'最近下载成功',cached:'最近下载失败，沿用缓存',retained:'未重新下载；本轮状态见上表',snapshot:'历史快照（未联网刷新）'};
   document.getElementById('macro-source-table').innerHTML='<caption>官方来源与下载记录（下载成功不代表本轮目标数据已取得）</caption><thead><tr><th>数据</th><th>官方字段／来源</th><th>最新观察期</th><th>公布日期</th><th>最近下载结果</th><th>最近成功抓取</th><th>最近轻量检查</th></tr></thead><tbody>'+D.sources.map(function(s){var check=watched[s.dataset]||{};return '<tr><td>'+escape(s.label)+'</td><td><a href="'+escape(s.url)+'" target="_blank" rel="noopener">'+escape(s.official_field)+'</a></td><td>'+escape(s.latest_observation)+'</td><td>'+escape(s.release_date)+'</td><td title="'+escape(s.error||'')+'">'+escape(states[s.state]||s.state)+'</td><td>'+escape(s.last_success_at)+'</td><td title="'+escape(check.last_probe_error||'')+'">'+escape(check.last_checked_at)+'</td></tr>';}).join('')+'</tbody>';
   var failures=(D.release_lookup_status||[]).filter(function(s){return s.state==='cached';});
   if(failures.length)document.getElementById('macro-methods').innerHTML+='<p class="macro-warning">部分公布日期本次核验失败，保留已有日期；未知日期不推测。</p>';

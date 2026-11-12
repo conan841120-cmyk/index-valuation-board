@@ -47,6 +47,7 @@ BUTTONS = [
 ]
 RANGE_ROW = [("3Y", 300, 345), ("5Y", 348, 390), ("10Y", 300, 386), ("上市以来", 400, 500)]
 BLUE = (78, 171, 196)          # 选中态填充色 #4EABC4
+BLUE_COLORS = (BLUE, (0, 174, 199))
 BLUE_TOL = 26
 
 
@@ -102,16 +103,24 @@ def _np():
     return np
 
 
+def calibrated_image(image_path):
+    """Use the original 2x coordinates for the provider's confirmed 1x layout."""
+    from PIL import Image
+    image = Image.open(image_path).convert("RGB")
+    if 1300 <= image.width <= 1400:
+        image = image.resize((image.width * 2, image.height * 2), Image.Resampling.NEAREST)
+    return image
+
+
 def blue_runs(image_path):
     """返回工具栏第 1 行里蓝色实心块的 [(x0, x1, center)]。"""
     np = _np()
-    from PIL import Image
-    a = np.asarray(Image.open(image_path).convert("RGB")).astype(int)
+    a = np.asarray(calibrated_image(image_path)).astype(int)
     y0, y1 = BUTTON_ROW
     strip = a[y0:y1, :, :]
-    mask = ((abs(strip[:, :, 0] - BLUE[0]) < BLUE_TOL) &
-            (abs(strip[:, :, 1] - BLUE[1]) < BLUE_TOL) &
-            (abs(strip[:, :, 2] - BLUE[2]) < BLUE_TOL))
+    mask = np.zeros(strip.shape[:2], dtype=bool)
+    for color in BLUE_COLORS:
+        mask |= (abs(strip - color) < BLUE_TOL).all(axis=2)
     colsum = mask.sum(axis=0)
     runs, start = [], None
     for x, v in enumerate(colsum):
@@ -141,9 +150,8 @@ def ocr(image_path, crop, lang="chi_sim+eng", psm="7"):
     exe = shutil.which("tesseract") or "/opt/homebrew/bin/tesseract"
     if not os.path.exists(exe):
         return ""
-    from PIL import Image
     tmp = os.path.join(tempfile.gettempdir(), "watch_ocr.png")
-    Image.open(image_path).convert("RGB").crop(crop).save(tmp)
+    calibrated_image(image_path).crop(crop).save(tmp)
     try:
         r = subprocess.run([exe, tmp, "stdout", "-l", lang, "--psm", psm],
                            capture_output=True, text=True, timeout=60)
@@ -208,6 +216,10 @@ def check_images(images, article=None):
     for path, src in images:
         key, header = detect_index(path)
         metric, meta = detect_metric(path)
+        # The article cover can repeat a chart with the same header and selected metric.
+        if key and metric and any(r["index_key"] == key and r["ocr_header"] == header
+                                  and r["author_metric"] == metric for r in rows):
+            continue
         cfg = next((c for c in INDICES if c["key"] == key), None)
         our_label = METRIC_LABEL.get(cfg["metric"]) if cfg else None
         row = {
@@ -230,7 +242,7 @@ def check_images(images, article=None):
     result = {
         "checked_at": datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=8))).isoformat(timespec="seconds"),
         "article": article,
-        "images": len(rows),
+        "images": len(images),
         "matched": sum(1 for r in rows if r["match"] is True),
         "mismatched": len(mismatches),
         "rows": rows,

@@ -142,3 +142,25 @@ class TestWatchCompleteness(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestArticleImageLayout(unittest.TestCase):
+    def test_confirmed_1x_button_color_and_original_2x_color(self):
+        from PIL import Image, ImageDraw
+        for width, color, bounds in [(1348, (0, 174, 199), (332, 3, 438, 30)),
+                                     (1352, (0, 174, 199), (332, 3, 438, 30)),
+                                     (2696, (78, 171, 196), (665, 14, 875, 52))]:
+            with self.subTest(width=width), tempfile.TemporaryDirectory() as tmp:
+                image = Image.new('RGB', (width, 1064 if width > 2000 else 532), 'white')
+                ImageDraw.Draw(image).rectangle(bounds, fill=color)
+                path = os.path.join(tmp, 'chart.png');image.save(path)
+                self.assertEqual(watch_rule.detect_metric(path)[0], '市盈率TTM')
+
+    def test_identical_header_and_metric_cover_repetition_does_not_hide_missing_index(self):
+        images = [('cover.png', 'cover'), ('chart.png', 'chart')]
+        with mock.patch.object(watch_rule, 'detect_index', return_value=('nasdaq100', 'NDX.GI 27907.63')), \
+             mock.patch.object(watch_rule, 'detect_metric', return_value=('市盈率TTM', {})):
+            result = watch_rule.check_images(images)
+        self.assertEqual(result['covered'], 1)
+        self.assertEqual(result['images'], 2)
+        self.assertEqual(result['state'], 'incomplete')

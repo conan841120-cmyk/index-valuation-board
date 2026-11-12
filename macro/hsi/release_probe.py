@@ -6,13 +6,12 @@ import re
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
-import requests
 
 from release_watch import month_add, values
 from src.data.common import fetch, RAW
 from src.data.download_nbs import BASE as NBS_BASE, CATALOGUES
 from src.data.download_pboc import BASE as PBOC_BASE, INDEX as PBOC_INDEX
-from src.data.download_hkma import BASE as HKMA_BASE, INDEX as HKMA_INDEX
+from src.data.download_hkma import BASE as HKMA_BASE, release_directory
 
 NBS_IDS = {'retail': 'aaac57d54d2e465d91bc9f3ea1a8618e',
     'ppi': '150633e52b9a470a9a9fd1b296dd6c5b', 'gdp': 'd22612f09aeb4241bc557ef0ac61b3ba'}
@@ -88,21 +87,10 @@ def pboc(today, data, missing):
 def hkma(today, data, missing):
     current = today.strftime('%Y-%m')
     months = {current} | {month_add(p, 1) for p in missing}
-    session = requests.Session()
-    page = fetch(HKMA_INDEX, 'probe_hkma_landing.html', True, session=session)
-    token = BeautifulSoup(page.read_bytes(), 'html.parser').find('meta', attrs={'name': 'csrf_token'})
-    if token is None:
-        raise ValueError('金管局发布目录校验标识未找到')
-    headers = {'X-CSRF-TOKEN': token['content'], 'X-Requested-With': 'XMLHttpRequest', 'Referer': HKMA_INDEX}
     existing = {r['observation_period']: r for r in data['hk_m2']}
     for month in sorted(months):
-        page = fetch(HKMA_INDEX + 'api', f'probe_hkma_{month}.json', True,
-            params={'pagesize': 10000, 'currentcount': 0, 'year': int(month[:4]), 'month': int(month[-2:])},
-            headers=headers, session=session)
-        response = json.loads(page.read_text())
-        if not isinstance(response.get('data'), list):
-            raise ValueError('金管局发布目录结构变化')
-        for r in response['data']:
+        releases = release_directory(int(month[:4]), int(month[-2:]), refresh=True)
+        for r in releases:
             match = re.fullmatch(r'Monetary Statistics for ([A-Za-z]+) (\d{4})', r['title'], re.I)
             if not match:
                 continue

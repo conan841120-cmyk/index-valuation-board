@@ -389,3 +389,15 @@ class TestDanjuanRollingHistory(CandidateFixture):
                       ['2026-10-08', '2026-10-23']]:
             with self.subTest(dates=dates):
                 self.rejected(self.fetch_candidate(self.old, self.snapshot(dates)), 'danjuan')
+
+
+    def test_rolling_start_can_advance_before_a_new_market_close(self):
+        fresh_dates = ['2016-10-11'] + self.dates[1:]
+        out = self.fetch_candidate(self.old, self.snapshot(fresh_dates))
+        self.assertTrue(out['test']['_status']['danjuan']['ok'])
+        self.assertEqual(out['test']['_status']['danjuan']['last_data_date'], self.dates[-1])
+        self.assertEqual(dict(out['test']['danjuan']['pe'])[self.dates[0]], 12)
+
+    def test_same_close_does_not_allow_interior_loss(self):
+        dates = ['2016-10-11', '2016-10-17', '2026-10-08', '2026-10-09']
+        self.rejected(self.fetch_candidate(self.old, self.snapshot(dates)), 'danjuan')
