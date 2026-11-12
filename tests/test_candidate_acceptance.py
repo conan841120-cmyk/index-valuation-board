@@ -401,3 +401,15 @@ class TestDanjuanRollingHistory(CandidateFixture):
     def test_same_close_does_not_allow_interior_loss(self):
         dates = ['2016-10-11', '2016-10-17', '2026-10-08', '2026-10-09']
         self.rejected(self.fetch_candidate(self.old, self.snapshot(dates)), 'danjuan')
+
+
+    def test_first_partial_week_can_be_resampled_when_ten_year_start_moves(self):
+        old_dates = ['2016-11-09', '2016-11-14', '2016-11-21', '2016-11-28', '2026-11-09']
+        self.old['test']['danjuan'] = self.snapshot(old_dates)
+        fresh_dates = ['2016-11-11', '2016-11-16', '2016-11-21', '2016-11-28', '2026-11-11']
+        out = self.fetch_candidate(self.old, self.snapshot(fresh_dates))
+        self.assertTrue(out['test']['_status']['danjuan']['ok'])
+        self.assertEqual(dict(out['test']['danjuan']['pe'])['2016-11-14'], 12)
+        # Losing the next stable weekly point is still a real interior gap.
+        bad = self.snapshot(['2016-11-11', '2016-11-16', '2016-11-28', '2026-11-11'])
+        self.rejected(self.fetch_candidate(self.old, bad), 'danjuan')

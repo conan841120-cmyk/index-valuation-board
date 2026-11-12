@@ -93,3 +93,14 @@ def test_hkma_repeated_false_is_failure_not_no_change(tmp_path, monkeypatch):
     monkeypatch.setattr(H, 'fetch', lambda url, *a, **k: failed if url.endswith('api') else landing)
     with pytest.raises(ValueError, match='data=false'):
         H.release_directory(2026, 10, refresh=True)
+
+
+def test_hkma_valid_cached_archive_does_not_open_network(tmp_path, monkeypatch):
+    cached = tmp_path / 'hkma_releases_2026.json'
+    cached.write_text('{"data":[{"title":"Monetary Statistics for September 2026"}]}')
+    cached.with_suffix('.json.meta.json').write_text('{}')
+    monkeypatch.setattr(H, 'RAW', tmp_path)
+    def forbidden(*args, **kwargs):
+        raise AssertionError('Valid offline cache unexpectedly opened a network session')
+    monkeypatch.setattr(H, 'fetch', forbidden)
+    assert H.release_directory(2026)[0]['title'] == 'Monetary Statistics for September 2026'
