@@ -92,7 +92,7 @@
       "backlog_rounds": [],
       "phase": "window",
       "missing_periods": [],
-      "last_checked_at": "2026-11-12T02:00:31+08:00",
+      "last_checked_at": "2026-11-12T21:46:27+08:00",
       "last_probe_error": null
     },
     {
@@ -120,7 +120,7 @@
       "missing_periods": [
         "2026-10"
       ],
-      "last_checked_at": "2026-11-12T02:00:32+08:00",
+      "last_checked_at": "2026-11-12T21:46:30+08:00",
       "last_probe_error": null
     },
     {
@@ -134,7 +134,7 @@
         "window_start": "2026-10-26",
         "window_end": "2026-10-31",
         "next_window_start": "2026-11-26",
-        "status": "catch_up"
+        "status": "acquired"
       },
       "next_round": {
         "release_month": "2026-11",
@@ -144,12 +144,10 @@
         "next_window_start": "2026-12-26"
       },
       "backlog_rounds": [],
-      "phase": "catch_up",
-      "missing_periods": [
-        "2026-09"
-      ],
-      "last_checked_at": "2026-11-12T02:00:34+08:00",
-      "last_probe_error": "金管局发布目录结构变化"
+      "phase": "idle",
+      "missing_periods": [],
+      "last_checked_at": "2026-11-12T21:46:38+08:00",
+      "last_probe_error": null
     },
     {
       "dataset": "gdp",
@@ -180,13 +178,12 @@
   ],
   "due_sources": [
     "ppi",
-    "social_financing",
-    "hk_m2"
+    "social_financing"
   ],
   "alerts": [],
   "new_alerts": [],
   "refreshed_sources": [
-    "ppi"
+    "hk_m2"
   ],
-  "last_run_at": "2026-11-12T02:01:09+08:00"
+  "last_run_at": "2026-11-12T21:47:23+08:00"
 }
