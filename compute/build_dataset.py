@@ -120,10 +120,10 @@ def build_index(cfg, raw, official_history=None):
         pe_rows = dj.get("pe") or []
         current = dict(dj.get("current") or {})
         current["fetched_at"] = dj.get("fetched_at")
-        pe_weekly = normalize.to_weekly([{"date": d, "value": v} for d, v in pe_rows])
+        pe_observations = [{"date": d, "value": v} for d, v in pe_rows]
         series, meta = derive(
             cfg,
-            pe_weekly,
+            pe_observations,
             [{"date": r["date"], "value": r["close"]} for r in (raw.get("csindex_perf") or [])],
             [{"date": r["date"], "value": r["close"]} for r in (raw.get("csindex_tr") or [])],
             official_rows,

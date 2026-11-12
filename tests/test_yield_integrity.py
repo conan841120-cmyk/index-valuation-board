@@ -63,6 +63,16 @@ class TestYieldIntegrity(unittest.TestCase):
         self.assertNotAlmostEqual(index['series'][-1]['value'], raw['danjuan']['current']['dy'])
         self.assertEqual(index['series'][-1]['kind'], 'derived')
 
+    def test_newer_pe_in_same_week_does_not_erase_last_common_observation(self):
+        raw = self.yield_raw()
+        raw['danjuan']['pe'] = [['2026-09-14', 8.0], ['2026-09-21', 8.1], ['2026-09-22', 8.2]]
+        raw['danjuan']['current'].update(date='09-22', pe=8.2)
+        result = build_index(INDEX_BY_KEY['dividend_low_vol'], raw)
+        self.assertEqual(result['data_date'], '2026-09-21')
+        self.assertEqual(result['value_meta']['anchor_observation']['date'], '2026-09-22')
+        self.assertFalse(result['value_meta']['current_is_observed'])
+        self.assertEqual(result['series'][-1]['kind'], 'derived')
+
     def test_missing_danjuan_uses_unanchored_return_and_keeps_official_separate(self):
         raw = self.yield_raw()
         rows, meta = derive(INDEX_BY_KEY['dividend_low_vol'], [],
