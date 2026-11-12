@@ -23,7 +23,7 @@ config.py[FC8S]: F:定义指数、估值方向、统计窗口、源映射、容�
 normalize.py[CD7T]: F:规范日期、聚合每周最后有效值并连接行情和窗口 | R:code:compute/build_dataset.py | A:to_weekly、attach_level、window_slice | S:行情仅精确或回看最多七日匹配，绝不采用未来日期
 provenance.py[CD6T]: F:对估值输入和计算展示代码建立内容指纹防止旧结果验收新数据 | R:code:compute/build_dataset.py,code:tools/verify_local.py | A:input_digest、code_digest | S:摘要同时绑定相对路径与原字节，按路径排序
 report.py[AA7M]: F:比较当前估值与同期作者截图并生成口径误差报告 | R:code:compute/config.py,code:compute/stats.py,code:data/reference/screenshots.json | A:comparison_summary、judge、main；Markdown报告 | S:过期、废弃或不同口径截图只记录，不参与通过数；推导分位不设硬容差
-run_all.py[EW8M]: F:校验各源候选与历史窗口并事务保存估值输入 | R:code:compute/cache_commit.py,code:compute/build_dataset.py,code:fetch/fetch_danjuan.py | A:fetch_all、validate_snapshot、validate_transition、main --rebuild | S:蛋卷按source_history验滚动前缀，最新日不变也可滚动；累计保留PE/PB；日期倒退、中间缺口及异常截短拒收；同日合法修订可覆盖；腾讯两频共同验收
+run_all.py[EW8M]: F:校验各源候选历史并事务保存估值输入和构建数据 | R:code:compute/cache_commit.py,code:compute/build_dataset.py,code:fetch/fetch_danjuan.py | A:fetch_all、validate_snapshot、validate_transition、main --rebuild | S:蛋卷保留累计PE/PB，以source_history验窗口；同交易日可移动起点，并容许起点后一周内第一条周样本重采样；其余中间缺口、异常截短与日期回退拒收；腾讯两频共同验收
 stats.py[KA8S]: F:计算估值12项统计、分位区间与历史排名视图 | R:code:compute/config.py,code:compute/build_dataset.py | A:compute、quantile、views、zone_of | S:分位值取floor(p*n)，排名严格小于当前；z用样本标准差，历史视图为当前窗口事后回顾
 cache_commit.py[PR8T]: F:以本机意图日志恢复raw输入与官方CSV的部分提交 | R:code:compute/run_all.py | A:commit、recover、atomic_write；逐文件原子替换 | S:只支持单写者；未完成提交恢复精确旧字节，未知路径或第三方修改阻止恢复；不保证跨文件原子或断电耐久
 

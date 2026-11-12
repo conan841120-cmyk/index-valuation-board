@@ -130,9 +130,13 @@ historical dates is not a revision. No calendar-based missing dates are invented
             # day=all is a rolling ten-year weekly sample plus a moving latest
             # observation, not an immutable full daily history. Check the last
             # provider window, while retaining every accepted observation below.
+            moving_first_sample = None
+            if (len(old) > 1 and len(new) > 1 and old[0] < new[0] <= old[1] <= new[1]
+                    and (datetime.date.fromisoformat(new[1]) - datetime.date.fromisoformat(new[0])).days <= 7):
+                moving_first_sample = old[1]
             if (new[-1] >= old[-1] and len(new) >= len(old) - 1
                     and old_ids & new_ids
-                    and all(day < new[0] or day == old[-1] for day in missing)):
+                    and all(day < new[0] or day in (moving_first_sample, old[-1]) for day in missing)):
                 continue
             raise ValueError('danjuan 历史区间缺失或窗口异常')
         if part not in {'official', 'tencent_week', 'tencent_day'}:
