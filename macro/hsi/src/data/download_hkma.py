@@ -1,5 +1,5 @@
 """Read directly published all-currency M2 YoY from HKMA monthly annexes."""
-import json,re
+import json,re,time
 from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urljoin
 import pandas as pd
@@ -15,11 +15,12 @@ def release_directory(year, month='', refresh=False):
  name=f'hkma_releases_{year}' + (f'_{month:02d}' if month != '' else '') + '.json'
  for attempt in range(2):
   session=requests.Session()
-  p=fetch(INDEX,'hkma_archive_landing.html',True,session=session)
+  nonce={'_':str(time.time_ns())} if attempt else {}
+  p=fetch(INDEX,'hkma_archive_landing.html',True,params=nonce,session=session)
   token=BeautifulSoup(p.read_bytes(),'html.parser').find('meta',attrs={'name':'csrf_token'})
   if token is None:raise ValueError('金管局发布目录校验标识未找到')
   headers={'X-CSRF-TOKEN':token['content'],'X-Requested-With':'XMLHttpRequest','Referer':INDEX}
-  params={'pagesize':10000,'currentcount':0,'year':year,'month':month}
+  params={'pagesize':10000,'currentcount':0,'year':year,'month':month,**nonce}
   p=fetch(INDEX+'api',name,refresh or bool(attempt),params=params,headers=headers,session=session)
   response=json.loads(p.read_text())
   if isinstance(response.get('data'),list):return response['data']
