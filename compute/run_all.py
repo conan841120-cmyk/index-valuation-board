@@ -130,7 +130,7 @@ historical dates is not a revision. No calendar-based missing dates are invented
             # day=all is a rolling ten-year weekly sample plus a moving latest
             # observation, not an immutable full daily history. Check the last
             # provider window, while retaining every accepted observation below.
-            if (new[-1] > old[-1] and len(new) >= len(old) - 1
+            if (new[-1] >= old[-1] and len(new) >= len(old) - 1
                     and old_ids & new_ids
                     and all(day < new[0] or day == old[-1] for day in missing)):
                 continue

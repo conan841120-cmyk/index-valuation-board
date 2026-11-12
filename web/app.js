@@ -455,6 +455,13 @@
       : w.state==='mismatch'?'指标口径不一致'
       : !fresh?'检测缺失或已过期，不能确认一致'
       : w.state==='failed'?'检测失败，不能确认一致':'检测不完整，不能确认一致';
+    if (fresh && w.state==='incomplete') {
+      var names=(w.missing||[]).map(function(key){
+        var index=D.indices.find(function(i){return i.key===key;});
+        return index?index.name:key;
+      });
+      label='检测覆盖 '+(w.covered||0)+'/5，未识别 '+names.join('、')+'；不能确认全部一致';
+    }
     return {ok:ok, label:label, watch:w};
   }
   function renderColophon(ctx){

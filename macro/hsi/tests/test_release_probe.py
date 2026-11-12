@@ -5,6 +5,7 @@ import json
 import pytest
 
 import release_probe as P
+from src.data import download_hkma as H
 
 
 def test_nbs_probe_checks_only_recent_values_and_converts_official_ppi_index(tmp_path, monkeypatch):
@@ -61,8 +62,34 @@ def test_hkma_only_reads_release_directory_and_no_pdf_when_unchanged(tmp_path, m
         called.append(url)
         return directory if name.endswith('.json') else landing
     monkeypatch.setattr(P, 'fetch', fetch)
+    monkeypatch.setattr(H, 'fetch', fetch)
     data = {'hk_m2': [{'observation_period': '2026-08', 'value': '11', 'source_url': P.HKMA_BASE + '/press/aug', 'release_date': '2026-09-30'}]}
     assert not P.hkma(date(2026, 9, 30), data, [])
-    assert called == [P.HKMA_INDEX, P.HKMA_INDEX + 'api']
+    assert called == [H.INDEX, H.INDEX + 'api']
     data['hk_m2'] = []
     assert P.hkma(date(2026, 9, 30), data, ['2026-08'])
+
+
+def test_hkma_false_response_renews_session_and_finds_missing_release(tmp_path, monkeypatch):
+    landing = tmp_path / 'landing.html';landing.write_text('<meta name="csrf_token" content="public-nonce">')
+    failed = tmp_path / 'false.json';failed.write_text('{"data":false,"datasize":0}')
+    valid = tmp_path / 'valid.json';valid.write_text(json.dumps({'data': [
+        {'title': 'Monetary Statistics for September 2026', 'url': '/press/sep', 'publish_date': '2026-10-30'}]}))
+    sessions = []
+    def fetch(url, name, *args, **kwargs):
+        if url.endswith('api'):
+            sessions.append(kwargs['session'])
+            return failed if len(sessions) == 1 else valid
+        return landing
+    monkeypatch.setattr(P, 'fetch', fetch)
+    monkeypatch.setattr(H, 'fetch', fetch)
+    assert P.hkma(date(2026, 11, 12), {'hk_m2': []}, ['2026-09'])
+    assert len(sessions) == 2 and sessions[0] is not sessions[1]
+
+
+def test_hkma_repeated_false_is_failure_not_no_change(tmp_path, monkeypatch):
+    landing = tmp_path / 'landing.html';landing.write_text('<meta name="csrf_token" content="public-nonce">')
+    failed = tmp_path / 'false.json';failed.write_text('{"data":false,"datasize":0}')
+    monkeypatch.setattr(H, 'fetch', lambda url, *a, **k: failed if url.endswith('api') else landing)
+    with pytest.raises(ValueError, match='data=false'):
+        H.release_directory(2026, 10, refresh=True)

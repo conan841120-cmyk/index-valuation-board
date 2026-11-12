@@ -10,24 +10,31 @@ from .common import fetch,profile,ROOT,RAW
 BASE='https://www.hkma.gov.hk'
 INDEX=BASE+'/eng/news-and-media/press-releases/'
 
+def release_directory(year, month='', refresh=False):
+ """Read the public archive; renew an invalid session once, never treat it as empty."""
+ name=f'hkma_releases_{year}' + (f'_{month:02d}' if month != '' else '') + '.json'
+ for attempt in range(2):
+  session=requests.Session()
+  p=fetch(INDEX,'hkma_archive_landing.html',True,session=session)
+  token=BeautifulSoup(p.read_bytes(),'html.parser').find('meta',attrs={'name':'csrf_token'})
+  if token is None:raise ValueError('金管局发布目录校验标识未找到')
+  headers={'X-CSRF-TOKEN':token['content'],'X-Requested-With':'XMLHttpRequest','Referer':INDEX}
+  params={'pagesize':10000,'currentcount':0,'year':year,'month':month}
+  p=fetch(INDEX+'api',name,refresh or bool(attempt),params=params,headers=headers,session=session)
+  response=json.loads(p.read_text())
+  if isinstance(response.get('data'),list):return response['data']
+  if response.get('data') is not False:raise ValueError('金管局发布目录结构变化')
+ raise ValueError('金管局目录请求返回data=false，重新建立会话后仍未取得有效目录')
+
 def download(refresh=False):
- session=requests.Session()
  previous=ROOT/'data/processed/hk_m2.csv'
  retained=pd.read_csv(previous) if refresh and previous.exists() else pd.DataFrame()
  cutoff=str(pd.Timestamp.now().to_period('M')-3)
  if not retained.empty:retained=retained[retained.observation_period<cutoff]
  years=range(int(cutoff[:4]) if not retained.empty else 2011,pd.Timestamp.now().year+1)
- headers={}
- if refresh or any(not (RAW/f'hkma_releases_{y}.json').exists() for y in years):
-  p=fetch(INDEX,'hkma_archive_landing.html',True,session=session)
-  token=BeautifulSoup(p.read_bytes(),'html.parser').find('meta',attrs={'name':'csrf_token'})['content']
-  headers={'X-CSRF-TOKEN':token,'X-Requested-With':'XMLHttpRequest','Referer':INDEX}
  releases=[]
  for year in years:
-  p=fetch(INDEX+'api',f'hkma_releases_{year}.json',refresh,params={'pagesize':10000,'currentcount':0,'year':year,'month':''},headers=headers,session=session)
-  d=json.loads(p.read_text())
-  if not isinstance(d.get('data'),list):raise ValueError('HKMA public archive did not return a list')
-  releases.extend(x for x in d['data'] if re.match(r'Monetary Statistics for ',x['title'],re.I))
+  releases.extend(x for x in release_directory(year,refresh=refresh) if re.match(r'Monetary Statistics for ',x['title'],re.I))
  def one(x):
   observation=pd.to_datetime(re.sub(r'^Monetary Statistics for ','',x['title'],flags=re.I)).strftime('%Y-%m')
   if observation<'2011-08':return None
