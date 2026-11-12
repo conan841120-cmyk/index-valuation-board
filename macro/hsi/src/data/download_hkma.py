@@ -13,6 +13,10 @@ INDEX=BASE+'/eng/news-and-media/press-releases/'
 def release_directory(year, month='', refresh=False):
  """Read the public archive; renew an invalid session once, never treat it as empty."""
  name=f'hkma_releases_{year}' + (f'_{month:02d}' if month != '' else '') + '.json'
+ cached=RAW/name
+ if not refresh and cached.exists() and cached.with_suffix(cached.suffix+'.meta.json').exists():
+  response=json.loads(cached.read_text())
+  if isinstance(response.get('data'),list):return response['data']
  for attempt in range(2):
   session=requests.Session()
   nonce={'_':str(time.time_ns())} if attempt else {}

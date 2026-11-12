@@ -33,9 +33,9 @@ hsi_macro_monitor.json[PD6S]: F:保存宏观来源发布轮次、检查时间、
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/data/official_snapshots/===
 indicator_000300.csv[PD4T]: F:保存沪深300官方市盈率与股息率双口径历史快照 | R:code:fetch/fetch_csindex.py | A:date、pe1、pe2、dy1、dy2、fetched_at | S:-
-indicator_000510.csv[PD5T]: F:累积中证A500官方估值日频观测 | R:code:fetch/fetch_csindex.py,code:compute/run_all.py | A:date、pe1、pe2、dy1、dy2、fetched_at | S:抓取时间不代替估值日；同日期合格修订可覆盖
-indicator_000922.csv[PD5T]: F:存中证红利官方市盈率与股息率对照历史 | R:code:fetch/fetch_csindex.py,code:compute/build_dataset.py | A:date、双口径PE与股息率、fetched_at | S:官方观测与推导股息率不拼为一条真实序列
-indicator_H30269.csv[PD5T]: F:存红利低波官方估值双口径历史观测 | R:code:fetch/fetch_csindex.py,code:compute/build_dataset.py | A:date、pe1、pe2、dy1、dy2、fetched_at | S:dy1与dy2不能混为同一口径
+indicator_000510.csv[PD5T]: F:累计中证A500官方日频估值观测 | R:code:fetch/fetch_csindex.py,code:compute/run_all.py | A:date、pe1、pe2、dy1、dy2、fetched_at | S:抓取日期不替代估值日；同日合法修订可覆盖
+indicator_000922.csv[PD5T]: F:存中证红利官方市盈率与股息率独立对照历史 | R:code:fetch/fetch_csindex.py,code:compute/build_dataset.py | A:date、pe1、pe2、dy1、dy2、fetched_at | S:官方观测不与推导股息率拼成真实序列
+indicator_H30269.csv[PD5T]: F:存红利低波官方双口径估值历史 | R:code:fetch/fetch_csindex.py,code:compute/build_dataset.py | A:date、pe1、pe2、dy1、dy2、fetched_at | S:dy1与dy2不能混作同一口径
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/data/reference/===
 screenshots.json[FD6S]: F:存人工读图基准、数据日期与废弃口径标识用于回归 | R:code:compute/report.py | A:articles、observations、stats、obsolete | S:只有同数据日同指标且未废弃的基准参与判定
@@ -46,7 +46,7 @@ release_day_counts.csv[PD3T]: F:记录各宏观输入按日历日分组的发布
 verified_release_dates.csv[PD6L]: F:保存官方公告核验的观察期和实际发布日期证据 | R:code:macro/hsi/release_statistics.py | A:dataset、observation_period、release_date、release_source_url | S:合并社零期单独标记；公告日不以下载日或URL迁移日代替
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/data/watch/===
-rule_check.json[PD5L]: F:存作者配图识别结果、覆盖状态及上次有结论的核对 | R:code:tools/watch_rule.py,code:compute/build_dataset.py | A:checked_at、article、rows、coverage、missing、previous_result | S:match=null不计通过；部分指数匹配不能证明五指数全部一致
+rule_check.json[PD5L]: F:存作者配图的口径检测覆盖状态与逐图结果 | R:code:tools/watch_rule.py,code:compute/build_dataset.py | A:article、checked_at、rows、coverage、missing、previous_result | S:match=null不计通过；部分匹配不证明五指数全部一致
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/design/design-demos/===
 C-data-humanism.html[EU4M]: F:以叙事注释、估值分布尺和价格线展示五指数的C方向离线演示 | R:code:design/design-demos/_src/C-data-humanism.html | A:内嵌数据、手写SVG、renderAll | S:演示稿不用于生产发布
@@ -97,7 +97,7 @@ social_financing.csv[PD7M]: F:存社融月度增量金额、修订版本和公�
 common.py[ID7T]: F:缓存原始HTTP字节和请求摘要，并校验处理后数据重复期 | R:code:macro/hsi/update.py | A:fetch、profile、ROOT、RAW | S:缓存与元数据同时存在才复用；HTTP失败不替换成功缓存，refresh才重下载
 decode_sina.js[IS7T]: F:核验本地固定解码器摘要并将新浪压缩行情转为JSON | R:code:macro/hsi/src/data/download_hsi.py | A:CLI输入行情文件、输出JSON文件 | S:执行字节绑定SHA256，禁止外部解码器参数；VM仅限时10秒，不是可信边界
 discover_nbs.py[XD4T]: F:遍历国家数据公开指标树以调查官方字段身份 | R:code:macro/hsi/src/data/common.py | A:tree、explore | S:调查脚本不参与正式指标重算
-download_hkma.py[ID8S]: F:读取金管局公告目录和附件中的M2 Total直接同比 | R:code:macro/hsi/src/data/common.py | A:release_directory、download；PDF/XLS/XLSX解析 | S:data=false只重建会话并绕缓存重试一次，持续失败仍拒收；刷新只重取近3月；同比取三增长列最后一项，不用余额推算
+download_hkma.py[ID8T]: F:取得金管局目录及附件公布的M2 Total同比 | R:code:macro/hsi/src/data/common.py | A:release_directory、download；PDF/XLS/XLSX解析 | S:合格目录缓存默认无网络复用；刷新遇data=false只重建会话并绕缓存重试一次；持续无效拒收；同比取三增长列末项；仅重取近3月
 download_hsi.py[ID7T]: F:合并HKEX官方月末与新浪日线对照价格，写恒指月度序列 | R:code:macro/hsi/src/data/common.py,code:macro/hsi/src/data/decode_sina.js | A:download、factbook、monthly_official | S:刷新仅下载行情和官方数据，不下载执行代码；价差超0.01点拒绝；排除未结束月份
 download_nbs.py[ID8T]: F:从官方目录唯一匹配社零PPI和名义GDP字段并查询完整历史 | R:code:macro/hsi/src/data/common.py | A:download(name,refresh)、CATALOGUES | S:社零选独立同比；PPI上年同月100减100；空字段保留NaN，修订历史不冒充初值
 download_pboc.py[ID8T]: F:读取人民银行年度增量金额表和早期PDF，合并月度社融历史 | R:code:macro/hsi/src/data/common.py | A:download；亿元流量序列与重叠审计 | S:排除百分比附录；重叠优先较新官方文件；有效负增量保留，未来空槽剔除
@@ -128,7 +128,7 @@ turning_points.py[TA6T]: F:识别相邻月局部峰谷并评分与原图转折�
 plot_indicator.py[EU5T]: F:导出宏观原值、z、贡献、候选和恒指对照研究图 | R:code:macro/hsi/src/indicators/leading_indicator.py | A:generate、historical_comparison、finish | S:缺月连接画虚线但值仍空；对照图不认证当时数据版本
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/outputs/===
-口径与误差报告.md[SA5S]: F:记录五指数来源、截图对照偏差及本期估值限制 | R:code:compute/report.py | A:统计窗口、同期判定和当前值性质 | S:过期基准仅记录；自洽性通过不能证明同期截图一致
+口径与误差报告.md[SA5S]: F:记录五指数当前来源、截图对照与股息率推导限制 | R:code:compute/report.py | A:统计窗口、同期判定和当前值性质说明 | S:过期基准只记录；自洽通过不等于同期数值一致
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/tools/===
 TRIGGER.md[SW4T]: F:说明外部触发云端估值任务的备选方案与验收方法 | R:code:tools/trigger_dispatch.sh,code:.github/workflows/daily.yml | A:workflow_dispatch请求示例 | S:方案尚未启用；HTTP 204仅表示接受请求，不能证明部署成功
