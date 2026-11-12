@@ -64,7 +64,17 @@ jobs:
 
       - name: 口径变化监控（失败不影响主流程）
         continue-on-error: true
-        run: python tools/watch_rule.py
+        run: python tools/watch_rule.py --keep-images
+
+      - uses: actions/upload-artifact@v4
+        if: always() && github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+        with:
+          name: source-diagnostic-evidence
+          path: |
+            data/watch/images/
+            data/watch/rule_check.json
+            data/raw/danjuan_*.json
+          retention-days: 1
 
       - name: 导出限定数据（不含代码或页面）
         run: python tools/workflow_data.py pack daily "$RUNNER_TEMP/collected.json"
