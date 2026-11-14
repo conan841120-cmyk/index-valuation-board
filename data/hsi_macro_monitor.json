@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "monitoring_start_month": "2026-07",
-  "evaluated_date": "2026-11-14",
+  "evaluated_date": "2026-11-15",
   "policy": {
     "timezone": "Asia/Shanghai",
     "check_time": "18:30",
@@ -68,7 +68,7 @@
       "missing_periods": [
         "2026-10"
       ],
-      "last_checked_at": "2026-11-14T01:59:25+08:00",
+      "last_checked_at": "2026-11-15T00:42:11+08:00",
       "last_probe_error": null
     },
     {
@@ -92,7 +92,7 @@
         "next_window_start": "2027-01-08"
       },
       "backlog_rounds": [],
-      "phase": "window",
+      "phase": "idle",
       "missing_periods": [],
       "last_checked_at": "2026-11-14T01:59:27+08:00",
       "last_probe_error": null
@@ -120,7 +120,7 @@
       "backlog_rounds": [],
       "phase": "window",
       "missing_periods": [],
-      "last_checked_at": "2026-11-14T01:59:29+08:00",
+      "last_checked_at": "2026-11-15T00:42:13+08:00",
       "last_probe_error": null
     },
     {
@@ -178,13 +178,10 @@
   ],
   "due_sources": [
     "retail",
-    "ppi",
     "social_financing"
   ],
   "alerts": [],
   "new_alerts": [],
-  "refreshed_sources": [
-    "social_financing"
-  ],
-  "last_run_at": "2026-11-14T02:00:13+08:00"
+  "refreshed_sources": [],
+  "last_run_at": "2026-11-15T00:42:17+08:00"
 }
