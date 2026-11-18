@@ -236,8 +236,8 @@ hk_m2,2021-08,2021-09-30,https://www.hkma.gov.hk/eng/news-and-media/press-releas
 social_financing,2021-09,2021-10-13,https://www.pbc.gov.cn/diaochatongjisi/116219/116225/6ee5fabc89db43509b827f32b2cccf4e/index.html,13,18,False
 gdp,2021-Q3,2021-10-19,https://www.stats.gov.cn/sj/zxfb/202302/t20230203_1901249.html,19,12,False
 hk_m2,2021-09,2021-10-29,https://www.hkma.gov.hk/eng/news-and-media/press-releases/2021/10/20211029-9/,29,2,False
-social_financing,2021-10,2021-11-10,https://www.pbc.gov.cn/diaochatongjisi/116219/116225/060353e3475841a3a8335d734584dba5/index.html,10,20,False
 ppi,2021-10,2021-11-10,https://www.stats.gov.cn/sj/zxfb/202302/t20230203_1901273.html,10,20,False
+social_financing,2021-10,2021-11-10,https://www.pbc.gov.cn/diaochatongjisi/116219/116225/060353e3475841a3a8335d734584dba5/index.html,10,20,False
 retail,2021-10,2021-11-15,https://www.stats.gov.cn/sj/zxfb/202302/t20230203_1901282.html,15,15,False
 hk_m2,2021-10,2021-11-30,https://www.hkma.gov.hk/eng/news-and-media/press-releases/2021/11/20211130-9/,30,0,False
 ppi,2021-11,2021-12-09,https://www.stats.gov.cn/sj/zxfb/202302/t20230203_1901297.html,9,22,False
@@ -263,8 +263,8 @@ ppi,2022-04,2022-05-11,https://www.stats.gov.cn/sj/zxfb/202302/t20230203_1901457
 social_financing,2022-04,2022-05-13,https://www.pbc.gov.cn/diaochatongjisi/116219/116225/afdb0fe29d4444b3b24ed9a8df69bf83/index.html,13,18,False
 retail,2022-04,2022-05-16,https://www.stats.gov.cn/sj/zxfb/202302/t20230203_1901464.html,16,15,False
 hk_m2,2022-04,2022-05-31,https://www.hkma.gov.hk/eng/news-and-media/press-releases/2022/05/20220531-8/,31,0,False
-social_financing,2022-05,2022-06-10,https://www.pbc.gov.cn/diaochatongjisi/116219/116225/09ece5e2db124155b7e3b6800f4e34be/index.html,10,20,False
 ppi,2022-05,2022-06-10,https://www.stats.gov.cn/sj/zxfb/202302/t20230203_1901483.html,10,20,False
+social_financing,2022-05,2022-06-10,https://www.pbc.gov.cn/diaochatongjisi/116219/116225/09ece5e2db124155b7e3b6800f4e34be/index.html,10,20,False
 retail,2022-05,2022-06-15,https://www.stats.gov.cn/sj/zxfb/202302/t20230203_1901490.html,15,15,False
 hk_m2,2022-05,2022-06-30,https://www.hkma.gov.hk/eng/news-and-media/press-releases/2022/06/20220630-6/,30,0,False
 ppi,2022-06,2022-07-09,https://www.stats.gov.cn/sj/zxfb/202302/t20230203_1901505.html,9,22,False
@@ -282,8 +282,8 @@ retail,2022-08,2022-09-16,https://www.stats.gov.cn/sj/zxfb/202302/t20230203_1901
 hk_m2,2022-08,2022-09-30,https://www.hkma.gov.hk/eng/news-and-media/press-releases/2022/09/20220930-6/,30,0,False
 social_financing,2022-09,2022-10-11,https://www.pbc.gov.cn/diaochatongjisi/116219/116225/fe7254937c4c48a587b0a6e3c1d6dba5/index.html,11,20,False
 ppi,2022-09,2022-10-14,https://www.stats.gov.cn/sj/zxfb/202302/t20230203_1901614.html,14,17,False
-retail,2022-09,2022-10-24,https://www.stats.gov.cn/sj/zxfb/202302/t20230203_1901619.html,24,7,False
 gdp,2022-Q3,2022-10-24,https://www.stats.gov.cn/sj/zxfb/202302/t20230203_1901626.html,24,7,False
+retail,2022-09,2022-10-24,https://www.stats.gov.cn/sj/zxfb/202302/t20230203_1901619.html,24,7,False
 hk_m2,2022-09,2022-10-31,https://www.hkma.gov.hk/eng/news-and-media/press-releases/2022/10/20221031-8/,31,0,False
 ppi,2022-10,2022-11-09,https://www.stats.gov.cn/sj/zxfb/202302/t20230203_1901648.html,9,21,False
 social_financing,2022-10,2022-11-10,https://www.pbc.gov.cn/diaochatongjisi/116219/116225/aa9f6708343245359814138dad70f74a/index.html,10,20,False
@@ -297,8 +297,8 @@ social_financing,2022-12,2023-01-10,https://www.pbc.gov.cn/diaochatongjisi/11621
 ppi,2022-12,2023-01-12,https://www.stats.gov.cn/sj/zxfb/202302/t20230203_1901704.html,12,19,False
 gdp,2022-Q4,2023-01-18,https://www.stats.gov.cn/sj/zxfb/202302/t20230203_1901718.html,18,13,False
 hk_m2,2022-12,2023-01-31,https://www.hkma.gov.hk/eng/news-and-media/press-releases/2023/01/20230131-10/,31,0,False
-ppi,2023-01,2023-02-10,https://www.stats.gov.cn/sj/zxfb/202302/t20230220_1913662.html,10,18,False
 social_financing,2023-01,2023-02-10,https://www.pbc.gov.cn/diaochatongjisi/116219/116225/08913263a9fc4b398ca36a34d3356ed7/index.html,10,18,False
+ppi,2023-01,2023-02-10,https://www.stats.gov.cn/sj/zxfb/202302/t20230220_1913662.html,10,18,False
 hk_m2,2023-01,2023-02-28,https://www.hkma.gov.hk/eng/news-and-media/press-releases/2023/02/20230228-7/,28,0,False
 ppi,2023-02,2023-03-09,https://www.stats.gov.cn/sj/zxfb/202303/t20230309_1936953.html,9,22,False
 social_financing,2023-02,2023-03-10,https://www.pbc.gov.cn/diaochatongjisi/116219/116225/10efa07960ae4dc687872f7a52489a7c/index.html,10,21,False
@@ -483,10 +483,11 @@ ppi,2026-08,2026-09-09,https://www.stats.gov.cn/sj/zxfb/202609/t20260909_1965262
 social_financing,2026-08,2026-09-14,https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026091417020862747/index.html,14,16,False
 retail,2026-08,2026-09-15,https://www.stats.gov.cn/sj/zxfb/202609/t20260915_1965311.html,15,15,False
 hk_m2,2026-08,2026-09-30,https://www.hkma.gov.hk/eng/news-and-media/press-releases/2026/09/20260930-9/,30,0,False
-social_financing,2026-09,2026-10-14,https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026101417073743604/index.html,14,17,False
 ppi,2026-09,2026-10-14,https://www.stats.gov.cn/sj/zxfb/202610/t20261014_1965476.html,14,17,False
+social_financing,2026-09,2026-10-14,https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026101417073743604/index.html,14,17,False
 retail,2026-09,2026-10-19,https://www.stats.gov.cn/sj/zxfb/202610/t20261019_1965614.html,19,12,False
 gdp,2026-Q3,2026-10-20,https://www.stats.gov.cn/sj/zxfb/202610/t20261020_1965658.html,20,11,False
 hk_m2,2026-09,2026-10-30,https://www.hkma.gov.hk/eng/news-and-media/press-releases/2026/10/20261030-7/,30,1,False
 ppi,2026-10,2026-11-09,https://www.stats.gov.cn/sj/zxfb/202611/t20261109_1965794.html,9,21,False
 social_financing,2026-10,2026-11-13,https://www.pbc.gov.cn/diaochatongjisi/116219/116225/2026111317040354319/index.html,13,17,False
+retail,2026-10,2026-11-16,https://www.stats.gov.cn/sj/zxfb/202611/t20261116_1965839.html,16,14,False

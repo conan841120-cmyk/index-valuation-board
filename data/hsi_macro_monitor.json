@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "monitoring_start_month": "2026-07",
-  "evaluated_date": "2026-11-18",
+  "evaluated_date": "2026-11-19",
   "policy": {
     "timezone": "Asia/Shanghai",
     "check_time": "18:30",
@@ -54,7 +54,7 @@
         "window_start": "2026-11-14",
         "window_end": "2026-11-20",
         "next_window_start": "2026-12-14",
-        "status": "awaiting"
+        "status": "acquired"
       },
       "next_round": {
         "release_month": "2026-12",
@@ -65,10 +65,8 @@
       },
       "backlog_rounds": [],
       "phase": "window",
-      "missing_periods": [
-        "2026-10"
-      ],
-      "last_checked_at": "2026-11-18T03:18:34+08:00",
+      "missing_periods": [],
+      "last_checked_at": "2026-11-19T02:59:52+08:00",
       "last_probe_error": null
     },
     {
@@ -181,6 +179,8 @@
   ],
   "alerts": [],
   "new_alerts": [],
-  "refreshed_sources": [],
-  "last_run_at": "2026-11-18T03:18:35+08:00"
+  "refreshed_sources": [
+    "retail"
+  ],
+  "last_run_at": "2026-11-19T03:00:18+08:00"
 }
