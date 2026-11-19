@@ -24,6 +24,8 @@ US_DATE = re.compile(r'data/us_market/(\d{4}-\d{2}-\d{2})\.json\Z')
 def require_files(kind, names):
     required = DAILY | {'data/official_snapshots/indicator_' + code + '.csv'
                         for code in ('000300', '000510', '000922', 'H30269')} if kind == 'daily' else MACRO
+    if kind == 'timing':
+        required = {'data/timing/latest.json'}
     if kind == 'us-market':
         required = {'data/us_market/manifest.json'} if names else set()
     if not required.issubset(names):
@@ -34,6 +36,8 @@ def allowed(kind, name):
     if not isinstance(name, str):
         return False
     match = None
+    if kind == 'timing':
+        return name == 'data/timing/latest.json'
     if kind == 'daily':
         if name in DAILY:
             return True
@@ -72,9 +76,9 @@ def data_path(root, name):
 
 def pack(root, kind, destination):
     names = DAILY if kind == 'daily' else MACRO if kind == 'macro' else set()
-    names = set(names)
+    names = {'data/timing/latest.json'} if kind == 'timing' else set(names)
     directory = 'data/official_snapshots' if kind == 'daily' else 'data/us_market'
-    if kind != 'macro':
+    if kind not in ('macro', 'timing'):
         names.update(p.relative_to(root).as_posix() for p in (root / directory).glob('*'))
     files = []
     for name in sorted(names):
@@ -107,13 +111,16 @@ def unpack(root, kind, source, stage=False):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(content)
     if stage and decoded:
-        subprocess.run(['git', 'add', '--', *decoded], cwd=root, check=True)
+        # Personal timing previews are ignored locally. Cloud writeback must
+        # explicitly stage only the validated, licensed-feed snapshot path.
+        flags = ['-f'] if kind == 'timing' else []
+        subprocess.run(['git', 'add', *flags, '--', *decoded], cwd=root, check=True)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('operation', choices=('pack', 'unpack'))
-    parser.add_argument('kind', choices=('daily', 'macro', 'us-market'))
+    parser.add_argument('kind', choices=('daily', 'macro', 'us-market', 'timing'))
     parser.add_argument('bundle', type=Path)
     parser.add_argument('--stage', action='store_true')
     args = parser.parse_args()

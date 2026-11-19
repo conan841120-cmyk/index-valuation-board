@@ -38,3 +38,24 @@ class SP500PageTests(unittest.TestCase):
             html = navigation(current)
             self.assertEqual(html.count('aria-current="page"'), 1)
             self.assertEqual(html.count('<a '), 3)
+
+    def test_optional_timing_json_does_not_need_to_decode_during_build(self):
+        from unittest.mock import patch
+        root=Path(tempfile.mkdtemp(prefix='timing-optional-build-'))
+        timing=root/'data/timing/latest.json';timing.parent.mkdir(parents=True);timing.write_bytes(b'{invalid-json-\xff')
+        source=sp500.ROOT/'data/sp500/bootstrap.json'
+        with patch.object(sp500,'ROOT',root):sp500.build(source,root/'site')
+        self.assertEqual((root/'site/timing.json').read_bytes(),timing.read_bytes())
+        self.assertIn('sp500-app',(root/'site/index.html').read_text())
+
+    def test_unreadable_optional_timing_file_keeps_old_dashboard(self):
+        from unittest.mock import patch
+        root=Path(tempfile.mkdtemp(prefix='timing-unreadable-build-'))
+        timing=root/'data/timing/latest.json';timing.parent.mkdir(parents=True);timing.write_text('{}')
+        source=sp500.ROOT/'data/sp500/bootstrap.json';copyfile=sp500.shutil.copyfile
+        def copy_optional(src,dst,*args,**kwargs):
+            if Path(src)==timing:raise PermissionError('unreadable optional snapshot')
+            return copyfile(src,dst,*args,**kwargs)
+        with patch.object(sp500,'ROOT',root),patch.object(sp500.shutil,'copyfile',side_effect=copy_optional):sp500.build(source,root/'site')
+        self.assertIn('error',json.loads((root/'site/timing.json').read_text()))
+        self.assertTrue((root/'site/sp500.js').exists());self.assertTrue((root/'site/snapshot.json').exists())

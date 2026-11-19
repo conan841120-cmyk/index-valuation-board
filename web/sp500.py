@@ -69,4 +69,11 @@ def build(source, out):
     (out / 'index.html').write_text(html, encoding='utf-8')
     (out / 'snapshot.json').write_text(encoded, encoding='utf-8')
     shutil.copy2(WEB / 'sp500.js', out / 'sp500.js')
+    timing = ROOT / 'data/timing/latest.json'
+    # The browser validates timing.json once at its application boundary.
+    # A missing/unreadable optional module must not prevent building the old dashboard.
+    try:
+        shutil.copyfile(timing, out / 'timing.json')
+    except OSError:
+        (out / 'timing.json').write_text(json.dumps({'error': '择时数据暂不可读取／等待首次更新'}, ensure_ascii=False), encoding='utf-8')
     return out / 'index.html'

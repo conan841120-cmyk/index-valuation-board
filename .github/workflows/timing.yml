@@ -1,0 +1,170 @@
+name: short-term-index-timing
+
+# 抓数据 → 重算 → 口径核对 → 生成页面 → 发布 GitHub Pages
+#
+# 新模块独立于原08:30任务，在台北07:00左右更新。
+# 这是名义触发时间；平台排队、执行和数据抓取均可能延迟，不保证准点完成。
+# 外部定时触发只是未启用备选，参见 tools/TRIGGER.md。
+on:
+  schedule:
+    - cron: '0 23 * * *'
+  workflow_dispatch:        # 也可在 Actions 页面 / 外部定时器触发
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      code_ref: ${{ steps.code.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.ref || 'main' }}
+          persist-credentials: false
+      - id: code
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+  collect:
+    needs: resolve
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.code_ref }}
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: 安装 Python 依赖
+        run: pip install -r requirements.txt
+
+      - name: 更新两个独立指数收盘信号
+        env:
+          TIMING_SPX_URL: ${{ secrets.TIMING_SPX_URL }}
+          TIMING_NDX_URL: ${{ secrets.TIMING_NDX_URL }}
+          TIMING_PUBLIC_DISPLAY_LICENSED: ${{ vars.TIMING_PUBLIC_DISPLAY_LICENSED }}
+        run: python -m timing.update
+
+      - name: 导出限定数据（不含代码或页面）
+        run: python tools/workflow_data.py pack timing "$RUNNER_TEMP/collected.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: timing-collected-data
+          path: ${{ runner.temp }}/collected.json
+          if-no-files-found: error
+          retention-days: 1
+
+  build:
+    needs: [resolve, collect]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.code_ref }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: timing-collected-data
+          path: ${{ runner.temp }}/collected
+      - name: 校验白名单并导入数据
+        run: python3 tools/workflow_data.py unpack timing "$RUNNER_TEMP/collected/collected.json"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install -r requirements.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: 从固定代码离线重算并生成口径报告
+        run: |
+          python compute/run_all.py --rebuild
+          python compute/report.py
+
+      - name: 读取美股公开快照并生成完整站点
+        run: |
+          python tools/load_us_market.py
+          python web/build_site.py
+
+      - name: 回归测试（不通过则中止，避免发布错数据）
+        run: |
+          python -m unittest discover -s tests -v
+          node tests/test_frontend_logic.js
+          node tests/test_macro_frontend.js
+          node tests/test_us_market.js
+          node tests/test_sp500.js
+          node tests/test_timing_state.mjs
+
+      - name: 导出通过校验的数据快照
+        run: python tools/workflow_data.py pack timing "$RUNNER_TEMP/validated.json"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: timing-validated-data
+          path: ${{ runner.temp }}/validated.json
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: 上传 Pages 产物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  commit:
+    needs: [resolve, build]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.code_ref }}
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: timing-validated-data
+          path: ${{ runner.temp }}/validated
+      - name: 仅导入并暂存白名单数据
+        run: python3 tools/workflow_data.py unpack timing "$RUNNER_TEMP/validated/validated.json" --stage
+      - name: 回写快照（代码漂移或推送失败时不部署）
+        env:
+          PUBLISH_TOKEN: ${{ github.token }}
+        run: |
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "$(git rev-parse HEAD)"
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --cached --quiet; then
+            echo "无快照变化"
+          else
+            git commit -m "chore(timing): $(date -u +%F) 数据快照与口径核对"
+            header=$(printf 'x-access-token:%s' "$PUBLISH_TOKEN" | base64 -w0)
+            git -c http.https://github.com/.extraheader="AUTHORIZATION: basic $header" push origin HEAD:main
+          fi
+
+  deploy:
+    needs: [build, commit]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
