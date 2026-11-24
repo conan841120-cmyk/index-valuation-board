@@ -23,7 +23,7 @@ const {createHash} = require('node:crypto');
   assert.equal(SP.rank(stats.values,last),100*rows.filter(r=>r['bias'+ma]<=last).length/rows.length);
  }
  const hash=createHash('sha256');
- ['DashboardContent.jsx','visuals.jsx','model.mjs','ui.jsx','main.jsx'].forEach(file=>hash.update(readFileSync(require.resolve('../web/sp500/'+file))));
+ ['DashboardContent.jsx','visuals.jsx','model.mjs','ui.jsx','main.jsx','TimingSignals.jsx','timing-state.mjs'].forEach(file=>hash.update(readFileSync(require.resolve('../web/sp500/'+file))));
  assert.ok(readFileSync(require.resolve('../web/sp500.js'),'utf8').startsWith('// Source SHA-256: '+hash.digest('hex')+'\n'),'Bundled dashboard must match reviewed sources');
  console.log('S&P original dashboard, rolling percentile and asset checks passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});

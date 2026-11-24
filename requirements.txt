@@ -10,3 +10,4 @@ beautifulsoup4>=4.12,<5
 lxml>=5,<7
 pdfplumber>=0.11,<1
 pytest>=8,<10
+exchange-calendars==4.5.5

@@ -3,7 +3,7 @@ on:
   pull_request: {}
   push:
     branches-ignore: [us-market-data]
-    paths: ['web/**', 'tools/**', 'tests/**', 'compute/**', 'fetch/**', 'macro/**', 'requirements.txt', '.github/workflows/**']
+    paths: ['web/**', 'tools/**', 'tests/**', 'compute/**', 'fetch/**', 'macro/**', 'requirements.txt', 'timing/**', '.github/workflows/**']
 permissions:
   contents: read
 jobs:
@@ -33,6 +33,7 @@ jobs:
           node tests/test_macro_frontend.js
           node tests/test_us_market.js
           node tests/test_sp500.js
+          node tests/test_timing_state.mjs
           cd macro/hsi
           python -m pytest -q
       - uses: actions/upload-artifact@v4

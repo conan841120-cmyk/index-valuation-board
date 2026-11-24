@@ -2,20 +2,22 @@
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/===
 .gitattributes[FC4T]: F:统一文本检出行尾以稳定源码指纹 | R:- | A:text=auto eol=lf | S:二进制保持原始字节
-.gitignore[FC5T]: F:隔离可重建数据、发布产物、版权图片及本机配置 | R:code:web/build_site.py | A:保留raw_inputs、口径报告；忽略docs和本机MCP | S:-
+.gitignore[FC5T]: F:隔离可重建产物、版权图片、本机配置与个人择时研究 | R:code:web/build_site.py,code:timing/history.py | A:保留raw_inputs与原口径报告；忽略docs、依赖、data/timing及research/timing-v1 | S:个人行情、冻结清单及回测报告明细不进入公开仓库
 AGENTS.md[SC7S]: F:规定AOCI认知加载、语义作者化、维护和恢复边界 | R:code:aoci.txt,code:aoci.meta.txt | A:项目级Codex自动加载；实时Rules与Guide优先 | S:压缩后不能用摘要代替完整Overview；只按机器批次提交，禁止模板生成语义
 README.md[SG6S]: F:说明五指数估值来源、滚动历史更新及云端操作入口 | R:code:compute/config.py,code:compute/run_all.py,code:US_MARKET.md | A:离线验收、每日发布及数据限制说明 | S:阶段进度文字含历史状态；蛋卷原窗口与累积观测分开保存，抓取日不代替数据日
 RELEASE_CALENDAR_REPORT.md[SW5T]: F:记录官方发布日分布与宏观监测窗口覆盖 | R:code:macro/hsi/release_statistics.py,code:macro/hsi/release_policy.json | A:来源样本、窗口覆盖及公告依据 | S:信用脉冲无独立公告；社零合并月不填独立月值
 US_MARKET.md[SG6T]: F:说明美股独立行情、公开协议和云端自选配置流程 | R:code:tools/load_us_market.py,code:web/us_market.py | A:协议v1可选quotes数组、交易日历、GitHub配置确认 | S:页面发布不等于估值源更新；仅日期报价不作盘中预警；草稿不代表保存，清空清单不删历史
-requirements.txt[FC6T]: F:声明估值抓取、宏观计算和本地验收的 Python 依赖 | R:code:.github/workflows/daily.yml,code:.github/workflows/macro.yml | A:pip install -r requirements.txt | S:pandas与numpy锁定精确版本，其他包多为有界或最低版本要求
+requirements.txt[FC6T]: F:声明估值、宏观计算和宽基择时交易日历所需Python依赖 | R:code:.github/workflows/daily.yml,code:.github/workflows/timing.yml | A:pip install -r requirements.txt | S:pandas、numpy及exchange-calendars锁定精确版本，临时休市在数据边界补充
 HANDOFF.md[SG7M]: F:记录五指数看板、恒生宏观运维和官方定期调样标记定义 | R:code:README.md,code:macro/hsi/README.md,code:RELEASE_CALENDAR_REPORT.md | A:运行机制、交接清单、官方编制方案链接与版本 | S:旧路径与进度需现场核实；调样按已有行情推定生效后首点，不含临时调整和逐年规则重建；推导历史不是当时可得数据
+TIMING_MODULE.md[SV7T]: F:说明择时界面发布版本、信号语义、生产数据边界与回退方式 | R:code:web/sp500/TimingSignals.jsx,code:.github/workflows/timing.yml | A:timing-ui-v1.1.0、strategy-v1.0；图表交互及许可源配置说明 | S:界面发布不代表生产源已接入；个人回测仅本地，公开CI不能替代真实数据和自然调度验收
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/.github/workflows/===
 daily.yml[OV8S]: F:每天08:30隔离采集估值、验证快照并发布完整站点 | R:code:compute/run_all.py,code:tools/watch_rule.py,code:tools/workflow_data.py,code:web/build_site.py | A:resolve固定代码；collect/build只读；commit回写数据；deploy发布Pages | S:共用pages排队锁；口径监控失败仍可沿用；分支手动校验不提交或部署；main漂移或校验失败阻止发布
 macro.yml[OW8M]: F:18:30隔离检查宏观发布轮次并验证、保存和发布更新 | R:code:macro/hsi/release_watch.py,code:macro/hsi/release_statistics.py,code:tools/workflow_data.py,code:web/build_site.py | A:force_refresh绕过日历；resolve固定代码；只读collect/build及独立commit/deploy | S:空闲不联网安装或发布；不重抓估值；共用pages锁；分支仅校验；新逾期报警在状态保存和成功部署后使任务失败
-tests.yml[TQ7T]: F:验证完整站点及标普打包可复现，上传预览 | R:code:web/sp500/build.mjs,code:web/build_site.py,code:tests/test_sp500.js | A:PR与业务路径push触发；contents只读且checkout不持久化凭据 | S:us-market-data分支排除push测试；不部署站点
+tests.yml[TQ7T]: F:验证完整站点、可复现前端打包与宽基择时边界并上传预览 | R:code:web/sp500/build.mjs,code:web/build_site.py,code:tests/test_sp500.js,code:tests/test_timing_state.mjs | A:PR与业务及timing路径push触发；contents只读、无持久凭据 | S:不部署站点；公开CI缺个人行情时真实数据回测核验跳过
 us-market-data.yml[OW6T]: F:将公开数据分支更新转成发布完成信号 | R:code:.github/workflows/us-market.yml | A:us-market-data分支push；只读ready任务 | S:发布由main工作流承接，不直接从数据分支部署
 us-market.yml[OV8S]: F:隔离读取公开美股数据并构建和发布完整站点 | R:code:tools/load_us_market.py,code:tools/workflow_data.py,code:compute/run_all.py,code:web/build_site.py | A:成功ready信号或手动触发；resolve固定代码；collect/build只读；deploy仅Pages/OIDC写 | S:只重算既有估值和宏观输入；共用pages排队锁；分支手动运行不部署；数据只按限定JSON交接
+timing.yml[OW8S]: F:台北07:00独立更新两指数择时并校验、保存和发布完整站点 | R:code:timing/update.py,code:tools/workflow_data.py,code:web/build_site.py | A:resolve固定SHA；只读collect/build、限定数据commit及Pages deploy | S:仅main部署；需许可源配置；缺配置不取替代数据；共用pages锁，main代码漂移拒绝回写部署
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/compute/===
 build_dataset.py[AA8M]: F:装配估值统计、独立行情和调样日期，保留来源口径 | R:code:compute/config.py,code:compute/normalize.py,code:compute/stats.py,code:fetch/derive_yield.py | A:build_index、main；dashboard、指数JSON、level_series | S:股息率先按真实日期配对后周聚合，不能预聚合PE丢失共同日；较新锚不覆写较早日期；官方与推导独立；调样须有后续实际行情；美股日线不延伸估值统计；渲染重读监控
@@ -136,7 +138,7 @@ load_us_market.py[ID8T]: F:从公开数据分支提取美股日期存档与标�
 trigger_dispatch.sh[OW4T]: F:使用已登录 gh 手动触发云端估值工作流 | R:code:.github/workflows/daily.yml,code:tools/TRIGGER.md | A:gh workflow run daily.yml | S:本机睡眠或关机时不能触发；提交请求后仍需检查运行结果
 verify_local.py[XQ6T]: F:串行重建本地输入、报告、宏观指标与页面并运行验收测试 | R:code:compute/run_all.py,code:web/render.py,code:macro/hsi/update.py | A:CLI --out | S:使用离线重建参数；任一步非零退出即停止，不代表完整站点与云端部署已验收
 watch_rule.py[KA7M]: F:识别文章配图的指数和选中估值口径并核对配置 | R:code:compute/config.py,code:fetch/common.py,code:compute/build_dataset.py | A:--url、--images-dir、--keep-images；rule_check.json | S:兼容已确认的约1350宽1x图与2x坐标、两种按钮色；同标题同口径封面重复只计一次；五指数齐全才完整，缺项保留incomplete及旧结论；不验证数值
-workflow_data.py[CS8S]: F:在隔离Actions作业间传递白名单数据并按显式文件列表暂存 | R:code:.github/workflows/daily.yml,code:.github/workflows/macro.yml,code:.github/workflows/us-market.yml | A:pack/unpack daily、macro、us-market；JSON/base64单文件协议；unpack可--stage | S:全部路径、必需文件、重复项和编码验证后才写入；拒绝路径链接；美股空交接允许等待首次数据；不接受代码或页面产物
+workflow_data.py[CS8S]: F:在隔离Actions作业间校验并交接白名单数据及显式暂存 | R:code:.github/workflows/daily.yml,code:.github/workflows/macro.yml,code:.github/workflows/us-market.yml,code:.github/workflows/timing.yml | A:pack/unpack daily、macro、us-market、timing；JSON/base64及--stage | S:全体路径编码校验后写；拒绝链接和代码；timing只准latest.json且限定强制暂存，其他类型不强制
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/web/===
 app.js[AU8L]: F:按真实日期展示指数估值、独立行情及调样标记和检测状态 | R:code:web/template.html,code:web/render.py,code:compute/build_dataset.py | A:window.DASHBOARD、查询参数、CSV、主图及小图 | S:完整检测要求五项一致且新鲜；不完整显示覆盖数和缺项；估值截止后只延伸价格；真实与推导不拼接；调样无后续观测则省略；历史排名为事后统计
@@ -149,10 +151,10 @@ macro.js[AU7T]: F:展示月频领先指标、分项贡献、来源发布轮次�
 navigation.py[CU6T]: F:生成完整站点共享的三个入口按钮及财经版面样式 | R:code:web/build_site.py,code:web/us_market.py,code:web/sp500.py | A:navigation(current)；CSS | S:估值入口使用当前目录，其他入口回到父级；aria-current标识当前页面
 render.py[AV8S]: F:将估值、独立日线价格和恒生宏观数据打包成离线单文件看板 | R:code:web/template.html,code:web/app.js,code:web/macro.js,code:compute/build_dataset.py,code:web/inline_json.py | A:build(out_path)、slim、CLI --out；保留level_series | S:渲染重读口径核对；宏观轮次只读重评；两处内联JSON共用安全编码，非有限数拒绝发布
 screenshot.sh[XQ3T]: F:以独立临时 Chrome 配置截取本地 HTML 高分辨率图片 | R:code:web/compare.py | A:HTML路径/输出PNG/可选宽高 | S:会覆盖输出并永久删临时配置；固定macOS Chrome路径
-sp500.css[FU6T]: F:定义标普偏离看板原版几何、控件和图表的财经配色 | R:code:web/sp500/DashboardContent.jsx,code:web/sp500/ui.jsx,code:web/sp500/visuals.jsx | A:sp-*及data-*类；580/850/1200像素断点 | S:布局与字形沿用原看板，仅调色板适配站点；概率柱移动端允许横向滚动
+sp500.css[FU6T]: F:定义原标普看板及择时双摘要、历史图旁详情和日期列表的响应式样式 | R:code:web/sp500/TimingSignals.jsx,code:web/sp500/DashboardContent.jsx | A:timing在700像素以下摘要堆叠、950像素以下详情移至图下 | S:新增样式限定timing类；原统计布局和概率柱移动端滚动保留
 sp500.html[EU6T]: F:提供独立标普均线偏离页的导航、状态和 React 挂载容器 | R:code:web/sp500.py,code:web/sp500/main.jsx | A:#status；#sp500-app；snapshot.json下载入口 | S:快照与脚本为同目录外部文件，交互依赖JavaScript
-sp500.js[EV7T]: F:装载打包后的 React 看板并读取同目录标普统计快照 | R:code:web/sp500/build.mjs,code:web/sp500/main.jsx,code:web/sp500.py | A:浏览器IIFE入口；fetch snapshot.json | S:这是生成产物；应改JSX再重建，首行源摘要用于核对；读取或身份检查失败显示不可使用概率
-sp500.py[AV8T]: F:验证标普统计快照并构建独立偏离度静态页面 | R:code:web/sp500.html,code:web/sp500.css,code:web/sp500.js,code:web/navigation.py | A:validate(value)；build(source,out) | S:来源缺失才使用bootstrap；要求^GSPC、schema 1、1950起升序日期及有限数字；快照另存JSON，不内联执行
+sp500.js[EV7T]: F:装载打包React看板及独立宽基历史择时模块 | R:code:web/sp500/build.mjs,code:web/sp500/TimingSignals.jsx | A:IIFE；snapshot.json与timing.json分别读取；源码SHA256 | S:由固定JSX重建；择时坏输入和渲染失败不卸载原看板
+sp500.py[AV8T]: F:验证原标普统计快照并打包独立页面及可选择时数据 | R:code:web/sp500.html,code:web/sp500.js,code:web/sp500/timing-state.mjs | A:validate、build；snapshot.json及timing.json外部资产 | S:可选择时文件直接复制，读取失败只影响新模块；字段校验归前端边界，旧统计损坏仍拒绝构建
 template.html[EU7M]: F:声明估值日报财经版面、控件和宏观扩展的内联模板 | R:code:web/render.py,code:web/app.js,code:web/macro.html | A:ECHARTS/DATA/APPJS及MACRO*替换标记 | S:固定1440视口并提供窄布局规则；单文件导出内联依赖，不要求外部服务
 us_market.css[FU5T]: F:定义美股日期存档、新闻预警与观察列表的统一财经样式 | R:code:web/us_market.html,code:web/us_market.js | A:banner/grid/watchlist-editor及移动断点 | S:表格独立横向滚动；窄屏切单列并保留长来源链接换行
 us_market.html[EU6T]: F:提供独立美股日报的存档日期与批次选择器和内容容器 | R:code:web/us_market.py,code:web/us_market.js | A:#date/#run/#report；window.US_MARKET_BOOTSTRAP | S:只含筛选后的公开产物；采集时间与新闻行情时间分别展示，浏览不需要凭据
@@ -161,11 +163,21 @@ us_market.py[AV8S]: F:校验公开行情存档与交易日历并构建美股页�
 inline_json.py[CS7T]: F:编码HTML脚本中的JSON值以保持数据与标记边界 | R:code:web/render.py,code:web/us_market.py,code:web/build_drafts.py | A:inline_json(value)返回JSON文本 | S:禁止NaN与无穷；Unicode转义HTML边界字符及行段分隔符，保留中文可读和JSON还原
 
 ===/Users/sherlock/Documents/DSH/index-valuation-board/web/sp500/===
-DashboardContent.jsx[AU8T]: F:组合标普价格、两种均线偏离、四段统计和情景模拟交互 | R:code:web/sp500/visuals.jsx,code:web/sp500/ui.jsx,code:web/sp500/model.mjs | A:DashboardContent；daily/state_stats/event_stats/events/baselines查询 | S:均线筛选同步隐藏价格与偏离曲线；事件与重叠观察日分开；模拟固定当前均线并查历史分箱，不插值或推断首次穿越
-build.mjs[OV6T]: F:用 esbuild 将 React 源码编译为带源摘要的发布脚本 | R:code:web/sp500/main.jsx,code:web/sp500/package.json,code:web/sp500.js | A:npm run build；输出../sp500.js | S:源摘要按五个源码固定顺序计算；IIFE目标ES2020，内嵌生产React并保留许可说明
+DashboardContent.jsx[AU8T]: F:组合原标普统计看板并在顶部指标卡后插入独立择时模块 | R:code:web/sp500/visuals.jsx,code:web/sp500/ui.jsx,code:web/sp500/TimingSignals.jsx | A:原daily/state_stats/event_stats/events/baselines查询及TimingSignals | S:原事件61日间隔、概率和情景模拟口径保留，择时不复用事件冷却
+build.mjs[OV6T]: F:将React及择时源码编译为带固定源摘要的发布脚本 | R:code:web/sp500/main.jsx,code:web/sp500/TimingSignals.jsx | A:npm run build；生成../sp500.js | S:七源码固定顺序哈希；fileURLToPath支持空格路径；生产IIFE保留许可说明
 main.jsx[EU7T]: F:读取标普快照、显示检查状态并挂载 React 看板 | R:code:web/sp500/DashboardContent.jsx,code:web/sp500/ui.jsx,code:web/sp500.html | A:fetch snapshot.json no-cache；createRoot | S:校验schema和指数身份；生成时间与收盘日期分别展示，失败时提示暂不使用概率
 model.mjs[KA7T]: F:提供历史分位、分箱、区间摘要与五年滚动分位计算 | R:code:web/sp500/DashboardContent.jsx,code:web/sp500/visuals.jsx | A:STARTS/WINDOWS/LEVELS；summary/rollingBand/inBin/rank | S:滚动窗口为过去五个自然年且至少1000日才出分位；排名含等于项；标准差使用总体分母
 package-lock.json[FV5L]: F:锁定标普 React 构建依赖树与下载完整性摘要 | R:code:web/sp500/package.json,code:web/sp500/build.mjs | A:npm ci；lockfileVersion 3 | S:esbuild带平台专属可选二进制；修改依赖需同步package清单与锁文件
 package.json[FV6T]: F:定义独立标普前端的 React 与 esbuild 版本及构建入口 | R:code:web/sp500/package-lock.json,code:web/sp500/build.mjs | A:npm run build；private=true；type=module | S:React和React DOM均锁19.2.3，esbuild锁0.25.10；不发布npm包
 ui.jsx[CU7T]: F:提供离线快照上下文、筛选控件、数据导出及可搜索排序分页表 | R:code:web/sp500/main.jsx,code:web/sp500/DashboardContent.jsx | A:DataProvider/useDataApp；DataComponent/DataTable及四种控件 | S:查询直接读快照rows；CSV字段取行键并转义；Sortable组件只是布局包装，不提供拖拽
-visuals.jsx[KU8T]: F:绘制真实日期线图、分位标记、位置尺与四段阈值概率柱 | R:code:web/sp500/model.mjs,code:web/sp500/DashboardContent.jsx | A:Gauge/LinePlot/ThresholdBars | S:采样保留分段极值，悬停与键盘查完整日频；价格对数轴仅按可见曲线定范围；淡柱标小样本，无样本显示空值
+visuals.jsx[KU8T]: F:复用真实日期线图、价格信号标记、位置尺和阈值概率柱 | R:code:web/sp500/model.mjs,code:web/sp500/DashboardContent.jsx,code:web/sp500/TimingSignals.jsx | A:Gauge、LinePlot、ThresholdBars；可选price/markers/selectedDate/onSelect | S:采样强制保留信号日并定位收盘；旧调用轴口径不变；悬停键盘读取完整日频
+TimingSignals.jsx[AU8T]: F:展示双摘要、历史走势标记、所选日证据及符合日期列表 | R:code:web/sp500/timing-state.mjs,code:web/sp500/visuals.jsx | A:timing-ui-v1.1.0；指数、范围、类型与首次或全部切换；TimingBoundary | S:标记为信号日收盘而非成交；持仓不筛掉符合日；连续数为所选日已知信息；单指数与模块渲染失败隔离
+timing-state.mjs[DU8T]: F:统一校验外部快照与历史并计算新鲜度及显示筛选视图 | R:code:web/sp500/TimingSignals.jsx,code:timing/history.py | A:normalizeTimingSnapshot、timingStatus、historyView | S:校验一次后向内传；坏历史可保留有效最新值；全序列分轮后裁切，A/B不重启轮次，隐藏首次用延续标记且不改原日期
+
+===/Users/sherlock/Documents/DSH/index-valuation-board/timing/===
+backtest.py[AA8S]: F:验证个人冻结数据版本后执行36组回测或独立初始化新版本 | R:code:timing/strategy.py,code:timing/data.py | A:load_version、run、initialize；CLI run与init | S:先核对输入、引擎及PRD摘要和身份覆盖，全部计算通过后才写新目录；个人冻结清单及真实输入不随公开代码分发
+data.py[ID8T]: F:验证两价格指数日线并据交易所日历识别完整收盘和预期最新日 | R:code:timing/update.py,code:timing/backtest.py | A:validate_rows、ibkr_rows、calendar、freshness；SPX与NDX | S:缺失交易日、非正及非有限价格拒绝；不填价格；补2025-01-09临时休市；收盘超源高低范围保留审计标识
+history.py[ID8T]: F:将共享策略全历史信号投影为可追溯图表快照并提供个人预览入口 | R:code:timing/strategy.py,code:timing/data.py,code:timing/backtest.py | A:history_payload；CLI --version --out；19字段及预期交易日序列 | S:不截取显示范围后重算暖机；个人预览先校验冻结版本，清单与输入需本机另备，生产不读取个人研究目录
+strategy.py[KA9S]: F:计算固定宽基进场信号并按真实开收盘模拟独立全仓账户 | R:code:timing/data.py,code:timing/update.py,code:timing/backtest.py | A:strategy-v1.0；classify、signals、simulate、metrics | S:趋势严格比较20日前MA200；波动排除当天；A/B切换不断轮；次开盘成交，第20持有日收盘到期；价格阈值不含费用，末端不虚构成交
+update.py[AW8T]: F:独立拉取两指数许可日线并保存最新结果、完整历史与失败状态 | R:code:timing/data.py,code:timing/strategy.py,code:timing/history.py | A:python -m timing.update；两源URL、许可标志及原响应SHA256 | S:未配置不抓替代源；失败保留该指数旧历史及成功时间；缺预期最新收盘拒作当前
+verify_backtest.py[TQ7T]: F:从本地导出账本独立核对成交时间、费用、持有天数和净值恒等式 | R:code:timing/backtest.py | A:verify；CLI写ledger-audit.json | S:读取的是本机研究明细，分组成交记录含费用和区间重复，不能作为独立样本量
