@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "monitoring_start_month": "2026-07",
-  "evaluated_date": "2026-11-20",
+  "evaluated_date": "2026-11-26",
   "policy": {
     "timezone": "Asia/Shanghai",
     "check_time": "18:30",
@@ -64,7 +64,7 @@
         "next_window_start": "2027-01-14"
       },
       "backlog_rounds": [],
-      "phase": "window",
+      "phase": "idle",
       "missing_periods": [],
       "last_checked_at": "2026-11-20T03:07:48+08:00",
       "last_probe_error": null
@@ -125,26 +125,28 @@
       "dataset": "hk_m2",
       "label": "香港M2同比",
       "window": "26日至月底",
-      "target_observation": "2026-09",
+      "target_observation": "2026-10",
       "current_round": {
-        "release_month": "2026-10",
-        "observation_period": "2026-09",
-        "window_start": "2026-10-26",
-        "window_end": "2026-10-31",
-        "next_window_start": "2026-11-26",
-        "status": "acquired"
-      },
-      "next_round": {
         "release_month": "2026-11",
         "observation_period": "2026-10",
         "window_start": "2026-11-26",
         "window_end": "2026-11-30",
-        "next_window_start": "2026-12-26"
+        "next_window_start": "2026-12-26",
+        "status": "awaiting"
+      },
+      "next_round": {
+        "release_month": "2026-12",
+        "observation_period": "2026-11",
+        "window_start": "2026-12-26",
+        "window_end": "2026-12-31",
+        "next_window_start": "2027-01-26"
       },
       "backlog_rounds": [],
-      "phase": "idle",
-      "missing_periods": [],
-      "last_checked_at": "2026-11-12T21:46:38+08:00",
+      "phase": "window",
+      "missing_periods": [
+        "2026-10"
+      ],
+      "last_checked_at": "2026-11-26T04:05:52+08:00",
       "last_probe_error": null
     },
     {
@@ -175,10 +177,10 @@
     }
   ],
   "due_sources": [
-    "retail"
+    "hk_m2"
   ],
   "alerts": [],
   "new_alerts": [],
   "refreshed_sources": [],
-  "last_run_at": "2026-11-20T03:07:52+08:00"
+  "last_run_at": "2026-11-26T04:05:57+08:00"
 }
